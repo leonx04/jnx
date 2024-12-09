@@ -30,8 +30,8 @@ export default function Home() {
 
   const slides = [
     { 
-      image: 'https://i.pinimg.com/originals/5f/f4/58/5ff45883d083027e28142ce6fc48659d.gif', 
-      title: 'Welcome to Cyber Store', 
+      image: 'https://i.pinimg.com/originals/a6/49/05/a64905c8084871f7e772e499892a9e3a.gif', 
+      title: 'Welcome to JNX Store', 
       description: 'Experience the future of shopping' 
     },
     { 
