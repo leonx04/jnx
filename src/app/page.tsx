@@ -108,7 +108,7 @@ export default function Home() {
           ))}
         </div>
         <div className="text-center mt-8">
-          <Link href="/products" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+          <Link href="/pages/products" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
             Xem thêm sản phẩm
             <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
           </Link>

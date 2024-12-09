@@ -31,13 +31,21 @@ const ProductCard = ({ product }: { product: Product }) => {
         <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
         <div className="flex items-center mb-2">
           {Array.from({ length: 5 }).map((_, index) => (
-            <FontAwesomeIcon
-              key={index}
-              icon={faStar}
-              className={`h-4 w-4 ${index < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-            />
+            <div key={index} className="star-rating">
+              <FontAwesomeIcon icon={faStar} className="star-bg" />
+              <div
+                className="star-fg"
+                style={{
+                  width: `${Math.max(0, Math.min(100, (product.rating - index) * 100))}%`
+                }}
+              >
+                <FontAwesomeIcon icon={faStar} />
+              </div>
+            </div>
           ))}
-          <span className="text-sm text-gray-600 ml-1">({product.reviewCount})</span>
+          <span className="text-sm text-gray-600 ml-1">
+            ({product.rating.toFixed(1)}) {product.reviewCount}
+          </span>
         </div>
         <div className="mt-auto flex justify-between items-center">
           <div>
