@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'vtlsport.vn',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.gusport.com.vn',
+      }
     ],
   },
 };

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShoppingCart, faStar, faShieldAlt, faUndo } from '@fortawesome/free-solid-svg-icons'
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, query, orderByChild, equalTo } from "firebase/database";
 import { database } from '@/firebaseConfig'
 
 interface Product {
@@ -30,14 +30,15 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null)
   
   useEffect(() => {
-    const productRef = ref(database, `products/${params.id}`);
-    onValue(productRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setProduct({
-          id: params.id as string,
-          ...data
-        });
+    const productsRef = ref(database, 'products');
+    const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string));
+    
+    onValue(productQuery, (snapshot) => {
+      if (snapshot.exists()) {
+        const productData = Object.values(snapshot.val())[0] as Product;
+        setProduct(productData);
+      } else {
+        console.log("No product found with the given ID");
       }
     });
   }, [params.id]);
@@ -137,7 +138,7 @@ export default function ProductDetail() {
           <div className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Đặc điểm nổi bật</h2>
             <ul className="list-disc list-inside space-y-2">
-              {product.features.map((feature, index) => (
+              {product.features && product.features.map((feature, index) => (
                 <li key={index} className="text-gray-600">{feature}</li>
               ))}
             </ul>
@@ -147,3 +148,4 @@ export default function ProductDetail() {
     </div>
   )
 }
+
