@@ -16,21 +16,21 @@ interface CarouselProps {
 }
 
 const Carousel: React.FC<CarouselProps> = ({ slides }) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prevSlide) => (prevSlide + 1) % slides.length);
+      setActiveSlide((prevSlide) => (prevSlide + 1) % slides.length);
     }, 5000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
   const goToNextSlide = () => {
-    setCurrentSlide((prevSlide) => (prevSlide + 1) % slides.length);
+    setActiveSlide((prevSlide) => (prevSlide + 1) % slides.length);
   };
 
   const goToPrevSlide = () => {
-    setCurrentSlide((prevSlide) => (prevSlide - 1 + slides.length) % slides.length);
+    setActiveSlide((prevSlide) => (prevSlide - 1 + slides.length) % slides.length);
   };
 
   return (
@@ -39,7 +39,7 @@ const Carousel: React.FC<CarouselProps> = ({ slides }) => {
         <div
           key={index}
           className={`absolute top-0 left-0 w-full h-full transition-opacity duration-500 ${
-            index === currentSlide ? 'opacity-100' : 'opacity-0'
+            index === activeSlide ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <Image

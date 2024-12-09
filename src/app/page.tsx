@@ -3,7 +3,6 @@
 import { faArrowRight, faHeadset, faMoneyBillWave, faShippingFast } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import Carousel from './components/Carousel';
 import ProductCard from './components/ProductCard';
 
@@ -26,8 +25,6 @@ const saleProducts = [
 ];
 
 export default function Home() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-
   const slides = [
     { 
       image: 'https://i.pinimg.com/originals/a6/49/05/a64905c8084871f7e772e499892a9e3a.gif', 
@@ -45,13 +42,6 @@ export default function Home() {
       description: 'On orders over 2,000,000 VND' 
     },
   ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prevSlide) => (prevSlide + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
