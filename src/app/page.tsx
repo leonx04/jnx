@@ -1,30 +1,47 @@
 'use client'
 
-import { faArrowRight, faHeadset, faMoneyBillWave, faShippingFast } from '@fortawesome/free-solid-svg-icons';
+import { useEffect, useState } from 'react';
+import { ref, onValue } from "firebase/database";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowRight, faHeadset, faMoneyBillWave, faShippingFast } from '@fortawesome/free-solid-svg-icons';
 import Link from 'next/link';
 import Carousel from './components/Carousel';
 import ProductCard from './components/ProductCard';
+import { database } from '../firebaseConfig';
 
-const featuredProducts = [
-  { id: 1, name: 'Smartphone XYZ', price: 9990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 2, name: 'Laptop ABC', price: 19990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 3, name: 'Smartwatch 123', price: 2990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 4, name: 'Wireless Earbuds', price: 1990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-];
-
-const saleProducts = [
-  { id: 5, name: 'Bluetooth Speaker', price: 890000, originalPrice: 1290000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 6, name: 'Gaming Mouse', price: 590000, originalPrice: 790000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 7, name: 'External SSD 1TB', price: 2490000, originalPrice: 2990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 8, name: 'Mechanical Keyboard', price: 1490000, originalPrice: 1790000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 9, name: 'Wireless Charger', price: 390000, originalPrice: 590000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 10, name: 'Fitness Tracker', price: 990000, originalPrice: 1290000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 11, name: 'Portable Power Bank', price: 690000, originalPrice: 890000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-  { id: 12, name: 'Noise-Canceling Headphones', price: 3990000, originalPrice: 4490000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif' },
-];
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  salePrice: number;
+  description: string;
+  category: string;
+  brand: string;
+  imageUrl: string;
+  rating: number;
+  reviewCount: number;
+}
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const productsRef = ref(database, 'products');
+    onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const productsArray = Object.entries(data).map(([id, product]) => ({
+          id,
+          ...(product as Omit<Product, 'id'>)
+        }));
+        setProducts(productsArray);
+      }
+    });
+  }, []);
+
+  const featuredProducts = products.slice(0, 4);
+  const saleProducts = products.slice(4, 12);
+
   const slides = [
     { 
       image: 'https://i.pinimg.com/originals/a6/49/05/a64905c8084871f7e772e499892a9e3a.gif', 
@@ -86,12 +103,12 @@ export default function Home() {
       <section className="my-16">
         <h2 className="text-3xl font-bold mb-8">Sản phẩm giảm giá</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {saleProducts.slice(0, 8).map((product) => (
+          {saleProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
         <div className="text-center mt-8">
-          <Link href="/pages/products" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
+          <Link href="/products" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded inline-flex items-center">
             Xem thêm sản phẩm
             <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
           </Link>

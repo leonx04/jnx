@@ -1,27 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShoppingCart, faStar, faShieldAlt, faUndo } from '@fortawesome/free-solid-svg-icons'
+import { ref, onValue } from "firebase/database";
+import { database } from '@/firebaseConfig'
 
-// Temporary product data - in a real app, this would come from an API or database
-const products = [
-  { id: 1, name: 'Smartphone XYZ', price: 9990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif', description: 'Điện thoại thông minh với camera chất lượng cao và pin trâu.', rating: 4.5, stock: 10 },
-  { id: 2, name: 'Laptop ABC', price: 19990000, image: 'https://i.pinimg.com/originals/e4/c3/9a/e4c39a73c1d9f9d32ca69f9ea0783c66.gif', description: 'Laptop mạnh mẽ với card đồ họa cao cấp.', rating: 4.8, stock: 5 },
-  // ... add more products as needed
-]
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  salePrice: number;
+  imageUrl: string;
+  description: string;
+  detailedDescription: string;
+  rating: number;
+  reviewCount: number;
+  availableStock: number;
+  brand: string;
+  category: string;
+  features: string[];
+}
 
 export default function ProductDetail() {
   const params = useParams()
   const [quantity, setQuantity] = useState(1)
+  const [product, setProduct] = useState<Product | null>(null)
   
-  // Find the product based on the ID from the URL
-  const product = products.find(p => p.id === Number(params.id))
-  
+  useEffect(() => {
+    const productRef = ref(database, `products/${params.id}`);
+    onValue(productRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setProduct({
+          id: params.id as string,
+          ...data
+        });
+      }
+    });
+  }, [params.id]);
+
   if (!product) {
-    return <div className="container mx-auto px-4 py-8">Không tìm thấy sản phẩm</div>
+    return <div className="container mx-auto px-4 py-8">Loading...</div>;
   }
 
   const handleAddToCart = () => {
@@ -32,10 +54,9 @@ export default function ProductDetail() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Product Image */}
-        <div className="relative h-[400px] rounded-lg overflow-hidden">
+        <div className="relative h-[400px] md:h-[600px] rounded-lg overflow-hidden">
           <Image
-            src={product.image}
+            src={product.imageUrl || '/placeholder.svg'}
             alt={product.name}
             fill
             className="object-cover"
@@ -43,25 +64,29 @@ export default function ProductDetail() {
           />
         </div>
 
-        {/* Product Info */}
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">{product.name}</h1>
           
           <div className="flex items-center space-x-2">
-            {[...Array(5)].map((_, index) => (
+            {Array.from({ length: 5 }).map((_, index) => (
               <FontAwesomeIcon
                 key={index}
                 icon={faStar}
                 className={`h-5 w-5 ${index < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
               />
             ))}
-            <span className="text-gray-600">({product.rating})</span>
+            <span className="text-gray-600">({product.reviewCount} đánh giá)</span>
           </div>
 
           <p className="text-gray-600">{product.description}</p>
           
           <div className="text-3xl font-bold text-blue-600">
-            {product.price.toLocaleString('vi-VN')} ₫
+            {product.salePrice.toLocaleString('vi-VN')} ₫
+            {product.salePrice < product.price && (
+              <span className="text-lg text-gray-500 line-through ml-2">
+                {product.price.toLocaleString('vi-VN')} ₫
+              </span>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -73,14 +98,14 @@ export default function ProductDetail() {
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 className="border rounded-md px-2 py-1"
               >
-                {[...Array(Math.min(5, product.stock))].map((_, i) => (
+                {Array.from({ length: Math.min(5, product.availableStock) }).map((_, i) => (
                   <option key={i + 1} value={i + 1}>
                     {i + 1}
                   </option>
                 ))}
               </select>
               <span className="text-gray-600">
-                {product.stock} sản phẩm có sẵn
+                {product.availableStock} sản phẩm có sẵn
               </span>
             </div>
 
@@ -103,9 +128,22 @@ export default function ProductDetail() {
               <span>Đổi trả miễn phí trong 30 ngày</span>
             </div>
           </div>
+
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Thông tin chi tiết</h2>
+            <p className="text-gray-600">{product.detailedDescription}</p>
+          </div>
+
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Đặc điểm nổi bật</h2>
+            <ul className="list-disc list-inside space-y-2">
+              {product.features.map((feature, index) => (
+                <li key={index} className="text-gray-600">{feature}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-
