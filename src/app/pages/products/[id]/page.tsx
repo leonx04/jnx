@@ -114,13 +114,21 @@ export default function ProductDetail() {
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
           
           <div className="flex items-center space-x-2">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <FontAwesomeIcon
-                key={index}
-                icon={faStar}
-                className={index < Math.floor(product.rating) ? "text-yellow-400" : "text-gray-300"}
-              />
-            ))}
+            <div className="flex">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="star-rating relative w-5 h-5 mx-0.5">
+                  <FontAwesomeIcon icon={faStar} className="absolute text-gray-300" />
+                  <div
+                    className="absolute overflow-hidden text-yellow-400"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, (product.rating - index) * 100))}%`
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faStar} />
+                  </div>
+                </div>
+              ))}
+            </div>
             <span className="text-gray-600 ml-2">
               ({product.rating.toFixed(1)}) {product.reviewCount} đánh giá
             </span>
