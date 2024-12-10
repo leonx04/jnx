@@ -1,35 +1,21 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+import Image from 'next/image'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { 
+  faShoppingCart, faStar, faShieldAlt, faUndo, faTruck,
+  faWeight, faRulerHorizontal, faRulerVertical, faGripLines,
+  faPalette, faCompressArrowsAlt, faBalanceScale, faBolt,
+  faHandPaper, faCalendarAlt, faGlobe, faTrophy, faUser,
+  faCogs, faCheck
+} from '@fortawesome/free-solid-svg-icons'
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import {
-  faBalanceScale,
-  faBolt,
-  faCalendarAlt,
-  faCheck,
-  faCogs,
-  faCompressArrowsAlt,
-  faGlobe,
-  faGripLines,
-  faHandPaper,
-  faPalette,
-  faRulerHorizontal,
-  faRulerVertical,
-  faShieldAlt,
-  faShoppingCart,
-  faStar,
-  faTrophy,
-  faTruck,
-  faUndo,
-  faUser,
-  faWeight
-} from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { equalTo, onValue, orderByChild, query, ref } from "firebase/database"
-import Image from 'next/image'
-import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { ref, push, set, get, query, orderByChild, equalTo, onValue } from "firebase/database"
 
 interface Product {
   id: string;
@@ -70,186 +56,153 @@ interface Product {
   frameProfile: string;
 }
 
-export default function ProductDetail() {
-  const params = useParams()
-  const [quantity, setQuantity] = useState(1)
+export default function ProductDetails() {
   const [product, setProduct] = useState<Product | null>(null)
-  
+  const [quantity, setQuantity] = useState(1)
+  const [isAdding, setIsAdding] = useState(false)
+  const { user } = useAuthContext()
+  const params = useParams()
+
   useEffect(() => {
-    const productsRef = ref(database, 'products');
-    const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string));
+    const productsRef = ref(database, 'products')
+    const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string))
     
     onValue(productQuery, (snapshot) => {
       if (snapshot.exists()) {
-        const productData = Object.values(snapshot.val())[0] as Product;
-        setProduct(productData);
+        const productData = Object.values(snapshot.val())[0] as Product
+        setProduct(productData)
       } else {
-        console.log("Không tìm thấy sản phẩm với ID đã cho");
+        console.log("Không tìm thấy sản phẩm với ID đã cho")
+        // Có thể chuyển hướng người dùng đến trang 404 hoặc trang danh sách sản phẩm
+        // router.push('/404') hoặc router.push('/pages/products')
       }
-    });
-  }, [params.id]);
+    })
+  }, [params.id])
 
-  if (!product) {
-    return <div className="container mx-auto px-4 py-8">Đang tải...</div>;
+  const handleAddToCart = async () => {
+    if (user && product) {
+      setIsAdding(true)
+      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
+      const snapshot = await get(cartRef)
+      const existingCart = snapshot.val() || {}
+      
+      const existingItem = Object.entries(existingCart).find(([_, item]: [string, any]) => item.productId === product.id)
+      
+      if (existingItem) {
+        const [key, item] = existingItem
+        set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
+          ...item,
+          quantity: item.quantity + quantity
+        })
+      } else {
+        push(cartRef, {
+          name: product.name,
+          price: product.salePrice,
+          quantity: quantity,
+          imageUrl: product.imageUrl,
+          productId: product.id 
+        })
+      }
+      
+      console.log(`Đã thêm ${quantity} ${product.name} vào giỏ hàng`)
+      setTimeout(() => setIsAdding(false), 500)
+    } else {
+      console.log('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')
+    }
   }
 
-  const handleAddToCart = () => {
-    console.log(`Đã thêm ${quantity} ${product.name} vào giỏ hàng`)
+  if (!product) {
+    return <div className="container mx-auto px-4 py-8">Đang tải...</div>
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
-        <div className="relative aspect-square w-full rounded-lg overflow-hidden shadow-lg">
-          <Image
-            src={product.imageUrl || '/placeholder.svg'}
-            alt={product.name}
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            priority={true}
-          />
+      <div className="grid md:grid-cols-2 gap-8">
+        <div>
+          <Image src={product.imageUrl} alt={product.name} width={500} height={500} className="w-full h-auto object-cover rounded-lg shadow-lg" />
         </div>
-
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-          
-          <div className="flex items-center space-x-2">
-            <div className="flex">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="star-rating relative w-5 h-5 mx-0.5">
-                  <FontAwesomeIcon icon={faStar} className="absolute text-gray-300" />
-                  <div
-                    className="absolute overflow-hidden text-yellow-400"
-                    style={{
-                      width: `${Math.max(0, Math.min(100, (product.rating - index) * 100))}%`
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faStar} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <span className="text-gray-600 ml-2">
-              ({product.rating.toFixed(1)}) {product.reviewCount} đánh giá
-            </span>
+        <div>
+          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+          <div className="flex items-center mb-4">
+            {[...Array(5)].map((_, i) => (
+              <FontAwesomeIcon key={i} icon={faStar} className={i < product.rating ? "text-yellow-400" : "text-gray-300"} />
+            ))}
+            <span className="ml-2 text-gray-600">({product.reviewCount} đánh giá)</span>
           </div>
-
-          <p className="text-gray-600">{product.description}</p>
-          
-          <div className="text-3xl font-bold text-blue-600">
-            {product.salePrice.toLocaleString('vi-VN')} ₫
-            {product.salePrice < product.price && (
-              <span className="text-lg text-gray-500 line-through ml-2">
-                {product.price.toLocaleString('vi-VN')} ₫
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <label htmlFor="quantity" className="text-gray-700">Số lượng:</label>
-              <select
-                id="quantity"
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="border rounded-md px-2 py-1"
-              >
-                {Array.from({ length: Math.min(5, product.availableStock) }).map((_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {i + 1}
-                  </option>
-                ))}
-              </select>
-              <span className="text-gray-600">
-                {product.availableStock} sản phẩm có sẵn
-              </span>
-            </div>
-
-            <button
-              onClick={handleAddToCart}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center space-x-2 transition duration-300 ease-in-out transform hover:scale-105"
+          <p className="text-2xl font-bold mb-4">{product.salePrice.toLocaleString('vi-VN')} ₫</p>
+          {product.salePrice < product.price && (
+            <p className="text-lg text-gray-500 line-through mb-4">{product.price.toLocaleString('vi-VN')} ₫</p>
+          )}
+          <p className="mb-4">{product.description}</p>
+          <div className="flex items-center mb-4">
+            <button 
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              className="bg-gray-200 px-3 py-1 rounded-l"
             >
-              <FontAwesomeIcon icon={faShoppingCart} />
-              <span>Thêm vào giỏ hàng</span>
+              -
+            </button>
+            <span className="bg-gray-100 px-4 py-1">{quantity}</span>
+            <button 
+              onClick={() => setQuantity(quantity + 1)}
+              className="bg-gray-200 px-3 py-1 rounded-r"
+            >
+              +
             </button>
           </div>
-
-          <div className="border-t pt-6 space-y-4">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <FontAwesomeIcon icon={faShieldAlt} className="text-blue-500" />
-              <span>Bảo hành {product.warranty}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-gray-600">
-              <FontAwesomeIcon icon={faUndo} className="text-blue-500" />
-              <span>Đổi trả miễn phí trong 30 ngày</span>
-            </div>
-            <div className="flex items-center space-x-2 text-gray-600">
-              <FontAwesomeIcon icon={faTruck} className="text-blue-500" />
-              <span>Giao hàng miễn phí toàn quốc</span>
-            </div>
-          </div>
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded ${isAdding ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
+          </button>
         </div>
       </div>
-
-      <Tabs defaultValue="specs" className="w-full mt-12">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
-          <TabsTrigger value="specs">Thông số kỹ thuật</TabsTrigger>
-          <TabsTrigger value="additional">Thông tin bổ sung</TabsTrigger>
+      
+      <Tabs defaultValue="description" className="mt-8">
+        <TabsList>
           <TabsTrigger value="description">Mô tả chi tiết</TabsTrigger>
-          <TabsTrigger value="features">Đặc điểm nổi bật</TabsTrigger>
+          <TabsTrigger value="specifications">Thông số kỹ thuật</TabsTrigger>
+          <TabsTrigger value="features">Tính năng</TabsTrigger>
         </TabsList>
-        <TabsContent value="specs">
-          <Card>
-            <CardContent className="pt-6">
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <SpecItem icon={faWeight} label="Trọng lượng" value={product.weight} />
-                <SpecItem icon={faRulerHorizontal} label="Kích thước đầu vợt" value={product.headSize} />
-                <SpecItem icon={faRulerVertical} label="Chiều dài" value={product.length} />
-                <SpecItem icon={faGripLines} label="Kích thước cán" value={product.gripSize} />
-                <SpecItem icon={faPalette} label="Màu sắc" value={product.color} />
-                <SpecItem icon={faCompressArrowsAlt} label="Mẫu dây" value={product.stringPattern} />
-                <SpecItem icon={faBalanceScale} label="Trọng lượng đu đưa" value={`${product.swingWeight}`} />
-                <SpecItem icon={faBolt} label="Mức độ lực" value={product.powerLevel} />
-                <SpecItem icon={faHandPaper} label="Mức độ thoải mái" value={product.comfortLevel} />
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="additional">
-          <Card>
-            <CardContent className="pt-6">
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <SpecItem icon={faCalendarAlt} label="Năm sản xuất" value={`${product.yearReleased}`} />
-                <SpecItem icon={faGlobe} label="Xuất xứ" value={product.origin} />
-                <SpecItem icon={faTrophy} label="Xếp hạng bán chạy" value={`${product.bestSellerRank}`} />
-                <SpecItem icon={faBalanceScale} label="Cân bằng" value={product.balance} />
-                <SpecItem icon={faBolt} label="Độ cứng" value={`${product.stiffness}`} />
-                <SpecItem icon={faBolt} label="Tốc độ đu đưa" value={product.swingSpeed} />
-                <SpecItem icon={faUser} label="Loại người chơi" value={product.playerType} />
-                <SpecItem icon={faCompressArrowsAlt} label="Độ căng dây" value={product.stringTension} />
-                <SpecItem icon={faCogs} label="Chất liệu" value={product.material} />
-                <SpecItem icon={faCogs} label="Công nghệ" value={product.technology} />
-                <SpecItem icon={faRulerHorizontal} label="Cấu trúc khung" value={product.frameProfile} />
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
         <TabsContent value="description">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-gray-700 leading-relaxed">{product.detailedDescription}</p>
+              <p>{product.detailedDescription}</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="specifications">
+          <Card>
+            <CardContent className="pt-6">
+              <ul className="grid grid-cols-2 gap-4">
+                <li><FontAwesomeIcon icon={faWeight} className="mr-2" /> Trọng lượng: {product.weight}</li>
+                <li><FontAwesomeIcon icon={faRulerHorizontal} className="mr-2" /> Kích thước đầu vợt: {product.headSize}</li>
+                <li><FontAwesomeIcon icon={faRulerVertical} className="mr-2" /> Chiều dài: {product.length}</li>
+                <li><FontAwesomeIcon icon={faGripLines} className="mr-2" /> Kích thước cán: {product.gripSize}</li>
+                <li><FontAwesomeIcon icon={faPalette} className="mr-2" /> Màu sắc: {product.color}</li>
+                <li><FontAwesomeIcon icon={faCompressArrowsAlt} className="mr-2" /> Mẫu dây: {product.stringPattern}</li>
+                <li><FontAwesomeIcon icon={faBalanceScale} className="mr-2" /> Trọng lượng swing: {product.swingWeight}</li>
+                <li><FontAwesomeIcon icon={faBolt} className="mr-2" /> Mức độ lực: {product.powerLevel}</li>
+                <li><FontAwesomeIcon icon={faHandPaper} className="mr-2" /> Mức độ thoải mái: {product.comfortLevel}</li>
+                <li><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" /> Năm ra mắt: {product.yearReleased}</li>
+                <li><FontAwesomeIcon icon={faShieldAlt} className="mr-2" /> Bảo hành: {product.warranty}</li>
+                <li><FontAwesomeIcon icon={faGlobe} className="mr-2" /> Xuất xứ: {product.origin}</li>
+                <li><FontAwesomeIcon icon={faTrophy} className="mr-2" /> Xếp hạng bán chạy: {product.bestSellerRank}</li>
+                <li><FontAwesomeIcon icon={faUser} className="mr-2" /> Loại người chơi: {product.playerType}</li>
+                <li><FontAwesomeIcon icon={faCogs} className="mr-2" /> Độ cứng: {product.stiffness}</li>
+              </ul>
             </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="features">
           <Card>
             <CardContent className="pt-6">
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {product.features && product.features.map((feature, index) => (
-                  <li key={index} className="flex items-start space-x-2">
-                    <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-1 flex-shrink-0" />
-                    <span className="text-gray-700">{feature}</span>
+              <ul className="list-disc pl-5">
+                {product.features.map((feature, index) => (
+                  <li key={index} className="mb-2">
+                    <FontAwesomeIcon icon={faCheck} className="mr-2 text-green-500" />
+                    {feature}
                   </li>
                 ))}
               </ul>
@@ -258,16 +211,6 @@ export default function ProductDetail() {
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-function SpecItem({ icon, label, value }: { icon: typeof faWeight; label: string; value: string }) {
-  return (
-    <li className="flex items-center space-x-2">
-      <FontAwesomeIcon icon={icon} className="text-blue-500 w-5 h-5" />
-      <span className="font-semibold">{label}:</span>
-      <span className="text-gray-700">{value}</span>
-    </li>
   )
 }
 
