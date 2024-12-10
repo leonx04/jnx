@@ -2,7 +2,7 @@
 
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { get, onValue, ref, remove, runTransaction, set } from 'firebase/database'
+import { get, onValue, ref, remove, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -254,24 +254,21 @@ export default function Checkout() {
   }, [selectedProvince, selectedDistrict, selectedWard, cartItems])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    // Kiểm tra thông tin user
     if (!getUserEmail) {
-      toast.error('Vui lòng đăng nhập để hoàn tất đơn hàng.')
-      return
+      toast.error('Vui lòng đăng nhập để hoàn tất đơn hàng.');
+      return;
     }
 
     try {
-      // Kiểm tra số lượng sản phẩm trước khi đặt hàng
-      const isStockAvailable = await checkProductStock(cartItems)
+      const isStockAvailable = await checkProductStock(cartItems);
       if (!isStockAvailable) {
-        toast.error('Một số sản phẩm trong giỏ hàng đã hết hàng hoặc không đủ số lượng. Vui lòng kiểm tra lại.')
-        return
+        return;
       }
 
       const order = {
@@ -290,49 +287,45 @@ export default function Checkout() {
         total: calculateTotal(),
         status: 'pending',
         createdAt: new Date().toISOString()
-      }
+      };
 
-      // Thêm kiểm tra đầy đủ thông tin trước khi đặt hàng
-      const orderValidationErrors: string[] = []
-      if (!order.userId) orderValidationErrors.push('Thiếu thông tin người dùng')
-      if (!order.userEmail) orderValidationErrors.push('Thiếu email')
-      if (!order.fullName) orderValidationErrors.push('Thiếu tên')
-      if (!order.phoneNumber) orderValidationErrors.push('Thiếu số điện thoại')
-      if (order.items.length === 0) orderValidationErrors.push('Giỏ hàng trống')
+      const orderValidationErrors: string[] = [];
+      if (!order.userId) orderValidationErrors.push('Thiếu thông tin người dùng');
+      if (!order.userEmail) orderValidationErrors.push('Thiếu email');
+      if (!order.fullName) orderValidationErrors.push('Thiếu tên');
+      if (!order.phoneNumber) orderValidationErrors.push('Thiếu số điện thoại');
+      if (order.items.length === 0) orderValidationErrors.push('Giỏ hàng trống');
 
       if (orderValidationErrors.length > 0) {
-        orderValidationErrors.forEach(error => toast.error(error))
-        return
+        orderValidationErrors.forEach(error => toast.error(error));
+        return;
       }
 
-      // Tạo đơn hàng
-      const safeEmail = getUserEmail.replace(/\./g, ',')
-      const orderRef = ref(database, `orders/${safeEmail}/${Date.now()}`)
+      const safeEmail = getUserEmail.replace(/\./g, ',');
+      const orderRef = ref(database, `orders/${safeEmail}/${Date.now()}`);
 
-      await set(orderRef, order)
+      await set(orderRef, order);
 
-      // Xóa giỏ hàng
-      const cartRef = ref(database, `carts/${safeEmail}`)
-      await remove(cartRef)
+      const cartRef = ref(database, `carts/${safeEmail}`);
+      await remove(cartRef);
 
-      // Cập nhật số lượng tồn kho
       const updateStockPromises = cartItems.map(async (item) => {
-        const productRef = ref(database, `products/${item.productId}`)
+        const productRef = ref(database, `products/${item.productId}`);
         await runTransaction(productRef, (product) => {
           if (product && product.availableStock !== undefined) {
-            product.availableStock -= item.quantity
+            product.availableStock -= item.quantity;
           }
-          return product
-        })
-      })
+          return product;
+        });
+      });
 
-      await Promise.all(updateStockPromises)
+      await Promise.all(updateStockPromises);
 
-      toast.success('Đặt hàng thành công!')
-      router.push('/pages/order-confirmation')
+      toast.success('Đặt hàng thành công!');
+      router.push('/pages/order-confirmation');
     } catch (error) {
-      console.error('Lỗi khi đặt hàng:', error)
-      toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.')
+      console.error('Lỗi khi đặt hàng:', error);
+      toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
   }
 
@@ -347,40 +340,34 @@ export default function Checkout() {
   const checkProductStock = async (items: CartItem[]) => {
     try {
       const stockCheckPromises = items.map(async (item) => {
-        const productRefs = [
-          ref(database, `products/${item.productId}`),
-          ref(database, `products/${item.id}`)
-        ]
+        const productsRef = ref(database, 'products');
+        const productQuery = query(productsRef, orderByChild('id'), equalTo(item.productId));
+        const snapshot = await get(productQuery);
 
-        for (const productRef of productRefs) {
-          const snapshot = await get(productRef)
-          const product = snapshot.val()
+        if (snapshot.exists()) {
+          const productData = Object.values(snapshot.val())[0] as { availableStock: number, name: string };
+          const availableStock = productData.availableStock;
 
-          if (product) {
-            const availableStock =
-              product.availableStock !== undefined ?
-                Number(product.availableStock) :
-                (product.stock ? Number(product.stock) : 0)
-
-            if (!isNaN(availableStock) && availableStock >= item.quantity) {
-              return true
-            }
+          if (availableStock >= item.quantity) {
+            return true;
+          } else {
+            toast.error(`Sản phẩm "${productData.name}" không đủ số lượng. Chỉ còn ${availableStock} sản phẩm`);
+            return false;
           }
+        } else {
+          toast.error(`Không tìm thấy sản phẩm: ${item.name}`);
+          return false;
         }
+      });
 
-        toast.error(`Không tìm thấy sản phẩm hoặc không đủ tồn kho: ${item.name}`)
-        return false
-      })
-
-      const stockResults = await Promise.all(stockCheckPromises)
-      return stockResults.every(result => result)
+      const stockResults = await Promise.all(stockCheckPromises);
+      return stockResults.every(result => result);
     } catch (error) {
-      console.error('Lỗi kiểm tra tồn kho:', error)
-      toast.error('Không thể kiểm tra tồn kho. Vui lòng thử lại.')
-      return false
+      console.error('Lỗi kiểm tra tồn kho:', error);
+      toast.error('Không thể kiểm tra tồn kho. Vui lòng thử lại.');
+      return false;
     }
-  }
-
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -502,3 +489,4 @@ export default function Checkout() {
     </div>
   )
 }
+
