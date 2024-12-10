@@ -68,6 +68,14 @@ interface Product {
   frameProfile: string;
 }
 
+interface CartItem {
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+  productId: string;
+}
+
 export default function ProductDetails() {
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
@@ -106,9 +114,9 @@ export default function ProductDetails() {
       setIsAdding(true)
       const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
       const snapshot = await get(cartRef)
-      const existingCart = snapshot.val() || {}
+      const existingCart = snapshot.val() as Record<string, CartItem> | null
       
-      const existingItem = Object.entries(existingCart).find(([_, item]: [string, any]) => item.productId === product.id)
+      const existingItem = existingCart ? Object.entries(existingCart).find(([_, item]) => item.productId === product.id) : null
       
       if (existingItem) {
         const [key, item] = existingItem
@@ -346,3 +354,4 @@ export default function ProductDetails() {
     </div>
   )
 }
+

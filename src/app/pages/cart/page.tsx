@@ -20,6 +20,16 @@ interface CartItem {
   productId: string
 }
 
+interface FirebaseCartItem {
+  [key: string]: {
+    name: string
+    price: number
+    quantity: number
+    imageUrl: string
+    productId: string
+  }
+}
+
 export default function Cart() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [selectedItems, setSelectedItems] = useState<string[]>([])
@@ -31,9 +41,9 @@ export default function Cart() {
     if (user) {
       const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
       onValue(cartRef, (snapshot) => {
-        const data = snapshot.val()
+        const data = snapshot.val() as FirebaseCartItem | null
         if (data) {
-          const items = Object.entries(data).map(([id, item]: [string, any]) => ({
+          const items = Object.entries(data).map(([id, item]) => ({
             id,
             ...item,
             productId: item.productId || id,
@@ -197,4 +207,3 @@ export default function Cart() {
     </div>
   )
 }
-
