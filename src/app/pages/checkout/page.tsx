@@ -214,22 +214,46 @@ export default function Checkout() {
   const checkProductStock = async (items: CartItem[]) => {
     try {
       const stockCheckPromises = items.map(async (item) => {
-        const productRef = ref(database, `products/${item.productId}`)
-        const snapshot = await get(productRef)
-        const product = snapshot.val()
+        // Log đầy đủ đường dẫn để kiểm tra
+        console.log(`Đường dẫn sản phẩm: products/${item.productId}`)
 
-        // Log để debug
-        console.log(`Checking stock for ${item.name}:`, {
-          availableStock: product?.availableStock,
-          requestedQuantity: item.quantity
-        })
+        // Thử nhiều đường dẫn khác nhau
+        const productRefs = [
+          ref(database, `products/${item.productId}`),
+          ref(database, `products/2`),  // Thử đường dẫn số
+          ref(database, `products/${item.id}`)  // Thử với id khác
+        ]
 
-        // Nếu không tìm thấy sản phẩm hoặc số lượng không đủ
-        if (!product || (product.availableStock === undefined || product.availableStock < item.quantity)) {
-          console.error(`Insufficient stock for ${item.name}`)
-          return false
+        for (const productRef of productRefs) {
+          const snapshot = await get(productRef)
+          const product = snapshot.val()
+
+          console.log(`Kiểm tra đường dẫn ${productRef.key}:`, {
+            productId: item.productId,
+            product: product
+          })
+
+          if (product) {
+            // Kiểm tra availableStock với nhiều cách
+            const availableStock =
+              product.availableStock !== undefined ?
+                Number(product.availableStock) :
+                (product.stock ? Number(product.stock) : 0)
+
+            console.log(`Tồn kho cho ${item.name}:`, {
+              availableStock: availableStock,
+              requestedQuantity: item.quantity
+            })
+
+            if (!isNaN(availableStock) && availableStock >= item.quantity) {
+              return true
+            }
+          }
         }
-        return true
+
+        // Nếu không tìm thấy sản phẩm hoặc không đủ tồn kho
+        toast.error(`Không tìm thấy sản phẩm hoặc không đủ tồn kho: ${item.name}`)
+        return false
       })
 
       const stockResults = await Promise.all(stockCheckPromises)
@@ -248,7 +272,8 @@ export default function Checkout() {
       return
     }
 
-    if (!user) {
+    // Kiểm tra kỹ hơn về user
+    if (!user || !user.uid || !user.email) {
       toast.error('Vui lòng đăng nhập để hoàn tất đơn hàng.')
       return
     }
@@ -262,15 +287,16 @@ export default function Checkout() {
       }
 
       const order = {
-        userId: user.uid,
-        userEmail: user.email,
+        // Sử dụng toán tử optional chaining để tránh undefined
+        userId: user?.uid ?? '',
+        userEmail: user?.email ?? '',
         fullName,
         phoneNumber,
         items: cartItems,
         shippingAddress: {
-          province: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName,
-          district: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName,
-          ward: wards.find(w => w.WardCode === selectedWard)?.WardName,
+          province: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName ?? '',
+          district: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName ?? '',
+          ward: wards.find(w => w.WardCode === selectedWard)?.WardName ?? '',
           address: address
         },
         subtotal: calculateSubtotal(),
@@ -280,12 +306,28 @@ export default function Checkout() {
         createdAt: new Date().toISOString()
       }
 
+      // Thêm kiểm tra đầy đủ thông tin trước khi đặt hàng
+      const orderValidationErrors = [];
+      if (!order.userId) orderValidationErrors.push('Thiếu thông tin người dùng');
+      if (!order.userEmail) orderValidationErrors.push('Thiếu email');
+      if (!order.fullName) orderValidationErrors.push('Thiếu tên');
+      if (!order.phoneNumber) orderValidationErrors.push('Thiếu số điện thoại');
+      if (order.items.length === 0) orderValidationErrors.push('Giỏ hàng trống');
+
+      if (orderValidationErrors.length > 0) {
+        orderValidationErrors.forEach(error => toast.error(error));
+        return;
+      }
+
       // Tạo đơn hàng
-      const orderRef = ref(database, `orders/${user.uid}/${Date.now()}`)
+      // Sử dụng hàm replace để loại bỏ ký tự đặc biệt trong email
+      const safeEmail = user.email.replace(/[.]/g, ',')
+      const orderRef = ref(database, `orders/${safeEmail}/${Date.now()}`)
+
       await set(orderRef, order)
 
       // Xóa giỏ hàng
-      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
+      const cartRef = ref(database, `carts/${safeEmail}`)
       await remove(cartRef)
 
       // Cập nhật số lượng tồn kho
