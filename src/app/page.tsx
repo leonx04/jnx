@@ -20,6 +20,7 @@ interface Product {
   imageUrl: string;
   rating: number;
   reviewCount: number;
+  availableStock: number;
 }
 
 export default function Home() {
