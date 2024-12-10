@@ -32,7 +32,7 @@ interface User {
             const user = users[userId] as User & { password: string };
             if (user.email === email && String(user.password) === password) {
               console.log('User found:', user);
-              const { password: _, ...userWithoutPassword } = user;
+              const { password: _password, ...userWithoutPassword } = user;
               sessionStorage.setItem('user', JSON.stringify(userWithoutPassword));
               setUser(userWithoutPassword);
               return userWithoutPassword;
