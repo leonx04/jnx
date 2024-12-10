@@ -104,10 +104,10 @@ export default function Checkout() {
       onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
         if (data) {
-          const items = Object.entries(data).map(([id, item]: [string, any]) => ({
+          const items = Object.entries(data).map(([id, item]) => ({
             id,
-            ...item,
-          }))
+            ...(item as object),
+          })) as CartItem[]
           setCartItems(items)
         } else {
           setCartItems([])
