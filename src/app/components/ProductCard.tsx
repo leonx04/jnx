@@ -1,10 +1,10 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar, faShoppingCart, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
-import Image from 'next/image';
-import Link from 'next/link';
 import { useAuthContext } from '@/app/context/AuthContext';
 import { database } from '@/firebaseConfig';
-import { ref, push, set, get } from "firebase/database";
+import { faExclamationTriangle, faShoppingCart, faStar } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { get, push, ref, set } from "firebase/database";
+import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 

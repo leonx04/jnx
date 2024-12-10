@@ -1,21 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import Image from 'next/image'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { 
-  faShoppingCart, faStar, faShieldAlt, faUndo, faTruck,
-  faWeight, faRulerHorizontal, faRulerVertical, faGripLines,
-  faPalette, faCompressArrowsAlt, faBalanceScale, faBolt,
-  faHandPaper, faCalendarAlt, faGlobe, faTrophy, faUser,
-  faCogs, faCheck, faBoxOpen, faExclamationTriangle
-} from '@fortawesome/free-solid-svg-icons'
+import { useAuthContext } from '@/app/context/AuthContext'
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { ref, push, set, get, query, orderByChild, equalTo, onValue } from "firebase/database"
+import {
+  faBalanceScale, faBolt,
+  faBoxOpen,
+  faCalendarAlt,
+  faCheck,
+  faCogs,
+  faCompressArrowsAlt,
+  faExclamationTriangle,
+  faGlobe,
+  faGripLines,
+  faHandPaper,
+  faPalette,
+  faRulerHorizontal, faRulerVertical,
+  faShieldAlt,
+  faStar,
+  faTrophy, faUser,
+  faWeight
+} from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "firebase/database"
+import Image from 'next/image'
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 
 interface Product {

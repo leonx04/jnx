@@ -1,15 +1,15 @@
 'use client'
 
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import Image from 'next/image';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { ChevronDownIcon } from '@heroicons/react/20/solid';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
-import { ref, onValue } from 'firebase/database';
 import { database } from '@/firebaseConfig';
+import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { onValue, ref } from 'firebase/database';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useAuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);

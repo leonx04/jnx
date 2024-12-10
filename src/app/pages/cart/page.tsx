@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useAuthContext } from '@/app/context/AuthContext'
+import { database } from '@/firebaseConfig'
+import { faMinus, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { onValue, ref, remove, update } from 'firebase/database'
+import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTrash, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons'
-import { useAuthContext } from '@/app/context/AuthContext'
-import { database } from '@/firebaseConfig'
-import { ref, onValue, update, remove } from 'firebase/database'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useState } from 'react'
 
 interface CartItem {
   id: string
