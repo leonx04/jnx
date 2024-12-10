@@ -15,6 +15,7 @@ interface Product {
   imageUrl: string;
   rating: number;
   reviewCount: number;
+  availableStock: number;
 }
 
 const ProductsPage = () => {
