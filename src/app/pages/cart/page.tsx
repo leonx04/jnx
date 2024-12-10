@@ -105,7 +105,7 @@ export default function Cart() {
       // Xử lý thanh toán cho các sản phẩm đã chọn
       console.log('Tiến hành thanh toán cho:', selectedProducts)
       // Chuyển hướng đến trang thanh toán
-      router.push('/checkout')
+      router.push('/pages/checkout')
     } else {
       alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán')
     }
