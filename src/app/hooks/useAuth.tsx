@@ -8,6 +8,10 @@ interface User {
   imageUrl?: string;
 }
 
+interface UserWithPassword extends User {
+  password: string;
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
 
@@ -29,11 +33,10 @@ export function useAuth() {
       if (snapshot.exists()) {
         const users = snapshot.val();
         for (const userId in users) {
-          const user = users[userId] as User & { password: string };
+          const user = users[userId] as UserWithPassword;
           if (user.email === email && String(user.password) === password) {
             console.log('User found:', user);
-            const userWithoutPassword = { ...user };
-            delete userWithoutPassword.password;
+            const { password: _, ...userWithoutPassword } = user;
             sessionStorage.setItem('user', JSON.stringify(userWithoutPassword));
             setUser(userWithoutPassword);
             return userWithoutPassword;
