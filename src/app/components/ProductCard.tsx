@@ -40,40 +40,55 @@ const ProductCard = ({ product }: { product: Product }) => {
   };
 
   const addToCart = async () => {
-    if (user) {
-      setIsAdding(true);
-      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
-      const snapshot = await get(cartRef);
-      const existingCart = snapshot.val() as Record<string, CartItem> || {};
-      
-      const existingItem = Object.entries(existingCart).find(([_, item]) => item.productId === product.id);
-      
-      if (existingItem) {
-        const [key, item] = existingItem;
-        if (item.quantity >= product.availableStock) {
-          toast.error(`Đã đạt số lượng tối đa có sẵn (${product.availableStock})`);
-          setIsAdding(false);
-          return;
-        }
-        set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
-          ...item,
-          quantity: item.quantity + 1
-        });
-      } else {
-        push(cartRef, {
-          name: product.name,
-          price: product.salePrice || product.price,
-          quantity: 1,
-          imageUrl: product.imageUrl,
-          productId: product.id
-        });
-      }
-      
-      toast.success('Đã thêm sản phẩm vào giỏ hàng');
-      setTimeout(() => setIsAdding(false), 500);
-    } else {
-      toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.');
+    if (!user) {
+      toast.error(
+        <div>
+          Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.
+          <br />
+          <Link href="/pages/login" className="text-blue-500 hover:underline">
+            Đăng nhập ngay
+          </Link>
+        </div>,
+        { duration: 5000 }
+      );
+      return;
     }
+
+    if (product.availableStock === 0) {
+      toast.error('Sản phẩm đã hết hàng');
+      return;
+    }
+
+    setIsAdding(true);
+    const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
+    const snapshot = await get(cartRef);
+    const existingCart = snapshot.val() as Record<string, CartItem> || {};
+    
+    const existingItem = Object.entries(existingCart).find(([_, item]) => item.productId === product.id);
+    
+    if (existingItem) {
+      const [key, item] = existingItem;
+      if (item.quantity >= product.availableStock) {
+        toast.error(`Đã đạt số lượng tối đa có sẵn (${product.availableStock})`);
+        setIsAdding(false);
+        return;
+      }
+      set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
+        ...item,
+        quantity: item.quantity + 1
+      });
+    } else {
+      push(cartRef, {
+        name: product.name,
+        price: product.salePrice || product.price,
+        quantity: 1,
+        imageUrl: product.imageUrl,
+        productId: product.id
+      });
+    }
+    
+    toast.success('Đã thêm sản phẩm vào giỏ hàng');
+    setTimeout(() => setIsAdding(false), 500);
   };
 
   const discountPercentage = calculateDiscountPercentage();

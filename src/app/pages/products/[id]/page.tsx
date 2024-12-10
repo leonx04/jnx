@@ -25,6 +25,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "firebase/database"
 import Image from 'next/image'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
@@ -105,47 +106,62 @@ export default function ProductDetails() {
   }, [params.id])
 
   const handleAddToCart = async () => {
-    if (user && product) {
-      if (quantity > product.availableStock) {
-        toast.error(`Số lượng vượt quá hàng có sẵn (${product.availableStock})`)
-        return
-      }
-
-      setIsAdding(true)
-      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
-      const snapshot = await get(cartRef)
-      const existingCart = snapshot.val() as Record<string, CartItem> | null
-      
-      const existingItem = existingCart ? Object.entries(existingCart).find(([_, item]) => item.productId === product.id) : null
-      
-      if (existingItem) {
-        const [key, item] = existingItem
-        const newQuantity = item.quantity + quantity
-        if (newQuantity > product.availableStock) {
-          toast.error(`Tổng số lượng vượt quá hàng có sẵn (${product.availableStock})`)
-          setIsAdding(false)
-          return
-        }
-        set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
-          ...item,
-          quantity: newQuantity
-        })
-      } else {
-        push(cartRef, {
-          name: product.name,
-          price: product.salePrice || product.price,
-          quantity: quantity,
-          imageUrl: product.imageUrl,
-          productId: product.id 
-        })
-      }
-      
-      toast.success('Đã thêm sản phẩm vào giỏ hàng')
-      setTimeout(() => setIsAdding(false), 500)
-    } else {
-      toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')
+    if (!user) {
+      toast.error(
+        <div>
+          Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.
+          <br />
+          <Link href="/pages/login" className="text-blue-500 hover:underline">
+            Đăng nhập ngay
+          </Link>
+        </div>,
+        { duration: 5000 }
+      );
+      return;
     }
-  }
+
+    if (!product) {
+      toast.error('Không tìm thấy thông tin sản phẩm');
+      return;
+    }
+
+    if (quantity > product.availableStock) {
+      toast.error(`Số lượng vượt quá hàng có sẵn (${product.availableStock})`);
+      return;
+    }
+
+    setIsAdding(true);
+    const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
+    const snapshot = await get(cartRef);
+    const existingCart = snapshot.val() as Record<string, CartItem> | null;
+    
+    const existingItem = existingCart ? Object.entries(existingCart).find(([_, item]) => item.productId === product.id) : null;
+    
+    if (existingItem) {
+      const [key, item] = existingItem;
+      const newQuantity = item.quantity + quantity;
+      if (newQuantity > product.availableStock) {
+        toast.error(`Tổng số lượng vượt quá hàng có sẵn (${product.availableStock})`);
+        setIsAdding(false);
+        return;
+      }
+      set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
+        ...item,
+        quantity: newQuantity
+      });
+    } else {
+      push(cartRef, {
+        name: product.name,
+        price: product.salePrice || product.price,
+        quantity: quantity,
+        imageUrl: product.imageUrl,
+        productId: product.id 
+      });
+    }
+    
+    toast.success('Đã thêm sản phẩm vào giỏ hàng');
+    setTimeout(() => setIsAdding(false), 500);
+  };
 
   if (!product) {
     return <div className="container mx-auto px-4 py-8">Đang tải...</div>

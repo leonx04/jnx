@@ -6,7 +6,7 @@ import Footer from "./components/Footer";
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { AuthProvider } from './context/AuthContext';
-
+import { Toaster } from 'react-hot-toast';
 config.autoAddCss = false
 
 const inter = Inter({ subsets: ["latin"] });
@@ -28,6 +28,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />
+          <Toaster position="top-right" />
         </AuthProvider>
       </body>
     </html>
