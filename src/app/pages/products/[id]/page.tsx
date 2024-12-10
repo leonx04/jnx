@@ -9,7 +9,7 @@ import {
   faWeight, faRulerHorizontal, faRulerVertical, faGripLines,
   faPalette, faCompressArrowsAlt, faBalanceScale, faBolt,
   faHandPaper, faCalendarAlt, faGlobe, faTrophy, faUser,
-  faCogs, faCheck
+  faCogs, faCheck, faBoxOpen
 } from '@fortawesome/free-solid-svg-icons'
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -21,7 +21,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
-  salePrice: number;
+  salePrice?: number;
   imageUrl: string;
   description: string;
   detailedDescription: string;
@@ -63,6 +63,14 @@ export default function ProductDetails() {
   const { user } = useAuthContext()
   const params = useParams()
 
+  // Tính phần trăm giảm giá
+  const calculateDiscountPercentage = () => {
+    if (product && product.salePrice && product.salePrice < product.price) {
+      return Math.round(((product.price - product.salePrice) / product.price) * 100);
+    }
+    return 0;
+  };
+
   useEffect(() => {
     const productsRef = ref(database, 'products')
     const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string))
@@ -73,8 +81,6 @@ export default function ProductDetails() {
         setProduct(productData)
       } else {
         console.log("Không tìm thấy sản phẩm với ID đã cho")
-        // Có thể chuyển hướng người dùng đến trang 404 hoặc trang danh sách sản phẩm
-        // router.push('/404') hoặc router.push('/pages/products')
       }
     })
   }, [params.id])
@@ -97,17 +103,16 @@ export default function ProductDetails() {
       } else {
         push(cartRef, {
           name: product.name,
-          price: product.salePrice,
+          price: product.salePrice || product.price,
           quantity: quantity,
           imageUrl: product.imageUrl,
           productId: product.id 
         })
       }
       
-      console.log(`Đã thêm ${quantity} ${product.name} vào giỏ hàng`)
       setTimeout(() => setIsAdding(false), 500)
     } else {
-      console.log('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')
+      alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.')
     }
   }
 
@@ -115,24 +120,69 @@ export default function ProductDetails() {
     return <div className="container mx-auto px-4 py-8">Đang tải...</div>
   }
 
+  const discountPercentage = calculateDiscountPercentage();
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid md:grid-cols-2 gap-8">
-        <div>
-          <Image src={product.imageUrl} alt={product.name} width={500} height={500} className="w-full h-auto object-cover rounded-lg shadow-lg" />
+      <div className="grid md:grid-cols-2 gap-8 relative">
+        {/* Nhãn giảm giá */}
+        {discountPercentage > 0 && (
+          <div className="absolute top-0 left-0 bg-red-500 text-white px-3 py-1 rounded-br-lg text-sm z-10">
+            Giảm { discountPercentage }%
+          </div>
+        )}
+
+        <div className="relative">
+          <Image 
+            src={product.imageUrl} 
+            alt={product.name} 
+            width={500} 
+            height={500} 
+            className="w-full h-auto object-cover rounded-lg shadow-lg" 
+          />
         </div>
         <div>
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
           <div className="flex items-center mb-4">
-            {[...Array(5)].map((_, i) => (
-              <FontAwesomeIcon key={i} icon={faStar} className={i < product.rating ? "text-yellow-400" : "text-gray-300"} />
+            {[1, 2, 3, 4, 5].map((index) => (
+              <div key={index} className="relative w-5 h-5 mx-0.5">
+                <FontAwesomeIcon 
+                  icon={faStar} 
+                  className="absolute text-gray-300" 
+                />
+                {product.rating >= index && (
+                  <div 
+                    className="absolute overflow-hidden text-yellow-500"
+                    style={{
+                      width: `${product.rating >= index + 1 ? '100%' : `${(product.rating - index) * 100}%`}`
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faStar} />
+                  </div>
+                )}
+              </div>
             ))}
-            <span className="ml-2 text-gray-600">({product.reviewCount} đánh giá)</span>
+            <span className="ml-2 text-gray-600">
+              ({product.rating.toFixed(1)}) {product.reviewCount} đánh giá
+            </span>
           </div>
-          <p className="text-2xl font-bold mb-4">{product.salePrice.toLocaleString('vi-VN')} ₫</p>
-          {product.salePrice < product.price && (
-            <p className="text-lg text-gray-500 line-through mb-4">{product.price.toLocaleString('vi-VN')} ₫</p>
-          )}
+          
+          <div className="mb-4">
+            <span className="text-2xl font-bold text-blue-600 mr-3">
+              {(product.salePrice || product.price).toLocaleString('vi-VN')} ₫
+            </span>
+            {product.salePrice && product.salePrice < product.price && (
+              <span className="text-lg text-gray-500 line-through">
+                {product.price.toLocaleString('vi-VN')} ₫
+              </span>
+            )}
+          </div>
+
+          <div className="mb-4 flex items-center">
+            <FontAwesomeIcon icon={faBoxOpen} className="mr-2 text-green-500" />
+            <span>Còn hàng: {product.availableStock} sản phẩm</span>
+          </div>
+
           <p className="mb-4">{product.description}</p>
           <div className="flex items-center mb-4">
             <button 
@@ -175,34 +225,89 @@ export default function ProductDetails() {
         <TabsContent value="specifications">
           <Card>
             <CardContent className="pt-6">
-              <ul className="grid grid-cols-2 gap-4">
-                <li><FontAwesomeIcon icon={faWeight} className="mr-2" /> Trọng lượng: {product.weight}</li>
-                <li><FontAwesomeIcon icon={faRulerHorizontal} className="mr-2" /> Kích thước đầu vợt: {product.headSize}</li>
-                <li><FontAwesomeIcon icon={faRulerVertical} className="mr-2" /> Chiều dài: {product.length}</li>
-                <li><FontAwesomeIcon icon={faGripLines} className="mr-2" /> Kích thước cán: {product.gripSize}</li>
-                <li><FontAwesomeIcon icon={faPalette} className="mr-2" /> Màu sắc: {product.color}</li>
-                <li><FontAwesomeIcon icon={faCompressArrowsAlt} className="mr-2" /> Mẫu dây: {product.stringPattern}</li>
-                <li><FontAwesomeIcon icon={faBalanceScale} className="mr-2" /> Trọng lượng swing: {product.swingWeight}</li>
-                <li><FontAwesomeIcon icon={faBolt} className="mr-2" /> Mức độ lực: {product.powerLevel}</li>
-                <li><FontAwesomeIcon icon={faHandPaper} className="mr-2" /> Mức độ thoải mái: {product.comfortLevel}</li>
-                <li><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" /> Năm ra mắt: {product.yearReleased}</li>
-                <li><FontAwesomeIcon icon={faShieldAlt} className="mr-2" /> Bảo hành: {product.warranty}</li>
-                <li><FontAwesomeIcon icon={faGlobe} className="mr-2" /> Xuất xứ: {product.origin}</li>
-                <li><FontAwesomeIcon icon={faTrophy} className="mr-2" /> Xếp hạng bán chạy: {product.bestSellerRank}</li>
-                <li><FontAwesomeIcon icon={faUser} className="mr-2" /> Loại người chơi: {product.playerType}</li>
-                <li><FontAwesomeIcon icon={faCogs} className="mr-2" /> Độ cứng: {product.stiffness}</li>
-              </ul>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faWeight} className="mr-2 text-blue-500" /> 
+                    <span>Trọng lượng: {product.weight}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faRulerHorizontal} className="mr-2 text-blue-500" /> 
+                    <span>Kích thước đầu vợt: {product.headSize}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faRulerVertical} className="mr-2 text-blue-500" /> 
+                    <span>Chiều dài: {product.length}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faGripLines} className="mr-2 text-blue-500" /> 
+                    <span>Kích thước cán: {product.gripSize}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faPalette} className="mr-2 text-blue-500" /> 
+                    <span>Màu sắc: {product.color}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faCompressArrowsAlt} className="mr-2 text-blue-500" /> 
+                    <span>Mẫu dây: {product.stringPattern}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faBalanceScale} className="mr-2 text-blue-500" /> 
+                    <span>Trọng lượng swing: {product.swingWeight}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faBolt} className="mr-2 text-blue-500" /> 
+                    <span>Mức độ lực: {product.powerLevel}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faHandPaper} className="mr-2 text-blue-500" /> 
+                    <span>Mức độ thoải mái: {product.comfortLevel}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-blue-500" /> 
+                    <span>Năm ra mắt: {product.yearReleased}</span>
+                  </div>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faShieldAlt} className="mr-2 text-blue-500" /> 
+                    <span>Bảo hành: {product.warranty}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faGlobe} className="mr-2 text-blue-500" /> 
+                    <span>Xuất xứ: {product.origin}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faTrophy} className="mr-2 text-blue-500" /> 
+                    <span>Xếp hạng bán chạy: {product.bestSellerRank}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-500" /> 
+                    <span>Loại người chơi: {product.playerType}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faCogs} className="mr-2 text-blue-500" /> 
+                    <span>Độ cứng: {product.stiffness}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faCompressArrowsAlt} className="mr-2 text-blue-500" /> 
+                    <span>Cấu trúc khung: {product.frameProfile}</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="features">
           <Card>
             <CardContent className="pt-6">
-              <ul className="list-disc pl-5">
+              <ul className="grid md:grid-cols-2 gap-2 list-none pl-0">
                 {product.features.map((feature, index) => (
-                  <li key={index} className="mb-2">
+                  <li key={index} className="flex items-center">
                     <FontAwesomeIcon icon={faCheck} className="mr-2 text-green-500" />
-                    {feature}
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -213,4 +318,3 @@ export default function ProductDetails() {
     </div>
   )
 }
-
