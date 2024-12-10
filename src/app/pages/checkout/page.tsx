@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
 import { ref, onValue, set, remove, runTransaction, get } from 'firebase/database'
@@ -57,51 +57,82 @@ export default function Checkout() {
 
   // Hàm validate form với thông báo chi tiết
   const validateForm = () => {
-    const errors = [];
+    const errors: string[] = []
 
     if (!fullName.trim()) {
-      errors.push('Vui lòng nhập đầy đủ họ và tên');
+      errors.push('Vui lòng nhập đầy đủ họ và tên')
     }
 
     if (!phoneNumber.trim()) {
-      errors.push('Vui lòng nhập số điện thoại');
+      errors.push('Vui lòng nhập số điện thoại')
     } else if (!/^(0[3|5|7|8|9])+([0-9]{8})$/.test(phoneNumber)) {
-      errors.push('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam');
+      errors.push('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam')
     }
 
     if (!selectedProvince) {
-      errors.push('Vui lòng chọn Tỉnh/Thành phố');
+      errors.push('Vui lòng chọn Tỉnh/Thành phố')
     }
 
     if (!selectedDistrict) {
-      errors.push('Vui lòng chọn Quận/Huyện');
+      errors.push('Vui lòng chọn Quận/Huyện')
     }
 
     if (!selectedWard) {
-      errors.push('Vui lòng chọn Phường/Xã');
+      errors.push('Vui lòng chọn Phường/Xã')
     }
 
     if (!address.trim()) {
-      errors.push('Vui lòng nhập địa chỉ chi tiết');
+      errors.push('Vui lòng nhập địa chỉ chi tiết')
     }
 
     if (cartItems.length === 0) {
-      errors.push('Giỏ hàng của bạn đang trống');
+      errors.push('Giỏ hàng của bạn đang trống')
     }
 
     // Hiển thị tất cả lỗi
     if (errors.length > 0) {
-      errors.forEach(error => toast.error(error));
-      return false;
+      errors.forEach(error => toast.error(error))
+      return false
     }
 
-    return true;
+    return true
   }
 
+  // Hàm an toàn để lấy email của user
+  const getUserEmail = useMemo(() => {
+    // Ưu tiên sử dụng user từ context
+    if (user?.email) return user.email
+
+    // Nếu không, thử lấy từ sessionStorage
+    const storedUser = sessionStorage.getItem('user')
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser)
+        return parsedUser.email || ''
+      } catch (error) {
+        console.error('Lỗi khi parse user từ sessionStorage:', error)
+        return ''
+      }
+    }
+
+    return ''
+  }, [user])
+
+  // Hàm an toàn để lấy thông tin user
+  const getUserDetails = useMemo(() => {
+    return {
+      userId: getUserEmail,
+      userName: user?.name || '',
+      userEmail: getUserEmail
+    }
+  }, [getUserEmail, user])
+
   useEffect(() => {
-    if (user) {
-      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
-      onValue(cartRef, (snapshot) => {
+    if (getUserEmail) {
+      const safeEmail = getUserEmail.replace(/\./g, ',')
+      const cartRef = ref(database, `carts/${safeEmail}`)
+
+      const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
         if (data) {
           const items = Object.entries(data).map(([id, item]) => ({
@@ -113,8 +144,10 @@ export default function Checkout() {
           setCartItems([])
         }
       })
+
+      return () => unsubscribe()
     }
-  }, [user])
+  }, [getUserEmail])
 
   useEffect(() => {
     fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/province', {
@@ -122,6 +155,10 @@ export default function Checkout() {
     })
       .then(response => response.json())
       .then(data => setProvinces(data.data))
+      .catch(error => {
+        console.error('Lỗi tải danh sách tỉnh:', error)
+        toast.error('Không thể tải danh sách tỉnh')
+      })
   }, [])
 
   useEffect(() => {
@@ -131,11 +168,16 @@ export default function Checkout() {
       })
         .then(response => response.json())
         .then(data => setDistricts(data.data))
+        .catch(error => {
+          console.error('Lỗi tải danh sách quận/huyện:', error)
+          toast.error('Không thể tải danh sách quận/huyện')
+        })
+
+      setSelectedDistrict('')
+      setSelectedWard('')
     } else {
       setDistricts([])
     }
-    setSelectedDistrict('')
-    setSelectedWard('')
   }, [selectedProvince])
 
   useEffect(() => {
@@ -145,10 +187,15 @@ export default function Checkout() {
       })
         .then(response => response.json())
         .then(data => setWards(data.data))
+        .catch(error => {
+          console.error('Lỗi tải danh sách phường/xã:', error)
+          toast.error('Không thể tải danh sách phường/xã')
+        })
+
+      setSelectedWard('')
     } else {
       setWards([])
     }
-    setSelectedWard('')
   }, [selectedDistrict])
 
   const calculateShippingFee = async () => {
@@ -201,69 +248,8 @@ export default function Checkout() {
     if (selectedProvince && selectedDistrict && selectedWard) {
       calculateShippingFee()
     }
-  }, [selectedProvince, selectedDistrict, selectedWard, cartItems])
+  }, [selectedProvince, selectedDistrict, selectedWard, cartItems, calculateShippingFee])
 
-  const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + shippingFee
-  }
-
-  const checkProductStock = async (items: CartItem[]) => {
-    try {
-      const stockCheckPromises = items.map(async (item) => {
-        // Log đầy đủ đường dẫn để kiểm tra
-        console.log(`Đường dẫn sản phẩm: products/${item.productId}`)
-
-        // Thử nhiều đường dẫn khác nhau
-        const productRefs = [
-          ref(database, `products/${item.productId}`),
-          ref(database, `products/2`),  // Thử đường dẫn số
-          ref(database, `products/${item.id}`)  // Thử với id khác
-        ]
-
-        for (const productRef of productRefs) {
-          const snapshot = await get(productRef)
-          const product = snapshot.val()
-
-          console.log(`Kiểm tra đường dẫn ${productRef.key}:`, {
-            productId: item.productId,
-            product: product
-          })
-
-          if (product) {
-            // Kiểm tra availableStock với nhiều cách
-            const availableStock =
-              product.availableStock !== undefined ?
-                Number(product.availableStock) :
-                (product.stock ? Number(product.stock) : 0)
-
-            console.log(`Tồn kho cho ${item.name}:`, {
-              availableStock: availableStock,
-              requestedQuantity: item.quantity
-            })
-
-            if (!isNaN(availableStock) && availableStock >= item.quantity) {
-              return true
-            }
-          }
-        }
-
-        // Nếu không tìm thấy sản phẩm hoặc không đủ tồn kho
-        toast.error(`Không tìm thấy sản phẩm hoặc không đủ tồn kho: ${item.name}`)
-        return false
-      })
-
-      const stockResults = await Promise.all(stockCheckPromises)
-      return stockResults.every(result => result)
-    } catch (error) {
-      console.error('Lỗi kiểm tra tồn kho:', error)
-      toast.error('Không thể kiểm tra tồn kho. Vui lòng thử lại.')
-      return false
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -272,8 +258,8 @@ export default function Checkout() {
       return
     }
 
-    // Kiểm tra kỹ hơn về user
-    if (!user || !user.uid || !user.email) {
+    // Kiểm tra thông tin user
+    if (!getUserEmail) {
       toast.error('Vui lòng đăng nhập để hoàn tất đơn hàng.')
       return
     }
@@ -287,9 +273,7 @@ export default function Checkout() {
       }
 
       const order = {
-        // Sử dụng toán tử optional chaining để tránh undefined
-        userId: user?.uid ?? '',
-        userEmail: user?.email ?? '',
+        ...getUserDetails,
         fullName,
         phoneNumber,
         items: cartItems,
@@ -307,21 +291,20 @@ export default function Checkout() {
       }
 
       // Thêm kiểm tra đầy đủ thông tin trước khi đặt hàng
-      const orderValidationErrors = [];
-      if (!order.userId) orderValidationErrors.push('Thiếu thông tin người dùng');
-      if (!order.userEmail) orderValidationErrors.push('Thiếu email');
-      if (!order.fullName) orderValidationErrors.push('Thiếu tên');
-      if (!order.phoneNumber) orderValidationErrors.push('Thiếu số điện thoại');
-      if (order.items.length === 0) orderValidationErrors.push('Giỏ hàng trống');
+      const orderValidationErrors: string[] = []
+      if (!order.userId) orderValidationErrors.push('Thiếu thông tin người dùng')
+      if (!order.userEmail) orderValidationErrors.push('Thiếu email')
+      if (!order.fullName) orderValidationErrors.push('Thiếu tên')
+      if (!order.phoneNumber) orderValidationErrors.push('Thiếu số điện thoại')
+      if (order.items.length === 0) orderValidationErrors.push('Giỏ hàng trống')
 
       if (orderValidationErrors.length > 0) {
-        orderValidationErrors.forEach(error => toast.error(error));
-        return;
+        orderValidationErrors.forEach(error => toast.error(error))
+        return
       }
 
       // Tạo đơn hàng
-      // Sử dụng hàm replace để loại bỏ ký tự đặc biệt trong email
-      const safeEmail = user.email.replace(/[.]/g, ',')
+      const safeEmail = getUserEmail.replace(/\./g, ',')
       const orderRef = ref(database, `orders/${safeEmail}/${Date.now()}`)
 
       await set(orderRef, order)
@@ -331,7 +314,7 @@ export default function Checkout() {
       await remove(cartRef)
 
       // Cập nhật số lượng tồn kho
-      for (const item of cartItems) {
+      const updateStockPromises = cartItems.map(async (item) => {
         const productRef = ref(database, `products/${item.productId}`)
         await runTransaction(productRef, (product) => {
           if (product && product.availableStock !== undefined) {
@@ -339,13 +322,60 @@ export default function Checkout() {
           }
           return product
         })
-      }
+      })
+
+      await Promise.all(updateStockPromises)
 
       toast.success('Đặt hàng thành công!')
-      router.push('/order-confirmation')
+      router.push('/pages/order-confirmation')
     } catch (error) {
       console.error('Lỗi khi đặt hàng:', error)
       toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.')
+    }
+  }
+
+  const calculateSubtotal = () => {
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+  }
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + shippingFee
+  }
+
+  const checkProductStock = async (items: CartItem[]) => {
+    try {
+      const stockCheckPromises = items.map(async (item) => {
+        const productRefs = [
+          ref(database, `products/${item.productId}`),
+          ref(database, `products/${item.id}`)
+        ]
+
+        for (const productRef of productRefs) {
+          const snapshot = await get(productRef)
+          const product = snapshot.val()
+
+          if (product) {
+            const availableStock =
+              product.availableStock !== undefined ?
+                Number(product.availableStock) :
+                (product.stock ? Number(product.stock) : 0)
+
+            if (!isNaN(availableStock) && availableStock >= item.quantity) {
+              return true
+            }
+          }
+        }
+
+        toast.error(`Không tìm thấy sản phẩm hoặc không đủ tồn kho: ${item.name}`)
+        return false
+      })
+
+      const stockResults = await Promise.all(stockCheckPromises)
+      return stockResults.every(result => result)
+    } catch (error) {
+      console.error('Lỗi kiểm tra tồn kho:', error)
+      toast.error('Không thể kiểm tra tồn kho. Vui lòng thử lại.')
+      return false
     }
   }
 

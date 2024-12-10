@@ -10,6 +10,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart, faUser, faSignOutAlt, faHome, faBox, faInfoCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { ref, onValue } from 'firebase/database';
 import { database } from '@/firebaseConfig';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+
 
 interface CartItem {
   productId: string;
@@ -213,7 +215,7 @@ const MobileNavItem = ({
 }: { 
   href: string; 
   children: React.ReactNode; 
-  icon: any;
+  icon: IconDefinition;
   onClick?: () => void;
 }) => (
   <Link 
