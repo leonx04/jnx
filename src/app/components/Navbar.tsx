@@ -79,7 +79,7 @@ const Navbar = () => {
                   <DropdownMenu.Trigger asChild>
                     <button className="flex items-center text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
                       <Image
-                        src={user.imageUrl || "/placeholder.svg"}
+                        src={user.imageUrl || "https://placehold.jp/30x30.png"}
                         alt={user.name || "User"}
                         width={32}
                         height={32}
@@ -134,13 +134,13 @@ const Navbar = () => {
           <MobileNavLink href="/pages/about">Giới thiệu</MobileNavLink>
           <MobileNavLink href="/pages/cart">
             <FontAwesomeIcon icon={faShoppingCart} className="mr-2" />
-            Giỏ hàng
+            
           </MobileNavLink>
           {user ? (
             <>
               <div className="flex items-center px-3 py-2">
                 <Image
-                  src={user.imageUrl || "/placeholder.svg"}
+                  src={user.imageUrl || "https://placehold.jp/30x30.png"}
                   alt={user.name || "User"}
                   width={32}
                   height={32}
