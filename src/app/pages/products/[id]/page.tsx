@@ -144,7 +144,7 @@ export default function ProductDetails() {
         <div>
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
           <div className="flex items-center mb-4">
-            {[1, 2, 3, 4, 5].map((index) => (
+            {[0, 1, 2, 3, 4].map((index) => (
               <div key={index} className="relative w-5 h-5 mx-0.5">
                 <FontAwesomeIcon 
                   icon={faStar} 
