@@ -1,10 +1,10 @@
-import { useAuthContext } from '@/app/context/AuthContext';
-import { database } from '@/firebaseConfig';
-import { faExclamationTriangle, faShoppingCart, faStar } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { get, push, ref, set } from "firebase/database";
+import { faStar, faShoppingCart, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuthContext } from '@/app/context/AuthContext';
+import { database } from '@/firebaseConfig';
+import { ref, push, set, get } from "firebase/database";
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -18,6 +18,14 @@ interface Product {
   rating: number;
   reviewCount: number;
   availableStock: number;
+}
+
+interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
 }
 
 const ProductCard = ({ product }: { product: Product }) => {
@@ -36,9 +44,9 @@ const ProductCard = ({ product }: { product: Product }) => {
       setIsAdding(true);
       const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
       const snapshot = await get(cartRef);
-      const existingCart = snapshot.val() || {};
+      const existingCart = snapshot.val() as Record<string, CartItem> || {};
       
-      const existingItem = Object.entries(existingCart).find(([_, item]: [string, any]) => item.productId === product.id);
+      const existingItem = Object.entries(existingCart).find(([_, item]) => item.productId === product.id);
       
       if (existingItem) {
         const [key, item] = existingItem;

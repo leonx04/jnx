@@ -1,15 +1,20 @@
 'use client'
 
-import { database } from '@/firebaseConfig';
-import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { ChevronDownIcon } from '@heroicons/react/20/solid';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { onValue, ref } from 'firebase/database';
-import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthContext } from '../context/AuthContext';
+import Image from 'next/image';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { ref, onValue } from 'firebase/database';
+import { database } from '@/firebaseConfig';
+
+interface CartItem {
+  productId: string;
+  quantity: number;
+}
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,7 +27,7 @@ const Navbar = () => {
       onValue(cartRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const count = Object.values(data).reduce((acc: number, item: any) => acc + item.quantity, 0);
+          const count = Object.values(data as Record<string, CartItem>).reduce((acc, item) => acc + item.quantity, 0);
           setCartItemsCount(count);
         } else {
           setCartItemsCount(0);
@@ -129,7 +134,7 @@ const Navbar = () => {
           <MobileNavLink href="/pages/about">Giới thiệu</MobileNavLink>
           <MobileNavLink href="/pages/cart">
             <FontAwesomeIcon icon={faShoppingCart} className="mr-2" />
-            
+            Giỏ hàng
           </MobileNavLink>
           {user ? (
             <>
