@@ -1,11 +1,12 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { faStar, faShoppingCart, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuthContext } from '@/app/context/AuthContext';
 import { database } from '@/firebaseConfig';
 import { ref, push, set, get } from "firebase/database";
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface Product {
   id: string;
@@ -16,13 +17,13 @@ interface Product {
   brand: string;
   rating: number;
   reviewCount: number;
+  availableStock: number;
 }
 
 const ProductCard = ({ product }: { product: Product }) => {
   const { user } = useAuthContext();
   const [isAdding, setIsAdding] = useState(false);
 
-  // Tính phần trăm giảm giá
   const calculateDiscountPercentage = () => {
     if (product.salePrice < product.price) {
       return Math.round(((product.price - product.salePrice) / product.price) * 100);
@@ -37,10 +38,15 @@ const ProductCard = ({ product }: { product: Product }) => {
       const snapshot = await get(cartRef);
       const existingCart = snapshot.val() || {};
       
-      const existingItem = Object.entries(existingCart).find(([_, item]: [string, any]) => item.name === product.name);
+      const existingItem = Object.entries(existingCart).find(([_, item]: [string, any]) => item.productId === product.id);
       
       if (existingItem) {
         const [key, item] = existingItem;
+        if (item.quantity >= product.availableStock) {
+          toast.error(`Đã đạt số lượng tối đa có sẵn (${product.availableStock})`);
+          setIsAdding(false);
+          return;
+        }
         set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
           ...item,
           quantity: item.quantity + 1
@@ -55,9 +61,10 @@ const ProductCard = ({ product }: { product: Product }) => {
         });
       }
       
+      toast.success('Đã thêm sản phẩm vào giỏ hàng');
       setTimeout(() => setIsAdding(false), 500);
     } else {
-      alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.');
+      toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.');
     }
   };
 
@@ -65,7 +72,6 @@ const ProductCard = ({ product }: { product: Product }) => {
 
   return (
     <div className="relative bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-full transition-transform duration-300 hover:scale-105">
-      {/* Nhãn giảm giá */}
       {discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs z-10">
           -{ discountPercentage }%
@@ -133,10 +139,10 @@ const ProductCard = ({ product }: { product: Product }) => {
             <button
               onClick={addToCart}
               className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-xs transition-all duration-300 flex items-center ${isAdding ? 'scale-110' : ''}`}
-              disabled={isAdding}
+              disabled={isAdding || product.availableStock === 0}
             >
               <FontAwesomeIcon icon={faShoppingCart} className={`mr-1 ${isAdding ? 'animate-bounce' : ''}`} />
-              {isAdding ? 'Đã thêm' : 'Thêm'}
+              {isAdding ? 'Đã thêm' : product.availableStock === 0 ? 'Hết hàng' : 'Thêm'}
             </button>
             <Link
               href={`/pages/products/${product.id}`}
@@ -146,9 +152,16 @@ const ProductCard = ({ product }: { product: Product }) => {
             </Link>
           </div>
         </div>
+        {product.availableStock <= 5 && product.availableStock > 0 && (
+          <div className="mt-2 text-xs text-orange-500 flex items-center">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
+            <span>Chỉ còn {product.availableStock} sản phẩm</span>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default ProductCard;
+
