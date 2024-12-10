@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/app/context/AuthContext';
 
@@ -18,6 +18,7 @@ export default function Login() {
       await login(email, password);
       router.push('/'); // Redirect to home page after successful login
     } catch (err) {
+      console.error('Login error:', err);
       setError('Failed to log in');
     }
   };

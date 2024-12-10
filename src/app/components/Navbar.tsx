@@ -10,16 +10,6 @@ import { ChevronDownIcon } from '@heroicons/react/20/solid';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuthContext();
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -78,7 +68,6 @@ const Navbar = () => {
               ) : (
                 <div className="flex space-x-4">
                   <NavLink href="/pages/login">Login</NavLink>
-                  <NavLink href="/pages/register">Register</NavLink>
                 </div>
               )}
             </div>
@@ -132,7 +121,6 @@ const Navbar = () => {
           ) : (
             <>
               <MobileNavLink href="/pages/login">Login</MobileNavLink>
-              <MobileNavLink href="/pages/register">Register</MobileNavLink>
             </>
           )}
         </div>

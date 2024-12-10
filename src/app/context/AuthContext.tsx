@@ -4,16 +4,22 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth as useAuthHook } from '../hooks/useAuth';
 
 interface AuthContextType {
-  user: any;
-  login: (email: string, password: string) => Promise<any>;
+  user: User | null;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
+}
+
+interface User {
+  email: string;
+  name?: string;
+  imageUrl?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = useAuthHook();
-  const [user, setUser] = useState(auth.user);
+  const [user, setUser] = useState<User | null>(auth.user);
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem('user');
@@ -47,3 +53,4 @@ export const useAuthContext = () => {
   }
   return context;
 };
+
