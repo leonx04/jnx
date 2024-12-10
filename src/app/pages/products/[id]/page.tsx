@@ -107,6 +107,7 @@ export default function ProductDetail() {
             fill
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 50vw"
+            priority={true}
           />
         </div>
 
@@ -260,7 +261,7 @@ export default function ProductDetail() {
   )
 }
 
-function SpecItem({ icon, label, value }: { icon: any; label: string; value: string }) {
+function SpecItem({ icon, label, value }: { icon: typeof faWeight; label: string; value: string }) {
   return (
     <li className="flex items-center space-x-2">
       <FontAwesomeIcon icon={icon} className="text-blue-500 w-5 h-5" />
