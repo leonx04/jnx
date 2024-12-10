@@ -36,6 +36,7 @@ export function useAuth() {
           const user = users[userId] as UserWithPassword;
           if (user.email === email && String(user.password) === password) {
             console.log('User found:', user);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password: _, ...userWithoutPassword } = user;
             sessionStorage.setItem('user', JSON.stringify(userWithoutPassword));
             setUser(userWithoutPassword);
