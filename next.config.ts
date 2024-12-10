@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'www.gusport.com.vn',
+      },
+      {
+        protocol: 'https',
+        hostname: 'scontent.fhan17-1.fna.fbcdn.net',
       }
     ],
   },
