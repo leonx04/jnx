@@ -96,7 +96,7 @@ const Navbar = () => {
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content className="mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
                   <DropdownMenu.Item>
-                    <Link href="/pages/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <Link href="/pages/account/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Quản lý tài khoản
                     </Link>
                   </DropdownMenu.Item>
@@ -178,7 +178,7 @@ const Navbar = () => {
               
               {user ? (
                 <>
-                  <MobileNavItem href="/pages/account" icon={faUser} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
+                  <MobileNavItem href="/pages/account/profile" icon={faUser} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
                   <button 
                     onClick={() => {
                       toggleMobileMenu();

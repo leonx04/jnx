@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
+  updateUserImage: (imageUrl: string) => void; // Thêm phương thức này
 }
 
 interface User {
@@ -39,8 +40,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  // Phương thức cập nhật ảnh người dùng
+  const updateUserImage = (imageUrl: string) => {
+    if (user) {
+      const updatedUser = { ...user, imageUrl };
+      setUser(updatedUser);
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserImage }}>
       {children}
     </AuthContext.Provider>
   );
@@ -53,4 +63,3 @@ export const useAuthContext = () => {
   }
   return context;
 };
-

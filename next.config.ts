@@ -1,6 +1,4 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
@@ -37,8 +35,7 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'tennishub.in',
-      }
-      ,
+      },
       {
         protocol: 'https',
         hostname: 'vtlsport.vn',
@@ -54,9 +51,18 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'placehold.jp',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com', 
+      }
+      ,
+      {
+        protocol: 'https',
+        hostname: 'cloudinary.com', 
       }
     ],
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
