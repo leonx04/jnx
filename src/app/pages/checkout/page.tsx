@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { ref, onValue, set, remove, runTransaction, get } from 'firebase/database'
-import { useRouter } from 'next/navigation'
+import { get, onValue, ref, remove, runTransaction, set } from 'firebase/database'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface CartItem {
@@ -103,15 +103,18 @@ export default function Checkout() {
     // Ưu tiên sử dụng user từ context
     if (user?.email) return user.email
 
-    // Nếu không, thử lấy từ sessionStorage
-    const storedUser = sessionStorage.getItem('user')
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        return parsedUser.email || ''
-      } catch (error) {
-        console.error('Lỗi khi parse user từ sessionStorage:', error)
-        return ''
+    // Nếu không, thử lấy từ localStorage (thay vì sessionStorage)
+    // Chỉ thực hiện trên client-side
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser)
+          return parsedUser.email || ''
+        } catch (error) {
+          console.error('Lỗi khi parse user từ localStorage:', error)
+          return ''
+        }
       }
     }
 
@@ -248,8 +251,7 @@ export default function Checkout() {
     if (selectedProvince && selectedDistrict && selectedWard) {
       calculateShippingFee()
     }
-  }, [selectedProvince, selectedDistrict, selectedWard, cartItems, calculateShippingFee])
-
+  }, [selectedProvince, selectedDistrict, selectedWard, cartItems])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
