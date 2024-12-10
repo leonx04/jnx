@@ -40,7 +40,7 @@ export default function OrderHistory() {
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user?.email) {
-        toast.error('Please log in to view your orders')
+        toast.error('Vui lòng đăng nhập để xem đơn hàng')
         return
       }
 
@@ -57,8 +57,8 @@ export default function OrderHistory() {
           setOrders([])
         }
       } catch (error) {
-        console.error('Error fetching orders:', error)
-        toast.error('Failed to load orders')
+        console.error('Lỗi tải đơn hàng:', error)
+        toast.error('Không thể tải đơn hàng')
       }
     }
 
@@ -66,49 +66,116 @@ export default function OrderHistory() {
   }, [user])
 
   if (!user) {
-    return <div>Please log in to view your orders.</div>
+    return (
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
+        <p className="text-gray-600 text-lg">Vui lòng đăng nhập để xem lịch sử đơn hàng.</p>
+      </div>
+    )
+  }
+
+  // Mapping order status to Vietnamese
+  const getStatusLabel = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'pending': 'Đang xử lý',
+      'processing': 'Đang chuẩn bị',
+      'shipped': 'Đã giao hàng',
+      'delivered': 'Đã nhận hàng',
+      'cancelled': 'Đã hủy'
+    }
+    return statusMap[status.toLowerCase()] || status
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Order History</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">Lịch Sử Đơn Hàng</h1>
       {orders.length === 0 ? (
-        <p>You have no orders yet.</p>
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <p className="text-gray-600 text-lg">Bạn chưa có đơn hàng nào.</p>
+        </div>
       ) : (
-        orders.map((order, index) => (
-          <div key={index} className="mb-8 bg-white shadow-md rounded-lg p-6">
-            <div className="mb-4">
-              <p className="font-semibold">Order Date: {new Date(order.createdAt).toLocaleString()}</p>
-              <p>Status: {order.status}</p>
-            </div>
-            <div className="mb-4">
-              <h3 className="font-semibold">Shipping Information</h3>
-              <p>{order.fullName}</p>
-              <p>{order.phoneNumber}</p>
-              <p>{`${order.shippingAddress.address}, ${order.shippingAddress.ward}, ${order.shippingAddress.district}, ${order.shippingAddress.province}`}</p>
-            </div>
-            <div className="mb-4">
-              <h3 className="font-semibold">Order Items</h3>
-              {order.items.map((item, itemIndex) => (
-                <div key={itemIndex} className="flex items-center mb-2">
-                  <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="mr-4" />
-                  <div>
-                    <p>{item.name}</p>
-                    <p>Quantity: {item.quantity}</p>
-                    <p>Price: {item.price.toLocaleString('vi-VN')} ₫</p>
+        <div className="space-y-6">
+          {orders.map((order, index) => (
+            <div 
+              key={index} 
+              className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200"
+            >
+              {/* Order Header */}
+              <div className="bg-gray-100 px-6 py-4 flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">
+                    Ngày đặt hàng: {new Date(order.createdAt).toLocaleString('vi-VN')}
+                  </p>
+                  <p className="font-semibold text-sm">
+                    Trạng thái: <span className={`
+                      ${order.status === 'delivered' ? 'text-green-600' : 
+                        order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'}
+                    `}>
+                      {getStatusLabel(order.status)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Order Content */}
+              <div className="p-6">
+                {/* Shipping Information */}
+                <div className="mb-6 border-b pb-4">
+                  <h3 className="font-semibold text-gray-800 mb-2">Thông Tin Giao Hàng</h3>
+                  <div className="text-gray-600">
+                    <p>{order.fullName}</p>
+                    <p>{order.phoneNumber}</p>
+                    <p>
+                      {`${order.shippingAddress.address}, 
+                        ${order.shippingAddress.ward}, 
+                        ${order.shippingAddress.district}, 
+                        ${order.shippingAddress.province}`}
+                    </p>
                   </div>
                 </div>
-              ))}
+
+                {/* Order Items */}
+                <div className="mb-6 border-b pb-4">
+                  <h3 className="font-semibold text-gray-800 mb-4">Sản Phẩm Đã Mua</h3>
+                  <div className="space-y-4">
+                    {order.items.map((item, itemIndex) => (
+                      <div 
+                        key={itemIndex} 
+                        className="flex items-center space-x-4 bg-gray-50 p-3 rounded-lg"
+                      >
+                        <Image 
+                          src={item.imageUrl} 
+                          alt={item.name} 
+                          width={80} 
+                          height={80} 
+                          className="object-cover rounded-md" 
+                        />
+                        <div className="flex-grow">
+                          <p className="font-medium">{item.name}</p>
+                          <div className="text-gray-600 text-sm">
+                            <p>Số lượng: {item.quantity}</p>
+                            <p>Đơn giá: {item.price.toLocaleString('vi-VN')} ₫</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Order Summary */}
+                <div className="text-right">
+                  <div className="space-y-2 text-gray-700">
+                    <p>Tạm tính: {order.subtotal.toLocaleString('vi-VN')} ₫</p>
+                    <p>Phí vận chuyển: {order.shippingFee.toLocaleString('vi-VN')} ₫</p>
+                    <p className="font-bold text-xl text-blue-600">
+                      Tổng cộng: {order.total.toLocaleString('vi-VN')} ₫
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <p>Subtotal: {order.subtotal.toLocaleString('vi-VN')} ₫</p>
-              <p>Shipping Fee: {order.shippingFee.toLocaleString('vi-VN')} ₫</p>
-              <p className="font-semibold">Total: {order.total.toLocaleString('vi-VN')} ₫</p>
-            </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </div>
   )
 }
-

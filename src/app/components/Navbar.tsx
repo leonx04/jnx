@@ -101,6 +101,11 @@ const Navbar = () => {
                     </Link>
                   </DropdownMenu.Item>
                   <DropdownMenu.Item>
+                    <Link href="/pages/account/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Lịch sử đơn hàng
+                    </Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item>
                     <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Đăng xuất
                     </button>
