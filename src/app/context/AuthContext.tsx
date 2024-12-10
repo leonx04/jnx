@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth as useAuthHook } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -18,7 +18,7 @@ interface User {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const auth = useAuthHook();
+  const auth = useAuth();
   const [user, setUser] = useState<User | null>(auth.user);
 
   useEffect(() => {
