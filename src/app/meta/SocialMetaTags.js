@@ -1,8 +1,8 @@
 import Head from 'next/head';
 
 const SocialMetaTags = ({
-  title = 'Premium Tennis Rackets | Your Tennis Store',
-  description = 'Discover our wide range of high-quality tennis rackets from top brands. Find the perfect racket to elevate your game.',
+  title = 'JNX Tennis Store - High-Quality Tennis Rackets',
+  description = ' JNX Tennis Store is a service that provides high-quality tennis rackets and equipment for all levels of play. We offer a wide range of professional and beginner rackets to suit your needs.',
   image = 'https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico',
   url = 'https://jnx-store.netlify.app',
   type = 'JNX Tennis Store'
