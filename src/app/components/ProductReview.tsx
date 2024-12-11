@@ -16,10 +16,15 @@ interface ProductReviewProps {
   onReviewSubmitted: () => void
 }
 
+interface OrderItem {
+  productId: string
+  reviewed?: boolean
+}
+
 export default function ProductReview({ productId, orderId, onReviewSubmitted }: ProductReviewProps) {
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rating, setRating] = useState<number>(0)
+  const [comment, setComment] = useState<string>('')
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const { user } = useAuthContext()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,8 +54,8 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
       const orderProductRef = ref(database, `orders/${user.id}/${orderId}/items`)
       const orderSnapshot = await get(orderProductRef)
       if (orderSnapshot.exists()) {
-        const items = orderSnapshot.val()
-        const updatedItems = items.map((item: any) => 
+        const items: OrderItem[] = orderSnapshot.val()
+        const updatedItems = items.map((item) => 
           item.productId === productId ? { ...item, reviewed: true } : item
         )
         await set(orderProductRef, updatedItems)

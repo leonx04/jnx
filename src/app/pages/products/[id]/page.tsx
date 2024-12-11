@@ -105,6 +105,7 @@ export default function ProductDetails() {
     const snapshot = await get(reviewsRef)
     if (snapshot.exists()) {
       const reviewsData = snapshot.val()
+      // eslint-disable-next-line
       const reviewsArray = Object.entries(reviewsData).map(([id, data]: [string, any]) => ({
         id,
         ...data

@@ -94,6 +94,7 @@ export default function OrderDetail() {
         const snapshot = await get(reviewRef)
         if (snapshot.exists()) {
           const reviewsData = snapshot.val()
+          // eslint-disable-next-line
           const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
           if (userReview) {
             return { [item.productId]: userReview }

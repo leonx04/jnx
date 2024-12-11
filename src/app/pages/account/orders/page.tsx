@@ -59,6 +59,7 @@ export default function OrderHistory() {
         
         if (snapshot.exists()) {
           const ordersData = snapshot.val()
+          // eslint-disable-next-line
           const ordersArray = Object.entries(ordersData).map(([id, data]: [string, any]) => ({
             id,
             ...data,
