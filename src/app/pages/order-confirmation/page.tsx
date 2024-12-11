@@ -85,77 +85,89 @@ export default function OrderConfirmation() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-6">
-        <h1 className="text-3xl font-bold text-green-600 mb-4 text-center">
+    <div className="container px-4 py-6 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-4 sm:p-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-green-600 mb-4 text-center">
           Đặt Hàng Thành Công!
         </h1>
+        
         <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Thông Tin Giao Hàng</h2>
-          <p><strong>Tên:</strong> {latestOrder.fullName}</p>
-          <p><strong>Số Điện Thoại:</strong> {latestOrder.phoneNumber}</p>
-          <p>
-            <strong>Địa Chỉ:</strong> {latestOrder.shippingAddress.address}, 
-            {latestOrder.shippingAddress.ward}, 
-            {latestOrder.shippingAddress.district}, 
-            {latestOrder.shippingAddress.province}
-          </p>
+          <h2 className="text-lg sm:text-xl font-semibold mb-2">Thông Tin Giao Hàng</h2>
+          <div className="space-y-1 text-sm sm:text-base">
+            <p><strong>Tên:</strong> {latestOrder.fullName}</p>
+            <p><strong>Số Điện Thoại:</strong> {latestOrder.phoneNumber}</p>
+            <p>
+              <strong>Địa Chỉ:</strong> {latestOrder.shippingAddress.address}, 
+              {latestOrder.shippingAddress.ward}, 
+              {latestOrder.shippingAddress.district}, 
+              {latestOrder.shippingAddress.province}
+            </p>
+          </div>
         </div>
 
         <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Chi Tiết Đơn Hàng</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-2">Chi Tiết Đơn Hàng</h2>
           {latestOrder.items.map((item) => (
-            <div key={item.id} className="flex items-center mb-3">
-              <Image 
-                src={item.imageUrl} 
-                alt={item.name} 
-                width={50} 
-                height={50} 
-                className="mr-4"
-              />
-              <div>
-                <p className="font-semibold">{item.name}</p>
-                <p>Số Lượng: {item.quantity}</p>
-                <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
+            <div 
+              key={item.id} 
+              className="flex items-center mb-3 space-x-4"
+            >
+              <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
+                <Image 
+                  src={item.imageUrl} 
+                  alt={item.name} 
+                  fill
+                  sizes="(max-width: 768px) 48px, 64px"
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex-grow text-sm sm:text-base">
+                <p className="font-semibold truncate max-w-[200px]">{item.name}</p>
+                <div className="flex justify-between">
+                  <p>Số Lượng: {item.quantity}</p>
+                  <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mb-4">
-          <p className="flex justify-between">
-            <span>Tổng Phụ:</span> 
-            <span>{latestOrder.subtotal.toLocaleString("vi-VN")} ₫</span>
-          </p>
-          <p className="flex justify-between">
-            <span>Phí Vận Chuyển:</span> 
-            <span>{latestOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
-          </p>
-          <p className="flex justify-between font-semibold text-lg">
-            <span>Tổng Cộng:</span> 
-            <span>{latestOrder.total.toLocaleString("vi-VN")} ₫</span>
-          </p>
-          <p className="mt-2">
-            <strong>Phương thức thanh toán:</strong> {
-              latestOrder.paymentMethod === "cod" 
-                ? "Thanh toán khi nhận hàng (COD)" 
-                : latestOrder.paymentMethod === "vnpay"
-                  ? "Thanh toán qua VNPAY"
-                  : latestOrder.paymentMethod
-            }
-          </p>
+        <div className="mb-4 text-sm sm:text-base">
+          <div className="space-y-1">
+            <p className="flex justify-between">
+              <span>Tổng Phụ:</span> 
+              <span>{latestOrder.subtotal.toLocaleString("vi-VN")} ₫</span>
+            </p>
+            <p className="flex justify-between">
+              <span>Phí Vận Chuyển:</span> 
+              <span>{latestOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
+            </p>
+            <p className="flex justify-between font-semibold text-lg">
+              <span>Tổng Cộng:</span> 
+              <span>{latestOrder.total.toLocaleString("vi-VN")} ₫</span>
+            </p>
+            <p className="mt-2">
+              <strong>Phương thức thanh toán:</strong> {
+                latestOrder.paymentMethod === "cod" 
+                  ? "Thanh toán khi nhận hàng (COD)" 
+                  : latestOrder.paymentMethod === "vnpay"
+                    ? "Thanh toán qua VNPAY"
+                    : latestOrder.paymentMethod
+              }
+            </p>
+          </div>
         </div>
 
-        <div className="text-center mt-6">
+        <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
           <Link 
             href="/pages/products" 
-            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 mr-4"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center"
           >
             Tiếp Tục Mua Hàng
           </Link>
           <Link 
             href="/pages/account/orders" 
-            className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center"
           >
             Xem Đơn Hàng
           </Link>
@@ -164,4 +176,3 @@ export default function OrderConfirmation() {
     </div>
   )
 }
-
