@@ -33,6 +33,7 @@ interface Order {
   items: OrderItem[]
   subtotal: number
   shippingFee: number
+  paymentMethod: string
   total: number
   status: string
   createdAt: string
@@ -116,6 +117,13 @@ export default function OrderDetail() {
             order.status === 'delivered' ? 'text-green-600' : 
             order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
           }`}>{getStatusLabel(order.status)}</span></p>
+          <p><strong>Hình thức thanh toán:</strong> {
+                order.paymentMethod === "cod" 
+                  ? "Thanh toán khi nhận hàng (COD)" 
+                  : order.paymentMethod === "vnpay"
+                    ? "Thanh toán qua VNPAY"
+                    : order.paymentMethod
+              }</p>
           <p><strong>Tổng tiền:</strong> {order.total.toLocaleString('vi-VN')} ₫</p>
           <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString('vi-VN')} ₫</p>
         </CardContent>
