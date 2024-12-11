@@ -77,6 +77,13 @@ export default function Checkout() {
     return calculateSubtotal() + shippingFee
   }, [calculateSubtotal, shippingFee])
 
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    toast[type](message, {
+      duration: 5000,
+      position: 'top-right',
+    })
+  }, [])
+
   const validateForm = () => {
     const errors: string[] = []
 
@@ -111,7 +118,7 @@ export default function Checkout() {
     }
 
     if (errors.length > 0) {
-      errors.forEach(error => toast.error(error))
+      errors.forEach(error => showToast(error, 'error'))
       return false
     }
 
@@ -159,9 +166,9 @@ export default function Checkout() {
       .then(data => setProvinces(data.data))
       .catch(error => {
         console.error("Lỗi tải danh sách tỉnh:", error)
-        toast.error("Không thể tải danh sách tỉnh")
+        showToast("Không thể tải danh sách tỉnh", 'error')
       })
-  }, [])
+  }, [showToast])
 
   useEffect(() => {
     if (selectedProvince) {
@@ -172,7 +179,7 @@ export default function Checkout() {
         .then(data => setDistricts(data.data))
         .catch(error => {
           console.error("Lỗi tải danh sách quận/huyện:", error)
-          toast.error("Không thể tải danh sách quận/huyện")
+          showToast("Không thể tải danh sách quận/huyện", 'error')
         })
 
       setSelectedDistrict("")
@@ -180,7 +187,7 @@ export default function Checkout() {
     } else {
       setDistricts([])
     }
-  }, [selectedProvince])
+  }, [selectedProvince, showToast])
 
   useEffect(() => {
     if (selectedDistrict) {
@@ -191,14 +198,14 @@ export default function Checkout() {
         .then(data => setWards(data.data))
         .catch(error => {
           console.error("Lỗi tải danh sách phường/xã:", error)
-          toast.error("Không thể tải danh sách phường/xã")
+          showToast("Không thể tải danh sách phường/xã", 'error')
         })
 
       setSelectedWard("")
     } else {
       setWards([])
     }
-  }, [selectedDistrict])
+  }, [selectedDistrict, showToast])
 
   const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
@@ -260,7 +267,7 @@ export default function Checkout() {
     }
 
     if (!user?.id) {
-      toast.error("Vui lòng đăng nhập để hoàn tất đơn hàng.")
+      showToast("Vui lòng đăng nhập để hoàn tất đơn hàng.", 'error')
       return
     }
 
@@ -297,7 +304,7 @@ export default function Checkout() {
       if (order.items.length === 0) orderValidationErrors.push("Giỏ hàng trống")
 
       if (orderValidationErrors.length > 0) {
-        orderValidationErrors.forEach(error => toast.error(error))
+        orderValidationErrors.forEach(error => showToast(error, 'error'))
         return
       }
 
@@ -305,7 +312,7 @@ export default function Checkout() {
 
       await set(orderRef, order)
 
-      const cartRef = ref(database, `carts/${user.id}`) //eslint-disable-line
+      const cartRef = ref(database, `carts/${user.id}`)
       const updateCartPromises = cartItems.map(async (item) => {
         const itemRef = ref(database, `carts/${user.id}/${item.id}`)
         await runTransaction(itemRef, (currentItem) => {
@@ -340,15 +347,15 @@ export default function Checkout() {
         console.log("Redirecting to VNPAY payment gateway...")
         // You would typically redirect to the VNPAY payment page here
         // For now, we'll just simulate a successful payment
-        toast.success("Thanh toán qua VNPAY thành công!")
+        showToast("Thanh toán qua VNPAY thành công!", 'success')
       }
 
-      toast.success("Đặt hàng thành công!")
+      showToast("Đặt hàng thành công!", 'success')
       localStorage.removeItem("selectedProducts")
       router.push("/pages/order-confirmation")
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
-      toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.")
+      showToast("Đã có lỗi xảy ra. Vui lòng thử lại.", 'error')
     }
   }
 
@@ -366,11 +373,11 @@ export default function Checkout() {
           if (availableStock >= item.quantity) {
             return true
           } else {
-            toast.error(`Sản phẩm "${productData.name}" không đủ số lượng. Chỉ còn ${availableStock} sản phẩm`)
+            showToast(`Sản phẩm "${productData.name}" không đủ số lượng. Chỉ còn ${availableStock} sản phẩm`, 'error')
             return false
           }
         } else {
-          toast.error(`Không tìm thấy sản phẩm: ${item.name}`)
+          showToast(`Không tìm thấy sản phẩm: ${item.name}`, 'error')
           return false
         }
       })
@@ -379,7 +386,7 @@ export default function Checkout() {
       return stockResults.every(result => result)
     } catch (error) {
       console.error("Lỗi kiểm tra tồn kho:", error)
-      toast.error("Không thể kiểm tra tồn kho. Vui lòng thử lại.")
+      showToast("Không thể kiểm tra tồn kho. Vui lòng thử lại.", 'error')
       return false
     }
   }
