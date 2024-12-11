@@ -123,22 +123,24 @@ const Navbar = () => {
 
       {/* Mobile Navigation */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-2">
           <Link href="/" className="flex-shrink-0">
             <span className="text-white text-2xl font-bold">JNX</span>
           </Link>
           <div className="flex items-center">
             <Link href="/pages/cart" className="text-white mr-3 relative">
-              <FontAwesomeIcon icon={faShoppingCart} className="text-xl" />
-              {cartItemsCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {cartItemsCount}
-                </Badge>
-              )}
+              <div className="relative inline-block">
+                <FontAwesomeIcon icon={faShoppingCart} className="text-2xl" />
+                {cartItemsCount > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs px-1 min-w-[1.25rem] h-5 flex items-center justify-center">
+                    {cartItemsCount}
+                  </Badge>
+                )}
+              </div>
             </Link>
             <button 
               onClick={toggleMobileMenu}
-              className="text-white focus:outline-none"
+              className="text-white focus:outline-none ml-2"
             >
               {isMobileMenuOpen ? (
                 <XMarkIcon className="h-6 w-6" />
