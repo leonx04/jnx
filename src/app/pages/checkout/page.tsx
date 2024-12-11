@@ -5,7 +5,7 @@ import { database } from '@/firebaseConfig'
 import { get, onValue, ref, remove, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import toast from 'react-hot-toast'
 
 interface CartItem {
@@ -54,6 +54,14 @@ export default function Checkout() {
   const token = '46e7eac0-6486-11ef-b3c4-52669f455b4f'
   const shopId = 5289630
   const serviceId = 53321
+
+  const calculateSubtotal = useCallback(() => {
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  }, [cartItems]);
+
+  const calculateTotal = useCallback(() => {
+    return calculateSubtotal() + shippingFee;
+  }, [calculateSubtotal, shippingFee]);
 
   const validateForm = () => {
     const errors: string[] = []
@@ -120,7 +128,7 @@ export default function Checkout() {
       userId: getUserEmail,
       userName: user?.name || '',
       userEmail: getUserEmail
-    }
+    };
   }, [getUserEmail, user])
 
   useEffect(() => {
@@ -197,7 +205,7 @@ export default function Checkout() {
     }
   }, [selectedDistrict])
 
-  const calculateShippingFee = async () => {
+  const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
 
     const totalWeight = cartItems.reduce((sum, item) => sum + (item.weight || 0) * item.quantity, 0)
@@ -241,13 +249,13 @@ export default function Checkout() {
       console.error('Error calculating shipping fee:', error)
       setShippingFee(0)
     }
-  }
+  }, [selectedDistrict, selectedWard, cartItems, token, shopId, serviceId, calculateSubtotal])
 
   useEffect(() => {
     if (selectedProvince && selectedDistrict && selectedWard) {
-      calculateShippingFee()
+      calculateShippingFee();
     }
-  }, [selectedProvince, selectedDistrict, selectedWard, cartItems])
+  }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee, cartItems]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,13 +334,6 @@ export default function Checkout() {
     }
   }
 
-  const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + shippingFee
-  }
 
   const checkProductStock = async (items: CartItem[]) => {
     try {

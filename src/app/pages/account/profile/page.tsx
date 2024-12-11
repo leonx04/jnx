@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
 import { ref, get } from 'firebase/database'
@@ -40,14 +40,7 @@ export default function AccountManagement() {
   const [showPassword, setShowPassword] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
 
-  useEffect(() => {
-    if (user) {
-      fetchUserProfile()
-      fetchOrders()
-    }
-  }, [user])
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     if (user?.id) {
       const userRef = ref(database, `user/${user.id}`)
       const snapshot = await get(userRef)
@@ -62,9 +55,9 @@ export default function AccountManagement() {
         })
       }
     }
-  }
+  }, [user])
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     if (user?.email) {
       const ordersRef = ref(database, 'orders')
       const snapshot = await get(ordersRef)
@@ -84,7 +77,14 @@ export default function AccountManagement() {
         setOrders(userOrders.slice(0, 10)) 
       }
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile()
+      fetchOrders()
+    }
+  }, [user, fetchUserProfile, fetchOrders])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -108,7 +108,7 @@ export default function AccountManagement() {
     setShowPassword(!showPassword)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     try {
@@ -149,7 +149,7 @@ export default function AccountManagement() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [profile, previewImage, updateUserInfo])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -323,3 +323,4 @@ export default function AccountManagement() {
     </div>
   )
 }
+
