@@ -5,7 +5,7 @@ import { database } from "@/firebaseConfig"
 import { get, onValue, ref, runTransaction, set, query, orderByChild, equalTo } from "firebase/database"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState, useCallback, useRef } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import toast from "react-hot-toast"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -63,7 +63,6 @@ export default function Checkout() {
   ])
   const { user } = useAuthContext()
   const router = useRouter()
-  const cartRef = useRef(null)
 
   const token = "46e7eac0-6486-11ef-b3c4-52669f455b4f"
   const shopId = 5289630
@@ -392,7 +391,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="container mx-auto p-4" ref={cartRef}>
+    <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Thanh Toán</h1>
       <div className="grid md:grid-cols-2 gap-8">
         <div>
