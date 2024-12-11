@@ -108,6 +108,7 @@ export default function Home() {
     linkHref,
   }: {
     title: string;
+    // eslint-disable-next-line
     icon: any;
     iconColor: string;
     products: Product[];
