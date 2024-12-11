@@ -1,32 +1,37 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
-import { ref, onValue } from "firebase/database";
-import { database } from '@/firebaseConfig';
 import ProductCard from '@/app/components/ProductCard';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { database } from '@/firebaseConfig';
+import { onValue, ref } from "firebase/database";
+import { useEffect, useMemo, useState } from 'react';
 
 interface Product {
   id: string;
   name: string;
   price: number;
   salePrice: number;
-  category: string;
   brand: string;
   imageUrl: string;
   rating: number;
   reviewCount: number;
   availableStock: number;
+  yearReleased: number;
 }
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filter, setFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [brandFilter, setBrandFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState<string[]>([]);
+  const [saleFilter, setSaleFilter] = useState<'all' | 'sale' | 'regular'>('all');
+  const [sortOption, setSortOption] = useState<string>('newest');
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
-    onValue(productsRef, (snapshot) => {
+    const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const productsArray = Object.entries(data).map(([id, product]) => ({
@@ -36,46 +41,97 @@ const ProductsPage = () => {
         setProducts(productsArray);
       }
     });
+
+    return () => unsubscribe();
   }, []);
 
-  const categories = [...new Set(products.map(product => product.category))];
-  const brands = [...new Set(products.map(product => product.brand))];
+  const brands = useMemo(() => [...new Set(products.map(product => product.brand))], [products]);
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(filter.toLowerCase()) &&
-    (categoryFilter === '' || product.category === categoryFilter) &&
-    (brandFilter === '' || product.brand === brandFilter)
-  );
+  const filteredAndSortedProducts = useMemo(() => {
+    return products
+      .filter(product =>
+        product.name.toLowerCase().includes(filter.toLowerCase()) &&
+        (brandFilter.length === 0 || brandFilter.includes(product.brand)) &&
+        (saleFilter === 'all' || 
+         (saleFilter === 'sale' && product.salePrice && product.salePrice < product.price) ||
+         (saleFilter === 'regular' && (!product.salePrice || product.salePrice >= product.price)))
+      )
+      .sort((a, b) => {
+        switch (sortOption) {
+          case 'priceAsc':
+            return (a.salePrice || a.price) - (b.salePrice || b.price);
+          case 'priceDesc':
+            return (b.salePrice || b.price) - (a.salePrice || a.price);
+          case 'nameAsc':
+            return a.name.localeCompare(b.name);
+          case 'nameDesc':
+            return b.name.localeCompare(a.name);
+          case 'newest':
+            return b.yearReleased - a.yearReleased;
+          case 'oldest':
+            return a.yearReleased - b.yearReleased;
+          default:
+            return 0;
+        }
+      });
+  }, [products, filter, brandFilter, saleFilter, sortOption]);
+
+  const handleBrandFilterChange = (brand: string) => {
+    setBrandFilter(prev => 
+      prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Danh sách sản phẩm</h1>
       <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <input
+        <Input
           type="text"
           placeholder="Tìm kiếm sản phẩm..."
-          className="flex-grow p-2 border border-gray-300 rounded"
+          className="flex-grow"
           onChange={(e) => setFilter(e.target.value)}
         />
-        <select
-          className="p-2 border border-gray-300 rounded"
-          onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="">Tất cả danh mục</option>
-          {categories.map(category => (
-            <option key={category} value={category}>{category}</option>
-          ))}
-        </select>
-        <select
-          className="p-2 border border-gray-300 rounded"
-          onChange={(e) => setBrandFilter(e.target.value)}>
-          <option value="">Tất cả thương hiệu</option>
-          {brands.map(brand => (
-            <option key={brand} value={brand}>{brand}</option>
-          ))}
-        </select>
+        <Select onValueChange={(value) => setSaleFilter(value as 'all' | 'sale' | 'regular')}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Trạng thái giá" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="sale">Đang giảm giá</SelectItem>
+            <SelectItem value="regular">Giá thường</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select onValueChange={(value) => setSortOption(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sắp xếp" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Mới nhất</SelectItem>
+            <SelectItem value="oldest">Cũ nhất</SelectItem>
+            <SelectItem value="priceAsc">Giá tăng dần</SelectItem>
+            <SelectItem value="priceDesc">Giá giảm dần</SelectItem>
+            <SelectItem value="nameAsc">Tên A-Z</SelectItem>
+            <SelectItem value="nameDesc">Tên Z-A</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-wrap gap-4 mb-6">
+        {brands.map(brand => (
+          <div key={brand} className="flex items-center">
+            <Checkbox
+              id={`brand-${brand}`}
+              checked={brandFilter.includes(brand)}
+              onCheckedChange={() => handleBrandFilterChange(brand)}
+            />
+            <Label htmlFor={`brand-${brand}`} className="ml-2">
+              {brand}
+            </Label>
+          </div>
+        ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((product) => (
+        {filteredAndSortedProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
