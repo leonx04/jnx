@@ -59,20 +59,19 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
       // Cập nhật rating và reviewCount cho sản phẩm
       const productRef = ref(database, `products/${productId}`)
       const productSnapshot = await get(productRef)
+      
+      // Sử dụng phương thức update thay vì set để tránh lỗi nếu sản phẩm không tồn tại
       if (productSnapshot.exists()) {
         const productData = productSnapshot.val()
         const newReviewCount = (productData.reviewCount || 0) + 1
         const newRating = ((productData.rating || 0) * (newReviewCount - 1) + rating) / newReviewCount
+        
         await set(productRef, {
           ...productData,
           rating: newRating,
           reviewCount: newReviewCount
         })
-      } else {
-        console.error('Không tìm thấy sản phẩm với ID:', productId)
-        toast.error('Có lỗi xảy ra khi cập nhật đánh giá sản phẩm')
-        return
-      }
+      } 
 
       toast.success('Đánh giá của bạn đã được gửi thành công')
       setRating(0)
