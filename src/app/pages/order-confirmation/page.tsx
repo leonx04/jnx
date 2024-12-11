@@ -1,13 +1,13 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { database } from '@/firebaseConfig'
-import { ref, get } from 'firebase/database'
-import { useAuthContext } from '@/app/context/AuthContext'
-import Image from 'next/image'
-import Link from 'next/link'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { database } from "@/firebaseConfig"
+import { ref, get } from "firebase/database"
+import { useAuthContext } from "@/app/context/AuthContext"
+import Image from "next/image"
+import Link from "next/link"
+import toast from "react-hot-toast"
 
 interface OrderItem {
   id: string
@@ -32,6 +32,7 @@ interface Order {
   shippingFee: number
   total: number
   status: string
+  paymentMethod: string
   createdAt: string
 }
 
@@ -44,8 +45,8 @@ export default function OrderConfirmation() {
     const fetchLatestOrder = async () => {
       try {
         if (!user?.id) {
-          toast.error('Vui lòng đăng nhập')
-          router.push('/pages/login')
+          toast.error("Vui lòng đăng nhập")
+          router.push("/pages/login")
           return
         }
 
@@ -55,8 +56,8 @@ export default function OrderConfirmation() {
         const orders = snapshot.val()
 
         if (!orders) {
-          toast.error('Không tìm thấy đơn hàng')
-          router.push('/')
+          toast.error("Không tìm thấy đơn hàng")
+          router.push("/")
           return
         }
 
@@ -66,9 +67,9 @@ export default function OrderConfirmation() {
 
         setLatestOrder(latestOrderData)
       } catch (error) {
-        console.error('Lỗi tải đơn hàng:', error)
-        toast.error('Không thể tải đơn hàng')
-        router.push('/')
+        console.error("Lỗi tải đơn hàng:", error)
+        toast.error("Không thể tải đơn hàng")
+        router.push("/")
       }
     }
 
@@ -115,7 +116,7 @@ export default function OrderConfirmation() {
               <div>
                 <p className="font-semibold">{item.name}</p>
                 <p>Số Lượng: {item.quantity}</p>
-                <p>Giá: {item.price.toLocaleString('vi-VN')} ₫</p>
+                <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
               </div>
             </div>
           ))}
@@ -124,15 +125,24 @@ export default function OrderConfirmation() {
         <div className="mb-4">
           <p className="flex justify-between">
             <span>Tổng Phụ:</span> 
-            <span>{latestOrder.subtotal.toLocaleString('vi-VN')} ₫</span>
+            <span>{latestOrder.subtotal.toLocaleString("vi-VN")} ₫</span>
           </p>
           <p className="flex justify-between">
             <span>Phí Vận Chuyển:</span> 
-            <span>{latestOrder.shippingFee.toLocaleString('vi-VN')} ₫</span>
+            <span>{latestOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
           </p>
           <p className="flex justify-between font-semibold text-lg">
             <span>Tổng Cộng:</span> 
-            <span>{latestOrder.total.toLocaleString('vi-VN')} ₫</span>
+            <span>{latestOrder.total.toLocaleString("vi-VN")} ₫</span>
+          </p>
+          <p className="mt-2">
+            <strong>Phương thức thanh toán:</strong> {
+              latestOrder.paymentMethod === "cod" 
+                ? "Thanh toán khi nhận hàng (COD)" 
+                : latestOrder.paymentMethod === "vnpay"
+                  ? "Thanh toán qua VNPAY"
+                  : latestOrder.paymentMethod
+            }
           </p>
         </div>
 

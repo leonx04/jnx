@@ -1,15 +1,15 @@
-'use client'
+"use client"
 
-import { useAuthContext } from '@/app/context/AuthContext'
+import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { database } from '@/firebaseConfig'
-import { get, ref } from 'firebase/database'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
+import { database } from "@/firebaseConfig"
+import { get, ref } from "firebase/database"
+import Image from "next/image"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
 
 interface OrderItem {
   id: string
@@ -35,6 +35,7 @@ interface Order {
   shippingFee: number
   total: number
   status: string
+  paymentMethod: string
   createdAt: string
 }
 
@@ -46,7 +47,7 @@ export default function OrderHistory() {
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user?.id) {
-        toast.error('Vui lòng đăng nhập để xem đơn hàng')
+        toast.error("Vui lòng đăng nhập để xem đơn hàng")
         setIsLoading(false)
         return
       }
@@ -59,15 +60,15 @@ export default function OrderHistory() {
           const ordersData = snapshot.val()
           const ordersArray = Object.entries(ordersData).map(([id, data]) => ({
             id,
-            ...(data as Omit<Order, 'id'>)
+            ...(data as Omit<Order, "id">)
           }))
           setOrders(ordersArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
         } else {
           setOrders([])
         }
       } catch (error) {
-        console.error('Lỗi tải đơn hàng:', error)
-        toast.error('Không thể tải đơn hàng')
+        console.error("Lỗi tải đơn hàng:", error)
+        toast.error("Không thể tải đơn hàng")
       } finally {
         setIsLoading(false)
       }
@@ -76,34 +77,45 @@ export default function OrderHistory() {
     fetchOrders()
   }, [user])
 
-  if (!user) {
-    return (
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
-        <p className="text-gray-600 text-lg">Vui lòng đăng nhập để xem lịch sử đơn hàng.</p>
-      </div>
-    )
-  }
-
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'pending': 'Đang xử lý',
-      'processing': 'Đang chuẩn bị',
-      'shipped': 'Đã giao hàng',
-      'delivered': 'Đã nhận hàng',
-      'cancelled': 'Đã hủy'
+      "pending": "Đang xử lý",
+      "processing": "Đang chuẩn bị",
+      "shipped": "Đã giao hàng",
+      "delivered": "Đã nhận hàng",
+      "cancelled": "Đã hủy"
     }
     return statusMap[status.toLowerCase()] || status
   }
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'delivered':
-        return 'text-green-600'
-      case 'cancelled':
-        return 'text-red-600'
+      case "delivered":
+        return "text-green-600"
+      case "cancelled":
+        return "text-red-600"
       default:
-        return 'text-yellow-600'
+        return "text-yellow-600"
     }
+  }
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case "cod":
+        return "Thanh toán khi nhận hàng (COD)"
+      case "vnpay":
+        return "Thanh toán qua VNPAY"
+      default:
+        return method
+    }
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
+        <p className="text-gray-600 text-lg">Vui lòng đăng nhập để xem lịch sử đơn hàng.</p>
+      </div>
+    )
   }
 
   return (
@@ -143,15 +155,18 @@ export default function OrderHistory() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                   <div>
                     <p className="text-sm text-gray-600">
-                      Ngày đặt hàng: {new Date(order.createdAt).toLocaleString('vi-VN')}
+                      Ngày đặt hàng: {new Date(order.createdAt).toLocaleString("vi-VN")}
                     </p>
                     <p className="text-sm text-gray-600">
                       Địa chỉ: {`${order.shippingAddress.address}, ${order.shippingAddress.ward}, ${order.shippingAddress.district}, ${order.shippingAddress.province}`}
                     </p>
+                    <p className="text-sm text-gray-600">
+                      Phương thức thanh toán: {getPaymentMethodLabel(order.paymentMethod)}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">
-                      Tổng cộng: {order.total.toLocaleString('vi-VN')} ₫
+                      Tổng cộng: {order.total.toLocaleString("vi-VN")} ₫
                     </p>
                     <Button asChild className="mt-2">
                       <Link href={`/pages/account/orders/${order.id}`}>
@@ -173,7 +188,7 @@ export default function OrderHistory() {
                       <div>
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-gray-600">
-                          {item.quantity} x {item.price.toLocaleString('vi-VN')} ₫
+                          {item.quantity} x {item.price.toLocaleString("vi-VN")} ₫
                         </p>
                       </div>
                     </div>

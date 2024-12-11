@@ -1,12 +1,14 @@
-'use client'
+"use client"
 
-import { useAuthContext } from '@/app/context/AuthContext'
-import { database } from '@/firebaseConfig'
-import { get, onValue, ref, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import toast from 'react-hot-toast'
+import { useAuthContext } from "@/app/context/AuthContext"
+import { database } from "@/firebaseConfig"
+import { get, onValue, ref, runTransaction, set, query, orderByChild, equalTo } from "firebase/database"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState, useCallback } from "react"
+import toast from "react-hot-toast"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 
 interface CartItem {
   id: string
@@ -36,64 +38,75 @@ interface Ward {
   WardName: string
 }
 
+interface PaymentMethod {
+  id: string
+  name: string
+  description: string
+}
+
 export default function Checkout() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
   const [wards, setWards] = useState<Ward[]>([])
-  const [selectedProvince, setSelectedProvince] = useState('')
-  const [selectedDistrict, setSelectedDistrict] = useState('')
-  const [selectedWard, setSelectedWard] = useState('')
-  const [address, setAddress] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
+  const [selectedProvince, setSelectedProvince] = useState("")
+  const [selectedDistrict, setSelectedDistrict] = useState("")
+  const [selectedWard, setSelectedWard] = useState("")
+  const [address, setAddress] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [shippingFee, setShippingFee] = useState(0)
+  const [paymentMethod, setPaymentMethod] = useState<string>("cod")
+  const [paymentMethods] = useState<PaymentMethod[]>([
+    { id: "cod", name: "Thanh toán khi nhận hàng (COD)", description: "Thanh toán bằng tiền mặt khi nhận hàng" },
+    { id: "vnpay", name: "Thanh toán qua VNPAY", description: "Thanh toán trực tuyến bằng ví điện tử VNPAY" },
+  ])
   const { user } = useAuthContext()
   const router = useRouter()
 
-  const token = '46e7eac0-6486-11ef-b3c4-52669f455b4f'
+  const token = "46e7eac0-6486-11ef-b3c4-52669f455b4f"
   const shopId = 5289630
   const serviceId = 53321
 
   const calculateSubtotal = useCallback(() => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  }, [cartItems]);
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+  }, [cartItems])
 
   const calculateTotal = useCallback(() => {
-    return calculateSubtotal() + shippingFee;
-  }, [calculateSubtotal, shippingFee]);
+    return calculateSubtotal() + shippingFee
+  }, [calculateSubtotal, shippingFee])
 
   const validateForm = () => {
     const errors: string[] = []
 
     if (!fullName.trim()) {
-      errors.push('Vui lòng nhập đầy đủ họ và tên')
+      errors.push("Vui lòng nhập đầy đủ họ và tên")
     }
 
     if (!phoneNumber.trim()) {
-      errors.push('Vui lòng nhập số điện thoại')
+      errors.push("Vui lòng nhập số điện thoại")
     } else if (!/^(0[3|5|7|8|9])+([0-9]{8})$/.test(phoneNumber)) {
-      errors.push('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam')
+      errors.push("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam")
     }
 
     if (!selectedProvince) {
-      errors.push('Vui lòng chọn Tỉnh/Thành phố')
+      errors.push("Vui lòng chọn Tỉnh/Thành phố")
     }
 
     if (!selectedDistrict) {
-      errors.push('Vui lòng chọn Quận/Huyện')
+      errors.push("Vui lòng chọn Quận/Huyện")
     }
 
     if (!selectedWard) {
-      errors.push('Vui lòng chọn Phường/Xã')
+      errors.push("Vui lòng chọn Phường/Xã")
     }
 
     if (!address.trim()) {
-      errors.push('Vui lòng nhập địa chỉ chi tiết')
+      errors.push("Vui lòng nhập địa chỉ chi tiết")
     }
 
     if (cartItems.length === 0) {
-      errors.push('Giỏ hàng của bạn đang trống')
+      errors.push("Giỏ hàng của bạn đang trống")
     }
 
     if (errors.length > 0) {
@@ -105,16 +118,16 @@ export default function Checkout() {
   }
 
   const getUserDetails = useMemo(() => {
-    if (!user) return null;
+    if (!user) return null
     return {
       userId: user.id,
-      userName: user.name || '',
+      userName: user.name || "",
       userEmail: user.email
-    };
+    }
   }, [user])
 
   useEffect(() => {
-    const selectedProducts = localStorage.getItem('selectedProducts')
+    const selectedProducts = localStorage.getItem("selectedProducts")
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
     } else if (user?.id) {
@@ -138,31 +151,31 @@ export default function Checkout() {
   }, [user])
 
   useEffect(() => {
-    fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/province', {
-      headers: { 'Token': token }
+    fetch("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
+      headers: { "Token": token }
     })
       .then(response => response.json())
       .then(data => setProvinces(data.data))
       .catch(error => {
-        console.error('Lỗi tải danh sách tỉnh:', error)
-        toast.error('Không thể tải danh sách tỉnh')
+        console.error("Lỗi tải danh sách tỉnh:", error)
+        toast.error("Không thể tải danh sách tỉnh")
       })
   }, [])
 
   useEffect(() => {
     if (selectedProvince) {
       fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${selectedProvince}`, {
-        headers: { 'Token': token }
+        headers: { "Token": token }
       })
         .then(response => response.json())
         .then(data => setDistricts(data.data))
         .catch(error => {
-          console.error('Lỗi tải danh sách quận/huyện:', error)
-          toast.error('Không thể tải danh sách quận/huyện')
+          console.error("Lỗi tải danh sách quận/huyện:", error)
+          toast.error("Không thể tải danh sách quận/huyện")
         })
 
-      setSelectedDistrict('')
-      setSelectedWard('')
+      setSelectedDistrict("")
+      setSelectedWard("")
     } else {
       setDistricts([])
     }
@@ -171,16 +184,16 @@ export default function Checkout() {
   useEffect(() => {
     if (selectedDistrict) {
       fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${selectedDistrict}`, {
-        headers: { 'Token': token }
+        headers: { "Token": token }
       })
         .then(response => response.json())
         .then(data => setWards(data.data))
         .catch(error => {
-          console.error('Lỗi tải danh sách phường/xã:', error)
-          toast.error('Không thể tải danh sách phường/xã')
+          console.error("Lỗi tải danh sách phường/xã:", error)
+          toast.error("Không thể tải danh sách phường/xã")
         })
 
-      setSelectedWard('')
+      setSelectedWard("")
     } else {
       setWards([])
     }
@@ -197,12 +210,12 @@ export default function Checkout() {
     }), { length: 0, width: 0, height: 0 })
 
     try {
-      const response = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', {
-        method: 'POST',
+      const response = await fetch("https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee", {
+        method: "POST",
         headers: {
-          'Token': token,
-          'ShopId': shopId.toString(),
-          'Content-Type': 'application/json'
+          "Token": token,
+          "ShopId": shopId.toString(),
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           "service_id": serviceId,
@@ -220,40 +233,40 @@ export default function Checkout() {
 
       const data = await response.json()
 
-      if (data.code === 200 && data.data && typeof data.data.total === 'number') {
+      if (data.code === 200 && data.data && typeof data.data.total === "number") {
         setShippingFee(data.data.total)
       } else {
-        console.error('Invalid response from shipping API:', data)
+        console.error("Invalid response from shipping API:", data)
         setShippingFee(0)
       }
     } catch (error) {
-      console.error('Error calculating shipping fee:', error)
+      console.error("Error calculating shipping fee:", error)
       setShippingFee(0)
     }
   }, [selectedDistrict, selectedWard, cartItems, token, shopId, serviceId, calculateSubtotal])
 
   useEffect(() => {
     if (selectedProvince && selectedDistrict && selectedWard) {
-      calculateShippingFee();
+      calculateShippingFee()
     }
-  }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee, cartItems]);
+  }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!validateForm()) {
-      return;
+      return
     }
 
     if (!user?.id) {
-      toast.error('Vui lòng đăng nhập để hoàn tất đơn hàng.');
-      return;
+      toast.error("Vui lòng đăng nhập để hoàn tất đơn hàng.")
+      return
     }
 
     try {
-      const isStockAvailable = await checkProductStock(cartItems);
+      const isStockAvailable = await checkProductStock(cartItems)
       if (!isStockAvailable) {
-        return;
+        return
       }
 
       const order = {
@@ -262,104 +275,113 @@ export default function Checkout() {
         phoneNumber,
         items: cartItems,
         shippingAddress: {
-          province: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName ?? '',
-          district: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName ?? '',
-          ward: wards.find(w => w.WardCode === selectedWard)?.WardName ?? '',
+          province: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName ?? "",
+          district: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName ?? "",
+          ward: wards.find(w => w.WardCode === selectedWard)?.WardName ?? "",
           address: address
         },
         subtotal: calculateSubtotal(),
         shippingFee: shippingFee,
         total: calculateTotal(),
-        status: 'pending',
+        status: "pending",
+        paymentMethod: paymentMethod,
         createdAt: new Date().toISOString()
-      };
-
-      const orderValidationErrors: string[] = [];
-      if (!order.userId) orderValidationErrors.push('Thiếu thông tin người dùng');
-      if (!order.userEmail) orderValidationErrors.push('Thiếu email');
-      if (!order.fullName) orderValidationErrors.push('Thiếu tên');
-      if (!order.phoneNumber) orderValidationErrors.push('Thiếu số điện thoại');
-      if (order.items.length === 0) orderValidationErrors.push('Giỏ hàng trống');
-
-      if (orderValidationErrors.length > 0) {
-        orderValidationErrors.forEach(error => toast.error(error));
-        return;
       }
 
-      const orderRef = ref(database, `orders/${user.id}/${Date.now()}`);
+      const orderValidationErrors: string[] = []
+      if (!order.userId) orderValidationErrors.push("Thiếu thông tin người dùng")
+      if (!order.userEmail) orderValidationErrors.push("Thiếu email")
+      if (!order.fullName) orderValidationErrors.push("Thiếu tên")
+      if (!order.phoneNumber) orderValidationErrors.push("Thiếu số điện thoại")
+      if (order.items.length === 0) orderValidationErrors.push("Giỏ hàng trống")
 
-      await set(orderRef, order);
+      if (orderValidationErrors.length > 0) {
+        orderValidationErrors.forEach(error => toast.error(error))
+        return
+      }
 
-      const cartRef = ref(database, `carts/${user.id}`);
+      const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
+
+      await set(orderRef, order)
+
+      const cartRef = ref(database, `carts/${user.id}`)
       const updateCartPromises = cartItems.map(async (item) => {
-        const itemRef = ref(database, `carts/${user.id}/${item.id}`);
+        const itemRef = ref(database, `carts/${user.id}/${item.id}`)
         await runTransaction(itemRef, (currentItem) => {
           if (currentItem) {
             if (currentItem.quantity > item.quantity) {
-              currentItem.quantity -= item.quantity;
-              return currentItem;
+              currentItem.quantity -= item.quantity
+              return currentItem
             } else {
-              return null; // This will remove the item from the cart
+              return null // This will remove the item from the cart
             }
           }
-          return currentItem;
-        });
-      });
+          return currentItem
+        })
+      })
 
-      await Promise.all(updateCartPromises);
+      await Promise.all(updateCartPromises)
 
       const updateStockPromises = cartItems.map(async (item) => {
-        const productRef = ref(database, `products/${item.productId}`);
+        const productRef = ref(database, `products/${item.productId}`)
         await runTransaction(productRef, (product) => {
           if (product && product.availableStock !== undefined) {
-            product.availableStock -= item.quantity;
+            product.availableStock -= item.quantity
           }
-          return product;
-        });
-      });
+          return product
+        })
+      })
 
-      await Promise.all(updateStockPromises);
+      await Promise.all(updateStockPromises)
 
-      toast.success('Đặt hàng thành công!');
-      localStorage.removeItem('selectedProducts');
-      router.push('/pages/order-confirmation');
+      if (paymentMethod === "vnpay") {
+        // Implement VNPAY payment gateway integration here
+        console.log("Redirecting to VNPAY payment gateway...")
+        // You would typically redirect to the VNPAY payment page here
+        // For now, we'll just simulate a successful payment
+        toast.success("Thanh toán qua VNPAY thành công!")
+      }
+
+      toast.success("Đặt hàng thành công!")
+      localStorage.removeItem("selectedProducts")
+      router.push("/pages/order-confirmation")
     } catch (error) {
-      console.error('Lỗi khi đặt hàng:', error);
-      toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.');
+      console.error("Lỗi khi đặt hàng:", error)
+      toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.")
     }
   }
 
   const checkProductStock = async (items: CartItem[]) => {
     try {
       const stockCheckPromises = items.map(async (item) => {
-        const productsRef = ref(database, 'products');
-        const productQuery = query(productsRef, orderByChild('id'), equalTo(item.productId));
-        const snapshot = await get(productQuery);
+        const productsRef = ref(database, "products")
+        const productQuery = query(productsRef, orderByChild("id"), equalTo(item.productId))
+        const snapshot = await get(productQuery)
 
         if (snapshot.exists()) {
-          const productData = Object.values(snapshot.val())[0] as { availableStock: number, name: string };
-          const availableStock = productData.availableStock;
+          const productData = Object.values(snapshot.val())[0] as { availableStock: number, name: string }
+          const availableStock = productData.availableStock
 
           if (availableStock >= item.quantity) {
-            return true;
+            return true
           } else {
-            toast.error(`Sản phẩm "${productData.name}" không đủ số lượng. Chỉ còn ${availableStock} sản phẩm`);
-            return false;
+            toast.error(`Sản phẩm "${productData.name}" không đủ số lượng. Chỉ còn ${availableStock} sản phẩm`)
+            return false
           }
         } else {
-          toast.error(`Không tìm thấy sản phẩm: ${item.name}`);
-          return false;
+          toast.error(`Không tìm thấy sản phẩm: ${item.name}`)
+          return false
         }
-      });
+      })
 
-      const stockResults = await Promise.all(stockCheckPromises);
-      return stockResults.every(result => result);
+      const stockResults = await Promise.all(stockCheckPromises)
+      return stockResults.every(result => result)
     } catch (error) {
-      console.error('Lỗi kiểm tra tồn kho:', error);
-      toast.error('Không thể kiểm tra tồn kho. Vui lòng thử lại.');
-      return false;
+      console.error("Lỗi kiểm tra tồn kho:", error)
+      toast.error("Không thể kiểm tra tồn kho. Vui lòng thử lại.")
+      return false
     }
-  };
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -380,7 +402,8 @@ export default function Checkout() {
                 placeholder="Nhập họ và tên"
               />
             </div>
-            <div className="mb-4"><label htmlFor="phoneNumber" className="block mb-2">Số Điện Thoại</label>
+            <div className="mb-4">
+              <label htmlFor="phoneNumber" className="block mb-2">Số Điện Thoại</label>
               <input
                 type="tel"
                 id="phoneNumber"
@@ -450,6 +473,20 @@ export default function Checkout() {
                 placeholder="Số nhà, tên đường..."
               />
             </div>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">Phương thức thanh toán</h3>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                {paymentMethods.map((method) => (
+                  <div key={method.id} className="flex items-center space-x-2 mb-2">
+                    <RadioGroupItem value={method.id} id={method.id} />
+                    <Label htmlFor={method.id}>
+                      <span className="font-medium">{method.name}</span>
+                      <p className="text-sm text-gray-500">{method.description}</p>
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
             <button
               type="submit"
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -466,18 +503,17 @@ export default function Checkout() {
               <div>
                 <p className="font-semibold">{item.name}</p>
                 <p>Số Lượng: {item.quantity}</p>
-                <p>Giá: {item.price.toLocaleString('vi-VN')} ₫</p>
+                <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
               </div>
             </div>
           ))}
           <div className="border-t pt-4 mt-4">
-            <p className="flex justify-between"><span>Tổng Phụ:</span> <span>{calculateSubtotal().toLocaleString('vi-VN')} ₫</span></p>
-            <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{shippingFee.toLocaleString('vi-VN')} ₫</span></p>
-            <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{calculateTotal().toLocaleString('vi-VN')} ₫</span></p>
+            <p className="flex justify-between"><span>Tổng Phụ:</span> <span>{calculateSubtotal().toLocaleString("vi-VN")} ₫</span></p>
+            <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{shippingFee.toLocaleString("vi-VN")} ₫</span></p>
+            <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{calculateTotal().toLocaleString("vi-VN")} ₫</span></p>
           </div>
         </div>
       </div>
     </div>
   )
 }
-
