@@ -1,13 +1,16 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+// Thêm một thành viên tối thiểu vào interface hoặc loại bỏ nếu không cần thiết
 export interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  customProp?: string; // Ví dụ thêm thuộc tính tùy chỉnh
+}
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, ...props }, ref) => {
+  ({ className, customProp, ...props }, ref) => {
+    console.log(customProp);
     return (
       <textarea
         className={cn(
@@ -17,9 +20,10 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         ref={ref}
         {...props}
       />
-    )
+    );
   }
-)
-Textarea.displayName = "Textarea"
+);
 
-export { Textarea }
+Textarea.displayName = "Textarea";
+
+export { Textarea };

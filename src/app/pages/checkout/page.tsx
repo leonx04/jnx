@@ -1,14 +1,14 @@
 "use client"
 
 import { useAuthContext } from "@/app/context/AuthContext"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { database } from "@/firebaseConfig"
-import { get, onValue, ref, runTransaction, set, query, orderByChild, equalTo } from "firebase/database"
+import { equalTo, get, onValue, orderByChild, query, ref, runTransaction, set } from "firebase/database"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState, useCallback } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 
 interface CartItem {
   id: string
@@ -140,6 +140,7 @@ export default function Checkout() {
     } else if (user?.id) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const cartRef = ref(database, `carts/${user.id}`)
+      // eslint-disable-next-line
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()

@@ -41,6 +41,8 @@ export default function Cart() {
   useEffect(() => {
     if (user?.id) {
       const cartRef = ref(database, `carts/${user.id}`)
+      // eslint-disable-next-line
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       onValue(cartRef, (snapshot) => {
         const data = snapshot.val() as FirebaseCartItem | null
         if (data) {

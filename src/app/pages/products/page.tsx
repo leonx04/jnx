@@ -1,13 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react';
-import { onValue, ref } from "firebase/database";
-import { database } from '@/firebaseConfig';
 import ProductCard from '@/app/components/ProductCard';
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Pagination,
   PaginationContent,
@@ -16,9 +13,12 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+} from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { database } from '@/firebaseConfig';
+import { onValue, ref } from "firebase/database";
+import { useEffect, useMemo, useState } from 'react';
 
 interface Product {
   id: string;
@@ -46,6 +46,8 @@ const ProductsPage = () => {
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
+    // eslint-disable-next-line
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {

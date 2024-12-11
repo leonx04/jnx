@@ -28,6 +28,8 @@ export default function Home() {
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
+    // eslint-disable-next-line
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {

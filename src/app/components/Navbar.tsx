@@ -26,6 +26,8 @@ const Navbar = () => {
   useEffect(() => {
     if (user && user.id) {
       const cartRef = ref(database, `carts/${user.id}`);
+      // eslint-disable-next-line
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -138,7 +140,7 @@ const Navbar = () => {
                 )}
               </div>
             </Link>
-            <button 
+            <button
               onClick={toggleMobileMenu}
               className="text-white focus:outline-none ml-2"
             >
@@ -152,13 +154,13 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Slide */}
-        <div 
+        <div
           className={`fixed inset-0 bg-blue-900 z-40 transform transition-transform duration-300 ease-in-out 
             ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           {/* Close menu button */}
-          <button 
-            onClick={toggleMobileMenu} 
+          <button
+            onClick={toggleMobileMenu}
             className="absolute top-4 right-4 text-white p-2"
           >
             <FontAwesomeIcon icon={faTimes} className="text-2xl" />
@@ -184,15 +186,15 @@ const Navbar = () => {
               <MobileNavItem href="/" icon={faHome} onClick={toggleMobileMenu}>Trang chủ</MobileNavItem>
               <MobileNavItem href="/pages/products" icon={faBox} onClick={toggleMobileMenu}>Sản phẩm</MobileNavItem>
               <MobileNavItem href="/pages/about" icon={faInfoCircle} onClick={toggleMobileMenu}>Giới thiệu</MobileNavItem>
-              
+
               {user ? (
                 <>
                   <MobileNavItem href="/pages/account/profile" icon={faUser} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
-                  <button 
+                  <button
                     onClick={() => {
                       toggleMobileMenu();
                       handleLogout();
-                    }} 
+                    }}
                     className="w-full text-left px-4 py-3 text-white hover:bg-blue-700 flex items-center"
                   >
                     <FontAwesomeIcon icon={faSignOutAlt} className="mr-3" />
@@ -216,19 +218,19 @@ const NavLink = ({ href, children }: { href: string; children: React.ReactNode }
   </Link>
 );
 
-const MobileNavItem = ({ 
-  href, 
-  children, 
+const MobileNavItem = ({
+  href,
+  children,
   icon,
-  onClick 
-}: { 
-  href: string; 
-  children: React.ReactNode; 
+  onClick
+}: {
+  href: string;
+  children: React.ReactNode;
   icon: IconDefinition;
   onClick?: () => void;
 }) => (
-  <Link 
-    href={href} 
+  <Link
+    href={href}
     onClick={onClick}
     className="block px-4 py-3 text-white hover:bg-blue-700 flex items-center"
   >

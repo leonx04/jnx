@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import ProductReview from '@/app/components/ProductReview'
 import { useAuthContext } from '@/app/context/AuthContext'
-import { database } from '@/firebaseConfig'
-import { ref, get, onValue } from 'firebase/database'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { database } from '@/firebaseConfig'
+import { get, ref } from 'firebase/database'
+import { ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import ProductReview from '@/app/components/ProductReview'
+import { useParams } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 interface OrderItem {
   id: string
@@ -87,7 +87,7 @@ export default function OrderDetail() {
 
   useEffect(() => {
     const fetchReviews = async () => {
-      if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return
+      if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return;
 
       const reviewPromises = order.items.map(async (item) => {
         const reviewRef = ref(database, `reviews/${item.productId}`)
@@ -109,9 +109,12 @@ export default function OrderDetail() {
           return { ...acc, ...review }
         }
         return acc
-      }, {})
+      }, {} as Record<string, Review>)
 
-      setReviews(newReviews)
+      // Ensure we're setting a valid Record<string, Review>
+      if (newReviews && Object.keys(newReviews).length > 0) {
+        setReviews(newReviews as Record<string, Review>)
+      }
     }
 
     fetchReviews()
@@ -159,17 +162,16 @@ export default function OrderDetail() {
         </CardHeader>
         <CardContent>
           <p><strong>Ngày đặt hàng:</strong> {new Date(order.createdAt).toLocaleString('vi-VN')}</p>
-          <p><strong>Trạng thái:</strong> <span className={`font-semibold ${
-            order.status === 'delivered' ? 'text-green-600' : 
-            order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
-          }`}>{getStatusLabel(order.status)}</span></p>
+          <p><strong>Trạng thái:</strong> <span className={`font-semibold ${order.status === 'delivered' ? 'text-green-600' :
+              order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+            }`}>{getStatusLabel(order.status)}</span></p>
           <p><strong>Hình thức thanh toán:</strong> {
-                order.paymentMethod === "cod" 
-                  ? "Thanh toán khi nhận hàng (COD)" 
-                  : order.paymentMethod === "vnpay"
-                    ? "Thanh toán qua VNPAY"
-                    : order.paymentMethod
-              }</p>
+            order.paymentMethod === "cod"
+              ? "Thanh toán khi nhận hàng (COD)"
+              : order.paymentMethod === "vnpay"
+                ? "Thanh toán qua VNPAY"
+                : order.paymentMethod
+          }</p>
           <p><strong>Tổng tiền:</strong> {order.total.toLocaleString('vi-VN')} ₫</p>
           <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString('vi-VN')} ₫</p>
         </CardContent>
@@ -195,12 +197,12 @@ export default function OrderDetail() {
             {order.items.map((item) => (
               <li key={item.id} className="border-b pb-6">
                 <div className="flex items-center space-x-4">
-                  <Image 
-                    src={item.imageUrl} 
-                    alt={item.name} 
-                    width={80} 
-                    height={80} 
-                    className="object-cover rounded-md" 
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.name}
+                    width={80}
+                    height={80}
+                    className="object-cover rounded-md"
                   />
                   <div className="flex-grow">
                     <p className="font-medium">{item.name}</p>

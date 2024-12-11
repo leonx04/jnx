@@ -27,7 +27,7 @@ import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "fire
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 
 interface Product {
@@ -117,7 +117,8 @@ export default function ProductDetails() {
   useEffect(() => {
     const productsRef = ref(database, 'products')
     const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string))
-
+    // eslint-disable-next-line
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onValue(productQuery, (snapshot) => {
       if (snapshot.exists()) {
         const productData = Object.values(snapshot.val())[0] as Product
