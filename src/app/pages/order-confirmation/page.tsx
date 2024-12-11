@@ -43,18 +43,14 @@ export default function OrderConfirmation() {
   useEffect(() => {
     const fetchLatestOrder = async () => {
       try {
-        // Kiểm tra người dùng đã đăng nhập chưa
-        if (!user?.email) {
+        if (!user?.id) {
           toast.error('Vui lòng đăng nhập')
           router.push('/pages/login')
           return
         }
 
-        // Thay thế dấu chấm bằng dấu phẩy để tương thích với Firebase
-        const safeEmail = user.email.replace(/\./g, ',')
-        const ordersRef = ref(database, `orders/${safeEmail}`)
+        const ordersRef = ref(database, `orders/${user.id}`)
 
-        // Lấy snapshot của tất cả các đơn hàng
         const snapshot = await get(ordersRef)
         const orders = snapshot.val()
 
@@ -64,7 +60,6 @@ export default function OrderConfirmation() {
           return
         }
 
-        // Lấy đơn hàng mới nhất (đơn hàng cuối cùng)
         const orderKeys = Object.keys(orders)
         const latestOrderKey = orderKeys[orderKeys.length - 1]
         const latestOrderData = orders[latestOrderKey]
@@ -159,3 +154,4 @@ export default function OrderConfirmation() {
     </div>
   )
 }
+

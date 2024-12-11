@@ -47,15 +47,14 @@ export default function OrderDetail() {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!user?.email || !id) {
+      if (!user?.id || !id) {
         setError("Không thể tải thông tin đơn hàng. Vui lòng đăng nhập và thử lại.")
         setIsLoading(false)
         return
       }
 
       try {
-        const safeEmail = user.email.replace(/\./g, ',')
-        const orderRef = ref(database, `orders/${safeEmail}/${id}`)
+        const orderRef = ref(database, `orders/${user.id}/${id}`)
         const snapshot = await get(orderRef)
 
         if (snapshot.exists()) {

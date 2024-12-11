@@ -24,8 +24,8 @@ const Navbar = () => {
   const [cartItemsCount, setCartItemsCount] = useState(0);
 
   useEffect(() => {
-    if (user && user.email) {
-      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
+    if (user && user.id) {
+      const cartRef = ref(database, `carts/${user.id}`);
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {

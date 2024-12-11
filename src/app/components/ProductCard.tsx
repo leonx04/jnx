@@ -60,7 +60,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     }
 
     setIsAdding(true);
-    const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
+    const cartRef = ref(database, `carts/${user.id}`);
     const snapshot = await get(cartRef);
     const existingCart = snapshot.val() as Record<string, CartItem> || {};
     
@@ -73,7 +73,7 @@ const ProductCard = ({ product }: { product: Product }) => {
         setIsAdding(false);
         return;
       }
-      set(ref(database, `carts/${user.email.replace('.', ',')}/${key}`), {
+      set(ref(database, `carts/${user.id}/${key}`), {
         ...item,
         quantity: item.quantity + 1
       });
@@ -187,4 +187,3 @@ const ProductCard = ({ product }: { product: Product }) => {
 };
 
 export default ProductCard;
-

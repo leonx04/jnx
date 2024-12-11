@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { ref, get } from 'firebase/database'
+import { ref, get, set, push } from 'firebase/database'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -29,6 +29,14 @@ interface Order {
   total: number
   shippingFee: number
   status: string
+}
+
+interface CartItem {
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+  productId: string;
 }
 
 export default function AccountManagement() {
@@ -58,23 +66,18 @@ export default function AccountManagement() {
   }, [user])
 
   const fetchOrders = useCallback(async () => {
-    if (user?.email) {
-      const ordersRef = ref(database, 'orders')
+    if (user?.id) {
+      const ordersRef = ref(database, `orders/${user.id}`)
       const snapshot = await get(ordersRef)
       if (snapshot.exists()) {
         const ordersData = snapshot.val()
         const userOrders = Object.entries(ordersData)
-          .flatMap(([email, orders]) => {
-            if (email === user.email.replace(/\./g, ',')) {
-              return Object.entries(orders as { [key: string]: Order }).map(([id, order]) => ({
-                ...order,
-                id,
-              }))
-            }
-            return []
-          })
+          .map(([id, order]) => ({
+            ...(order as Order),
+            id
+          }))
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setOrders(userOrders.slice(0, 10)) 
+        setOrders(userOrders.slice(0, 10))
       }
     }
   }, [user])
@@ -161,6 +164,71 @@ export default function AccountManagement() {
     }
     return statusMap[status.toLowerCase()] || status
   }
+
+  // Added states for handleAddToCart
+  const [product, setProduct] = useState<any>(null); // Replace any with your actual product type
+  const [quantity, setQuantity] = useState(1);
+  const [isAdding, setIsAdding] = useState(false);
+
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast.error(
+        <div>
+          Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.
+          <br />
+          <Link href="/pages/login" className="text-blue-500 hover:underline">
+            Đăng nhập ngay
+          </Link>
+        </div>,
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    if (!product) {
+      toast.error('Không tìm thấy thông tin sản phẩm');
+      return;
+    }
+
+    if (quantity > product.availableStock) {
+      toast.error(`Số lượng vượt quá hàng có sẵn (${product.availableStock})`);
+      return;
+    }
+
+    setIsAdding(true);
+    const cartRef = ref(database, `carts/${user.id}`);
+    const snapshot = await get(cartRef);
+    const existingCart = snapshot.val() as Record<string, CartItem> | null;
+
+    const existingItem = existingCart ? Object.entries(existingCart).find(([_, item]) => item.productId === product.id) : null;
+
+    if (existingItem) {
+      const [key, item] = existingItem;
+      const newQuantity = item.quantity + quantity;
+      if (newQuantity > product.availableStock) {
+        toast.error(`Tổng số lượng vượt quá hàng có sẵn (${product.availableStock})`);
+        setIsAdding(false);
+        return;
+      }
+      set(ref(database, `carts/${user.id}/${key}`), {
+        ...item,
+        quantity: newQuantity
+      });
+    } else {
+      push(cartRef, {
+        name: product.name,
+        price: product.salePrice || product.price,
+        quantity: quantity,
+        imageUrl: product.imageUrl,
+        productId: product.id
+      });
+    }
+
+    toast.success('Đã thêm sản phẩm vào giỏ hàng');
+    setTimeout(() => setIsAdding(false), 500);
+  };
+
 
   if (!user) {
     return <div className="text-center py-10">Vui lòng đăng nhập để xem trang này.</div>
@@ -292,7 +360,7 @@ export default function AccountManagement() {
                         </p>
                         <p className="text-sm">
                           Trạng thái: <span className={`font-semibold ${
-                            order.status === 'delivered' ? 'text-green-600' : 
+                            order.status === 'delivered' ? 'text-green-600' :
                             order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
                           }`}>
                             {getStatusLabel(order.status)}

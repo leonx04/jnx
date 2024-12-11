@@ -39,8 +39,8 @@ export default function Cart() {
   const router = useRouter()
 
   useEffect(() => {
-    if (user) {
-      const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`)
+    if (user?.id) {
+      const cartRef = ref(database, `carts/${user.id}`)
       onValue(cartRef, (snapshot) => {
         const data = snapshot.val() as FirebaseCartItem | null
         if (data) {
@@ -62,15 +62,15 @@ export default function Cart() {
   }, [user])
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
-    if (user) {
-      const itemRef = ref(database, `carts/${user.email.replace('.', ',')}/${itemId}`)
+    if (user?.id) {
+      const itemRef = ref(database, `carts/${user.id}/${itemId}`)
       update(itemRef, { quantity: newQuantity })
     }
   }
 
   const removeItem = (itemId: string) => {
-    if (user) {
-      const itemRef = ref(database, `carts/${user.email.replace('.', ',')}/${itemId}`)
+    if (user?.id) {
+      const itemRef = ref(database, `carts/${user.id}/${itemId}`)
       remove(itemRef)
       setSelectedItems(prev => prev.filter(id => id !== itemId))
       toast.success('Sản phẩm đã được xóa khỏi giỏ hàng')

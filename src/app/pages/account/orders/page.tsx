@@ -45,15 +45,14 @@ export default function OrderHistory() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!user?.email) {
+      if (!user?.id) {
         toast.error('Vui lòng đăng nhập để xem đơn hàng')
         setIsLoading(false)
         return
       }
 
       try {
-        const safeEmail = user.email.replace(/\./g, ',')
-        const ordersRef = ref(database, `orders/${safeEmail}`)
+        const ordersRef = ref(database, `orders/${user.id}`)
         const snapshot = await get(ordersRef)
         
         if (snapshot.exists()) {

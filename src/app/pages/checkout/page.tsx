@@ -104,40 +104,21 @@ export default function Checkout() {
     return true
   }
 
-  const getUserEmail = useMemo(() => {
-    if (user?.email) return user.email
-
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser)
-          return parsedUser.email || ''
-        } catch (error) {
-          console.error('Lỗi khi parse user từ localStorage:', error)
-          return ''
-        }
-      }
-    }
-
-    return ''
-  }, [user])
-
   const getUserDetails = useMemo(() => {
+    if (!user) return null;
     return {
-      userId: getUserEmail,
-      userName: user?.name || '',
-      userEmail: getUserEmail
+      userId: user.id,
+      userName: user.name || '',
+      userEmail: user.email
     };
-  }, [getUserEmail, user])
+  }, [user])
 
   useEffect(() => {
     const selectedProducts = localStorage.getItem('selectedProducts')
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
-    } else if (getUserEmail) {
-      const safeEmail = getUserEmail.replace(/\./g, ',')
-      const cartRef = ref(database, `carts/${safeEmail}`)
+    } else if (user?.id) {
+      const cartRef = ref(database, `carts/${user.id}`)
 
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
@@ -154,7 +135,7 @@ export default function Checkout() {
 
       return () => unsubscribe()
     }
-  }, [getUserEmail])
+  }, [user])
 
   useEffect(() => {
     fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/province', {
@@ -264,7 +245,7 @@ export default function Checkout() {
       return;
     }
 
-    if (!getUserEmail) {
+    if (!user?.id) {
       toast.error('Vui lòng đăng nhập để hoàn tất đơn hàng.');
       return;
     }
@@ -305,12 +286,11 @@ export default function Checkout() {
         return;
       }
 
-      const safeEmail = getUserEmail.replace(/\./g, ',');
-      const orderRef = ref(database, `orders/${safeEmail}/${Date.now()}`);
+      const orderRef = ref(database, `orders/${user.id}/${Date.now()}`);
 
       await set(orderRef, order);
 
-      const cartRef = ref(database, `carts/${safeEmail}`);
+      const cartRef = ref(database, `carts/${user.id}`);
       await remove(cartRef);
 
       const updateStockPromises = cartItems.map(async (item) => {
@@ -333,7 +313,6 @@ export default function Checkout() {
       toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
   }
-
 
   const checkProductStock = async (items: CartItem[]) => {
     try {
@@ -487,4 +466,3 @@ export default function Checkout() {
     </div>
   )
 }
-
