@@ -2,7 +2,7 @@
 
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { get, onValue, ref, remove, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database'
+import { get, onValue, ref, runTransaction, set, query, orderByChild, equalTo } from 'firebase/database'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useCallback } from 'react'
@@ -291,7 +291,22 @@ export default function Checkout() {
       await set(orderRef, order);
 
       const cartRef = ref(database, `carts/${user.id}`);
-      await remove(cartRef);
+      const updateCartPromises = cartItems.map(async (item) => {
+        const itemRef = ref(database, `carts/${user.id}/${item.id}`);
+        await runTransaction(itemRef, (currentItem) => {
+          if (currentItem) {
+            if (currentItem.quantity > item.quantity) {
+              currentItem.quantity -= item.quantity;
+              return currentItem;
+            } else {
+              return null; // This will remove the item from the cart
+            }
+          }
+          return currentItem;
+        });
+      });
+
+      await Promise.all(updateCartPromises);
 
       const updateStockPromises = cartItems.map(async (item) => {
         const productRef = ref(database, `products/${item.productId}`);
@@ -466,3 +481,4 @@ export default function Checkout() {
     </div>
   )
 }
+
