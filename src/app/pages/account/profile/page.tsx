@@ -116,7 +116,7 @@ export default function AccountManagement() {
         throw new Error('Tên không được để trống')
       }
 
-      let updatedProfile: UserProfile = { ...profile }
+      const updatedProfile: UserProfile = { ...profile }
 
       if (previewImage) {
         const response = await fetch('/api/upload-image', {
