@@ -138,8 +138,9 @@ export default function Checkout() {
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
     } else if (user?.id) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const cartRef = ref(database, `carts/${user.id}`)
-
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
         if (data) {
@@ -310,7 +311,7 @@ export default function Checkout() {
       const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
 
       await set(orderRef, order)
-
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const cartRef = ref(database, `carts/${user.id}`)
       const updateCartPromises = cartItems.map(async (item) => {
         const itemRef = ref(database, `carts/${user.id}/${item.id}`)
