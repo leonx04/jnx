@@ -1,17 +1,17 @@
 'use client'
 
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import Image from 'next/image';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { ChevronDownIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShoppingCart, faUser, faSignOutAlt, faHome, faBox, faInfoCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { ref, onValue } from 'firebase/database';
+import { Badge } from "@/components/ui/badge";
 import { database } from '@/firebaseConfig';
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
-
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faUser } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { onValue, ref } from 'firebase/database';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useAuthContext } from '../context/AuthContext';
 
 interface CartItem {
   productId: string;
@@ -24,17 +24,19 @@ const Navbar = () => {
   const [cartItemsCount, setCartItemsCount] = useState(0);
 
   useEffect(() => {
-    if (user) {
+    if (user && user.email) {
       const cartRef = ref(database, `carts/${user.email.replace('.', ',')}`);
-      onValue(cartRef, (snapshot) => {
+      const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const count = Object.values(data as Record<string, CartItem>).reduce((acc, item) => acc + item.quantity, 0);
+          const count = Object.values(data as Record<string, CartItem>).reduce((acc: number, item: CartItem) => acc + item.quantity, 0);
           setCartItemsCount(count);
         } else {
           setCartItemsCount(0);
         }
       });
+
+      return () => unsubscribe();
     } else {
       setCartItemsCount(0);
     }
@@ -74,9 +76,9 @@ const Navbar = () => {
             <Link href="/pages/cart" className="text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium mr-2 relative">
               <FontAwesomeIcon icon={faShoppingCart} className="mr-1" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <Badge variant="destructive" className="absolute -top-2 -right-2">
                   {cartItemsCount}
-                </span>
+                </Badge>
               )}
             </Link>
             {user ? (
@@ -129,9 +131,9 @@ const Navbar = () => {
             <Link href="/pages/cart" className="text-white mr-3 relative">
               <FontAwesomeIcon icon={faShoppingCart} className="text-xl" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                <Badge variant="destructive" className="absolute -top-2 -right-2">
                   {cartItemsCount}
-                </span>
+                </Badge>
               )}
             </Link>
             <button 
@@ -152,7 +154,7 @@ const Navbar = () => {
           className={`fixed inset-0 bg-blue-900 z-40 transform transition-transform duration-300 ease-in-out 
             ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
-          {/* Nút đóng menu */}
+          {/* Close menu button */}
           <button 
             onClick={toggleMobileMenu} 
             className="absolute top-4 right-4 text-white p-2"
@@ -234,3 +236,4 @@ const MobileNavItem = ({
 );
 
 export default Navbar;
+

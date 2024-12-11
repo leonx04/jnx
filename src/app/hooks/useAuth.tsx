@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getDatabase, ref, get } from 'firebase/database';
+import { getDatabase, ref, get, set } from 'firebase/database';
 import { app } from '@/firebaseConfig';
 
 interface User {
   email: string;
   name?: string;
   imageUrl?: string;
+  id?: string;
 }
 
 interface UserWithPassword extends User {
@@ -38,9 +39,10 @@ export function useAuth() {
             console.log('User found:', user);
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password: _, ...userWithoutPassword } = user;
-            sessionStorage.setItem('user', JSON.stringify(userWithoutPassword));
-            setUser(userWithoutPassword);
-            return userWithoutPassword;
+            const userWithId = { ...userWithoutPassword, id: userId };
+            sessionStorage.setItem('user', JSON.stringify(userWithId));
+            setUser(userWithId);
+            return userWithId;
           }
         }
         console.log('No matching user found');
@@ -59,6 +61,16 @@ export function useAuth() {
     setUser(null);
   };
 
-  return { user, login, logout };
+  const updateUser = async (updatedUser: User) => {
+    if (user && user.id) {
+      const db = getDatabase(app);
+      const userRef = ref(db, `user/${user.id}`);
+      await set(userRef, updatedUser);
+      setUser(updatedUser);
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
+  return { user, login, logout, updateUser };
 }
 

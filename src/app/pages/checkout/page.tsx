@@ -55,7 +55,6 @@ export default function Checkout() {
   const shopId = 5289630
   const serviceId = 53321
 
-  // Hàm validate form với thông báo chi tiết
   const validateForm = () => {
     const errors: string[] = []
 
@@ -89,7 +88,6 @@ export default function Checkout() {
       errors.push('Giỏ hàng của bạn đang trống')
     }
 
-    // Hiển thị tất cả lỗi
     if (errors.length > 0) {
       errors.forEach(error => toast.error(error))
       return false
@@ -98,13 +96,9 @@ export default function Checkout() {
     return true
   }
 
-  // Hàm an toàn để lấy email của user
   const getUserEmail = useMemo(() => {
-    // Ưu tiên sử dụng user từ context
     if (user?.email) return user.email
 
-    // Nếu không, thử lấy từ localStorage (thay vì sessionStorage)
-    // Chỉ thực hiện trên client-side
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
@@ -121,7 +115,6 @@ export default function Checkout() {
     return ''
   }, [user])
 
-  // Hàm an toàn để lấy thông tin user
   const getUserDetails = useMemo(() => {
     return {
       userId: getUserEmail,
@@ -131,7 +124,10 @@ export default function Checkout() {
   }, [getUserEmail, user])
 
   useEffect(() => {
-    if (getUserEmail) {
+    const selectedProducts = localStorage.getItem('selectedProducts')
+    if (selectedProducts) {
+      setCartItems(JSON.parse(selectedProducts))
+    } else if (getUserEmail) {
       const safeEmail = getUserEmail.replace(/\./g, ',')
       const cartRef = ref(database, `carts/${safeEmail}`)
 
@@ -322,6 +318,7 @@ export default function Checkout() {
       await Promise.all(updateStockPromises);
 
       toast.success('Đặt hàng thành công!');
+      localStorage.removeItem('selectedProducts');
       router.push('/pages/order-confirmation');
     } catch (error) {
       console.error('Lỗi khi đặt hàng:', error);

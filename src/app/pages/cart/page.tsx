@@ -10,6 +10,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 
 interface CartItem {
   id: string
@@ -71,6 +72,8 @@ export default function Cart() {
     if (user) {
       const itemRef = ref(database, `carts/${user.email.replace('.', ',')}/${itemId}`)
       remove(itemRef)
+      setSelectedItems(prev => prev.filter(id => id !== itemId))
+      toast.success('Sản phẩm đã được xóa khỏi giỏ hàng')
     }
   }
 
@@ -89,6 +92,7 @@ export default function Cart() {
   const removeSelectedItems = () => {
     selectedItems.forEach(itemId => removeItem(itemId))
     setSelectedItems([])
+    toast.success('Các sản phẩm đã chọn đã được xóa khỏi giỏ hàng')
   }
 
   const calculateTotal = (items: CartItem[]) => {
@@ -102,12 +106,10 @@ export default function Cart() {
   const proceedToCheckout = () => {
     if (selectedItems.length > 0) {
       const selectedProducts = cartItems.filter(item => selectedItems.includes(item.id))
-      // Xử lý thanh toán cho các sản phẩm đã chọn
-      console.log('Tiến hành thanh toán cho:', selectedProducts)
-      // Chuyển hướng đến trang thanh toán
+      localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts))
       router.push('/pages/checkout')
     } else {
-      alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán')
+      toast.error('Vui lòng chọn ít nhất một sản phẩm để thanh toán')
     }
   }
 
