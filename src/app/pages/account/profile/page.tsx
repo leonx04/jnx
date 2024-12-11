@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
-import { database } from '@/firebaseConfig'
-import { ref, get, set, push } from 'firebase/database'
-import toast from 'react-hot-toast'
-import Image from 'next/image'
-import Link from 'next/link'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { EyeIcon, EyeOffIcon, UserIcon, MailIcon, KeyIcon } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { database } from '@/firebaseConfig'
+import { get, ref } from 'firebase/database'
+import { EyeIcon, EyeOffIcon, KeyIcon, MailIcon, UserIcon } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 
 interface UserProfile {
   name: string
@@ -29,14 +29,6 @@ interface Order {
   total: number
   shippingFee: number
   status: string
-}
-
-interface CartItem {
-  name: string;
-  price: number;
-  quantity: number;
-  imageUrl: string;
-  productId: string;
 }
 
 export default function AccountManagement() {
@@ -164,71 +156,6 @@ export default function AccountManagement() {
     }
     return statusMap[status.toLowerCase()] || status
   }
-
-  // Added states for handleAddToCart
-  const [product, setProduct] = useState<any>(null); // Replace any with your actual product type
-  const [quantity, setQuantity] = useState(1);
-  const [isAdding, setIsAdding] = useState(false);
-
-
-  const handleAddToCart = async () => {
-    if (!user) {
-      toast.error(
-        <div>
-          Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.
-          <br />
-          <Link href="/pages/login" className="text-blue-500 hover:underline">
-            Đăng nhập ngay
-          </Link>
-        </div>,
-        { duration: 5000 }
-      );
-      return;
-    }
-
-    if (!product) {
-      toast.error('Không tìm thấy thông tin sản phẩm');
-      return;
-    }
-
-    if (quantity > product.availableStock) {
-      toast.error(`Số lượng vượt quá hàng có sẵn (${product.availableStock})`);
-      return;
-    }
-
-    setIsAdding(true);
-    const cartRef = ref(database, `carts/${user.id}`);
-    const snapshot = await get(cartRef);
-    const existingCart = snapshot.val() as Record<string, CartItem> | null;
-
-    const existingItem = existingCart ? Object.entries(existingCart).find(([_, item]) => item.productId === product.id) : null;
-
-    if (existingItem) {
-      const [key, item] = existingItem;
-      const newQuantity = item.quantity + quantity;
-      if (newQuantity > product.availableStock) {
-        toast.error(`Tổng số lượng vượt quá hàng có sẵn (${product.availableStock})`);
-        setIsAdding(false);
-        return;
-      }
-      set(ref(database, `carts/${user.id}/${key}`), {
-        ...item,
-        quantity: newQuantity
-      });
-    } else {
-      push(cartRef, {
-        name: product.name,
-        price: product.salePrice || product.price,
-        quantity: quantity,
-        imageUrl: product.imageUrl,
-        productId: product.id
-      });
-    }
-
-    toast.success('Đã thêm sản phẩm vào giỏ hàng');
-    setTimeout(() => setIsAdding(false), 500);
-  };
-
 
   if (!user) {
     return <div className="text-center py-10">Vui lòng đăng nhập để xem trang này.</div>
