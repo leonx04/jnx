@@ -1,13 +1,13 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react';
+import { onValue, ref } from "firebase/database";
+import { database } from '@/firebaseConfig';
 import ProductCard from '@/app/components/ProductCard';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { database } from '@/firebaseConfig';
-import { onValue, ref } from "firebase/database";
-import { useEffect, useMemo, useState } from 'react';
 import {
   Pagination,
   PaginationContent,
@@ -17,6 +17,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 
 interface Product {
   id: string;
@@ -40,6 +42,7 @@ const ProductsPage = () => {
   const [saleFilter, setSaleFilter] = useState<'all' | 'sale' | 'regular'>('all');
   const [sortOption, setSortOption] = useState<string>('newest');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
@@ -175,24 +178,29 @@ const ProductsPage = () => {
     return items;
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Danh sách sản phẩm</h1>
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+  const FilterContent = () => (
+    <>
+      <div className="mb-4">
+        <Label htmlFor="search">Tìm kiếm sản phẩm</Label>
         <Input
+          id="search"
           type="text"
           placeholder="Tìm kiếm sản phẩm..."
-          className="flex-grow"
+          className="w-full"
+          value={filter}
           onChange={(e) => {
             setFilter(e.target.value);
             setCurrentPage(1);
           }}
         />
-        <Select onValueChange={(value) => {
-          setSaleFilter(value as 'all' | 'sale' | 'regular');
+      </div>
+      <div className="mb-4">
+        <Label>Trạng thái giá</Label>
+        <Select value={saleFilter} onValueChange={(value: 'all' | 'sale' | 'regular') => {
+          setSaleFilter(value);
           setCurrentPage(1);
         }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger>
             <SelectValue placeholder="Trạng thái giá" />
           </SelectTrigger>
           <SelectContent>
@@ -201,11 +209,14 @@ const ProductsPage = () => {
             <SelectItem value="regular">Giá thường</SelectItem>
           </SelectContent>
         </Select>
-        <Select onValueChange={(value) => {
+      </div>
+      <div className="mb-4">
+        <Label>Sắp xếp</Label>
+        <Select value={sortOption} onValueChange={(value) => {
           setSortOption(value);
           setCurrentPage(1);
         }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger>
             <SelectValue placeholder="Sắp xếp" />
           </SelectTrigger>
           <SelectContent>
@@ -218,44 +229,92 @@ const ProductsPage = () => {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-wrap gap-4 mb-6">
-        {brands.map(brand => (
-          <div key={brand} className="flex items-center">
-            <Checkbox
-              id={`brand-${brand}`}
-              checked={brandFilter.includes(brand)}
-              onCheckedChange={() => handleBrandFilterChange(brand)}
-            />
-            <Label htmlFor={`brand-${brand}`} className="ml-2">
-              {brand}
-            </Label>
+      <div>
+        <Label>Thương hiệu</Label>
+        <div className="space-y-2">
+          {brands.map(brand => (
+            <div key={brand} className="flex items-center">
+              <Checkbox
+                id={`brand-${brand}`}
+                checked={brandFilter.includes(brand)}
+                onCheckedChange={() => handleBrandFilterChange(brand)}
+              />
+              <Label htmlFor={`brand-${brand}`} className="ml-2">
+                {brand}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Danh sách sản phẩm</h1>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="lg:w-1/4">
+          <div className="hidden lg:block sticky top-4">
+            <FilterContent />
           </div>
-        ))}
+          <div className="lg:hidden mb-4">
+            <Input
+              type="text"
+              placeholder="Tìm kiếm sản phẩm..."
+              className="w-full mb-2"
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  Lọc và Sắp xếp
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle>Lọc và Sắp xếp</SheetTitle>
+                  <SheetDescription>
+                    Điều chỉnh các tùy chọn lọc và sắp xếp sản phẩm
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-4">
+                  <FilterContent />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+        <div className="lg:w-3/4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <Pagination className="mt-8">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+                {renderPaginationItems()}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {paginatedProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
-      {totalPages > 1 && (
-        <Pagination className="mt-8">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => handlePageChange(currentPage - 1)}
-                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-            {renderPaginationItems()}
-            <PaginationItem>
-              <PaginationNext
-                onClick={() => handlePageChange(currentPage + 1)}
-                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
     </div>
   );
 };
