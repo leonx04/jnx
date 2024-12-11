@@ -380,8 +380,7 @@ export default function Checkout() {
                 placeholder="Nhập họ và tên"
               />
             </div>
-            <div className="mb-4">
-              <label htmlFor="phoneNumber" className="block mb-2">Số Điện Thoại</label>
+            <div className="mb-4"><label htmlFor="phoneNumber" className="block mb-2">Số Điện Thoại</label>
               <input
                 type="tel"
                 id="phoneNumber"
