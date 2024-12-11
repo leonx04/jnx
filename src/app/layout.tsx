@@ -7,13 +7,15 @@ import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import SocialMetaTags from "./meta/SocialMetaTags";
+
 config.autoAddCss = false
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "JNX Web Application",
-  description: "A modern web application built with Next.js",
+  title: "JNX Tennis Store",
+  description: "JNX Tennis Store is a tennis store that sells tennis equipment and accessories.",
 };
 
 export default function RootLayout({
@@ -23,6 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
+      <SocialMetaTags />
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <AuthProvider>
           <Navbar />
