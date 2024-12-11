@@ -27,7 +27,7 @@ import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "fire
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'react-hot-toast'
 
 interface Product {
@@ -77,12 +77,20 @@ interface CartItem {
   productId: string;
 }
 
+interface Review {
+  id: string;
+  comment: string;
+  rating: number;
+  createdAt: number;
+}
+
 export default function ProductDetails() {
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
   const { user } = useAuthContext()
   const params = useParams()
+  const [reviews, setReviews] = useState<Review[]>([])
 
   const calculateDiscountPercentage = () => {
     if (product && product.salePrice && product.salePrice < product.price) {
@@ -90,6 +98,20 @@ export default function ProductDetails() {
     }
     return 0;
   };
+
+  const fetchReviews = useCallback(async () => {
+    if (!product) return
+    const reviewsRef = ref(database, `reviews/${product.id}`)
+    const snapshot = await get(reviewsRef)
+    if (snapshot.exists()) {
+      const reviewsData = snapshot.val()
+      const reviewsArray = Object.entries(reviewsData).map(([id, data]: [string, any]) => ({
+        id,
+        ...data
+      }))
+      setReviews(reviewsArray)
+    }
+  }, [product])
 
   useEffect(() => {
     const productsRef = ref(database, 'products')
@@ -104,6 +126,10 @@ export default function ProductDetails() {
       }
     })
   }, [params.id])
+
+  useEffect(() => {
+    fetchReviews()
+  }, [fetchReviews])
 
   const handleAddToCart = async () => {
   if (!user) {
@@ -266,6 +292,7 @@ export default function ProductDetails() {
           <TabsTrigger value="description">Mô tả chi tiết</TabsTrigger>
           <TabsTrigger value="specifications">Thông số kỹ thuật</TabsTrigger>
           <TabsTrigger value="features">Tính năng</TabsTrigger>
+          <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
         </TabsList>
         <TabsContent value="description">
           <Card>
@@ -366,8 +393,39 @@ export default function ProductDetails() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="reviews">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-semibold mb-4">Đánh giá từ khách hàng</h3>
+              {reviews.length > 0 ? (
+                <ul className="space-y-4">
+                  {reviews.map((review) => (
+                    <li key={review.id} className="border-b pb-4">
+                      <div className="flex items-center mb-2">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <FontAwesomeIcon
+                              key={star}
+                              icon={faStar}
+                              className={star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                            />
+                          ))}
+                        </div>
+                        <span className="ml-2 text-sm text-gray-600">
+                          {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      <p className="text-gray-700">{review.comment}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Chưa có đánh giá nào cho sản phẩm này.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   )
 }
-

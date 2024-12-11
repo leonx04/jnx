@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { ref, get } from 'firebase/database'
+import { ref, get, onValue } from 'firebase/database'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import ProductReview from '@/app/components/ProductReview'
 
 interface OrderItem {
   id: string
@@ -17,6 +18,8 @@ interface OrderItem {
   price: number
   quantity: number
   imageUrl: string
+  productId: string
+  reviewed?: boolean
 }
 
 interface Order {
@@ -39,41 +42,79 @@ interface Order {
   createdAt: string
 }
 
+interface Review {
+  rating: number
+  comment: string
+  createdAt: string
+}
+
 export default function OrderDetail() {
   const { id } = useParams()
   const { user } = useAuthContext()
   const [order, setOrder] = useState<Order | null>(null)
+  const [reviews, setReviews] = useState<Record<string, Review>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      if (!user?.id || !id) {
-        setError("Không thể tải thông tin đơn hàng. Vui lòng đăng nhập và thử lại.")
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const orderRef = ref(database, `orders/${user.id}/${id}`)
-        const snapshot = await get(orderRef)
-
-        if (snapshot.exists()) {
-          const orderData = snapshot.val()
-          setOrder({ id, ...orderData })
-        } else {
-          setError("Không tìm thấy đơn hàng.")
-        }
-      } catch (error) {
-        console.error('Lỗi khi tải đơn hàng:', error)
-        setError("Đã xảy ra lỗi khi tải thông tin đơn hàng. Vui lòng thử lại sau.")
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchOrder = useCallback(async () => {
+    if (!user?.id || !id) {
+      setError("Không thể tải thông tin đơn hàng. Vui lòng đăng nhập và thử lại.")
+      setIsLoading(false)
+      return
     }
 
-    fetchOrder()
+    try {
+      const orderRef = ref(database, `orders/${user.id}/${id}`)
+      const snapshot = await get(orderRef)
+
+      if (snapshot.exists()) {
+        const orderData = snapshot.val()
+        setOrder({ id, ...orderData })
+      } else {
+        setError("Không tìm thấy đơn hàng.")
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải đơn hàng:', error)
+      setError("Đã xảy ra lỗi khi tải thông tin đơn hàng. Vui lòng thử lại sau.")
+    } finally {
+      setIsLoading(false)
+    }
   }, [user, id])
+
+  useEffect(() => {
+    fetchOrder()
+  }, [fetchOrder])
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return
+
+      const reviewPromises = order.items.map(async (item) => {
+        const reviewRef = ref(database, `reviews/${item.productId}`)
+        const snapshot = await get(reviewRef)
+        if (snapshot.exists()) {
+          const reviewsData = snapshot.val()
+          const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
+          if (userReview) {
+            return { [item.productId]: userReview }
+          }
+        }
+        return null
+      })
+
+      const reviewResults = await Promise.all(reviewPromises)
+      const newReviews = reviewResults.reduce((acc, review) => {
+        if (review) {
+          return { ...acc, ...review }
+        }
+        return acc
+      }, {})
+
+      setReviews(newReviews)
+    }
+
+    fetchReviews()
+  }, [order, user])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -86,6 +127,10 @@ export default function OrderDetail() {
     return statusMap[status.toLowerCase()] || status
   }
 
+  const handleReviewSubmitted = () => {
+    fetchOrder()
+  }
+
   if (isLoading) {
     return <div className="text-center py-10">Đang tải thông tin đơn hàng...</div>
   }
@@ -94,8 +139,8 @@ export default function OrderDetail() {
     return <div className="text-center py-10 text-red-600">{error}</div>
   }
 
-  if (!order) {
-    return <div className="text-center py-10">Không tìm thấy thông tin đơn hàng.</div>
+  if (!order || !order.items || !Array.isArray(order.items)) {
+    return <div className="text-center py-10">Không tìm thấy thông tin đơn hàng hoặc sản phẩm.</div>
   }
 
   return (
@@ -145,22 +190,46 @@ export default function OrderDetail() {
           <CardTitle>Sản phẩm đã mua</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-4">
+          <ul className="space-y-8">
             {order.items.map((item) => (
-              <li key={item.id} className="flex items-center space-x-4 border-b pb-4">
-                <Image 
-                  src={item.imageUrl} 
-                  alt={item.name} 
-                  width={80} 
-                  height={80} 
-                  className="object-cover rounded-md" 
-                />
-                <div className="flex-grow">
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
-                  <p className="text-sm text-gray-600">Đơn giá: {item.price.toLocaleString('vi-VN')} ₫</p>
+              <li key={item.id} className="border-b pb-6">
+                <div className="flex items-center space-x-4">
+                  <Image 
+                    src={item.imageUrl} 
+                    alt={item.name} 
+                    width={80} 
+                    height={80} 
+                    className="object-cover rounded-md" 
+                  />
+                  <div className="flex-grow">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
+                    <p className="text-sm text-gray-600">Đơn giá: {item.price.toLocaleString('vi-VN')} ₫</p>
+                  </div>
+                  <p className="font-semibold">{(item.price * item.quantity).toLocaleString('vi-VN')} ₫</p>
                 </div>
-                <p className="font-semibold">{(item.price * item.quantity).toLocaleString('vi-VN')} ₫</p>
+                {order.status === 'delivered' && (
+                  <div className="mt-4">
+                    {reviews[item.productId] ? (
+                      <div className="bg-gray-100 p-4 rounded-md">
+                        <p className="font-semibold">Đánh giá của bạn:</p>
+                        <div className="flex items-center mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`text-2xl ${star <= reviews[item.productId].rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-2">{reviews[item.productId].comment}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Đánh giá vào: {new Date(reviews[item.productId].createdAt).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                    ) : (
+                      <ProductReview productId={item.productId} orderId={order.id} onReviewSubmitted={handleReviewSubmitted} />
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

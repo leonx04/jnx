@@ -17,6 +17,7 @@ interface OrderItem {
   price: number
   quantity: number
   imageUrl: string
+  productId: string
 }
 
 interface Order {
@@ -58,9 +59,10 @@ export default function OrderHistory() {
         
         if (snapshot.exists()) {
           const ordersData = snapshot.val()
-          const ordersArray = Object.entries(ordersData).map(([id, data]) => ({
+          const ordersArray = Object.entries(ordersData).map(([id, data]: [string, any]) => ({
             id,
-            ...(data as Omit<Order, "id">)
+            ...data,
+            items: Array.isArray(data.items) ? data.items : []
           }))
           setOrders(ordersArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
         } else {
@@ -176,27 +178,33 @@ export default function OrderHistory() {
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
-                  {order.items.slice(0, 2).map((item) => (
-                    <div key={item.id} className="flex items-center space-x-4">
-                      <Image 
-                        src={item.imageUrl} 
-                        alt={item.name} 
-                        width={50} 
-                        height={50} 
-                        className="object-cover rounded-md" 
-                      />
-                      <div>
-                        <p className="font-medium">{item.name}</p>
+                  {order.items && order.items.length > 0 ? (
+                    <>
+                      {order.items.slice(0, 2).map((item) => (
+                        <div key={item.id} className="flex items-center space-x-4">
+                          <Image 
+                            src={item.imageUrl} 
+                            alt={item.name} 
+                            width={50} 
+                            height={50} 
+                            className="object-cover rounded-md" 
+                          />
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-gray-600">
+                              {item.quantity} x {item.price.toLocaleString("vi-VN")} ₫
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {order.items.length > 2 && (
                         <p className="text-sm text-gray-600">
-                          {item.quantity} x {item.price.toLocaleString("vi-VN")} ₫
+                          và {order.items.length - 2} sản phẩm khác
                         </p>
-                      </div>
-                    </div>
-                  ))}
-                  {order.items.length > 2 && (
-                    <p className="text-sm text-gray-600">
-                      và {order.items.length - 2} sản phẩm khác
-                    </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-600">Không có thông tin về sản phẩm</p>
                   )}
                 </div>
               </CardContent>
