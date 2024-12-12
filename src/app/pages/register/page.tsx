@@ -1,6 +1,10 @@
 'use client'
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { app } from '@/firebaseConfig';
 import { getDatabase, push, ref, set } from 'firebase/database';
@@ -123,27 +127,23 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Tạo tài khoản mới</h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+      <Card className="w-full max-w-md p-8">
+        <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">Tạo tài khoản mới</h2>
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Tên của bạn
-              </label>
-              <div className="relative">
+              <Label htmlFor="name">Tên của bạn</Label>
+              <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaUser className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                <Input
                   id="name"
                   name="name"
                   type="text"
                   autoComplete="name"
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="pl-10"
                   placeholder="Tên của bạn"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -151,20 +151,18 @@ export default function Register() {
               </div>
             </div>
             <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">
-                Địa chỉ email
-              </label>
-              <div className="relative">
+              <Label htmlFor="email-address">Địa chỉ email</Label>
+              <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaEnvelope className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                <Input
                   id="email-address"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="pl-10"
                   placeholder="Địa chỉ email của bạn"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -172,20 +170,18 @@ export default function Register() {
               </div>
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Mật khẩu
-              </label>
-              <div className="relative">
+              <Label htmlFor="password">Mật khẩu</Label>
+              <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaLock className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="pl-10 pr-10"
                   placeholder="Mật khẩu của bạn"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -202,20 +198,18 @@ export default function Register() {
               </div>
             </div>
             <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
-                Xác nhận mật khẩu
-              </label>
-              <div className="relative">
+              <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
+              <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaLock className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                <Input
                   id="confirm-password"
                   name="confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="pl-10 pr-10"
                   placeholder="Xác nhận mật khẩu"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -239,7 +233,7 @@ export default function Register() {
               checked={acceptTerms}
               onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
             />
-            <label
+            <Label
               htmlFor="accept-terms"
               className="ml-2 block text-sm text-gray-900 cursor-pointer"
               onClick={(e) => {
@@ -248,25 +242,22 @@ export default function Register() {
               }}
             >
               Tôi đồng ý với <span className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</span>
-            </label>
+            </Label>
           </div>
 
           <div id="cloudflare-turnstile" className="mt-4"></div>
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-            >
-              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                <FaUserPlus className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" />
-              </span>
-              {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
-            </button>
-          </div>
+          <Button
+            type="submit"
+            className="w-full flex justify-center items-center"
+            disabled={isLoading}
+          >
+            <FaUserPlus className="h-5 w-5 mr-2" />
+            {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
+          </Button>
         </form>
-        <div className="text-center">
-          <p className="mt-2 text-sm text-gray-600">
+        <div className="text-center mt-4">
+          <p className="text-sm text-gray-600">
             Bạn đã có tài khoản?{' '}
             <Link href="/pages/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 ease-in-out">
               Đăng nhập ngay
@@ -282,37 +273,38 @@ export default function Register() {
             setShowTerms(false);
           }}
         >
-          <p>Chào mừng bạn đến với website của chúng tôi! Khi sử dụng dịch vụ hoặc mua sắm tại đây, bạn đồng ý với các điều khoản và điều kiện sau:</p>
-          <ol className="list-decimal pl-4">
-            <li>
-              <strong>Điều kiện sử dụng:</strong> Bạn phải từ 18 tuổi trở lên hoặc có sự giám sát của người lớn khi truy cập và sử dụng website này.
-            </li>
-            <li>
-              <strong>Thông tin sản phẩm:</strong> Chúng tôi cố gắng cung cấp thông tin chính xác nhất về các sản phẩm, nhưng không đảm bảo không có lỗi xảy ra.
-            </li>
-            <li>
-              <strong>Thanh toán:</strong> Tất cả giao dịch phải được thực hiện thông qua các phương thức thanh toán hợp lệ được hỗ trợ trên website.
-            </li>
-            <li>
-              <strong>Chính sách đổi trả:</strong> Sản phẩm chỉ được đổi trả trong vòng 7 ngày kể từ ngày nhận hàng, với điều kiện còn nguyên vẹn và có hóa đơn mua hàng.
-            </li>
-            <li>
-              <strong>Bảo mật thông tin:</strong> Chúng tôi cam kết bảo mật thông tin cá nhân của bạn và không chia sẻ cho bên thứ ba nếu không có sự đồng ý.
-            </li>
-            <li>
-              <strong>Quyền sở hữu trí tuệ:</strong> Mọi nội dung trên website (bao gồm hình ảnh, văn bản) đều thuộc quyền sở hữu của chúng tôi và không được sử dụng trái phép.
-            </li>
-            <li>
-              <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc sử dụng website hoặc sản phẩm.
-            </li>
-            <li>
-              <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
-            </li>
-          </ol>
-          <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại hỗ trợ.</p>
+          <div className="space-y-4">
+            <p>Chào mừng bạn đến với website của chúng tôi! Khi sử dụng dịch vụ hoặc mua sắm tại đây, bạn đồng ý với các điều khoản và điều kiện sau:</p>
+            <ol className="list-decimal pl-4 space-y-2">
+              <li>
+                <strong>Điều kiện sử dụng:</strong> Bạn phải từ 18 tuổi trở lên hoặc có sự giám sát của người lớn khi truy cập và sử dụng website này.
+              </li>
+              <li>
+                <strong>Thông tin sản phẩm:</strong> Chúng tôi cố gắng cung cấp thông tin chính xác nhất về các sản phẩm, nhưng không đảm bảo không có lỗi xảy ra.
+              </li>
+              <li>
+                <strong>Thanh toán:</strong> Tất cả giao dịch phải được thực hiện thông qua các phương thức thanh toán hợp lệ được hỗ trợ trên website.
+              </li>
+              <li>
+                <strong>Chính sách đổi trả:</strong> Sản phẩm chỉ được đổi trả trong vòng 7 ngày kể từ ngày nhận hàng, với điều kiện còn nguyên vẹn và có hóa đơn mua hàng.
+              </li>
+              <li>
+                <strong>Bảo mật thông tin:</strong> Chúng tôi cam kết bảo mật thông tin cá nhân của bạn và không chia sẻ cho bên thứ ba nếu không có sự đồng ý.
+              </li>
+              <li>
+                <strong>Quyền sở hữu trí tuệ:</strong> Mọi nội dung trên website (bao gồm hình ảnh, văn bản) đều thuộc quyền sở hữu của chúng tôi và không được sử dụng trái phép.
+              </li>
+              <li>
+                <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc sử dụng website hoặc sản phẩm.
+              </li>
+              <li>
+                <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
+              </li>
+            </ol>
+            <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại hỗ trợ.</p>
+          </div>
         </Modal>
-
-      </div>
+      </Card>
     </div>
   );
 }
