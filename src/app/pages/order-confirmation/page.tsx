@@ -8,6 +8,9 @@ import { useAuthContext } from "@/app/context/AuthContext"
 import Image from "next/image"
 import Link from "next/link"
 import toast from "react-hot-toast"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { CheckCircle2 } from 'lucide-react'
 
 interface OrderItem {
   id: string
@@ -18,6 +21,7 @@ interface OrderItem {
 }
 
 interface Order {
+  id: string
   userId: string
   fullName: string
   phoneNumber: string
@@ -63,7 +67,7 @@ export default function OrderConfirmation() {
 
         const orderKeys = Object.keys(orders)
         const latestOrderKey = orderKeys[orderKeys.length - 1]
-        const latestOrderData = orders[latestOrderKey]
+        const latestOrderData = { ...orders[latestOrderKey], id: latestOrderKey }
 
         setLatestOrder(latestOrderData)
       } catch (error) {
@@ -85,68 +89,83 @@ export default function OrderConfirmation() {
   }
 
   return (
-    <div className="container px-4 py-6 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-4 sm:p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-green-600 mb-4 text-center">
-          Đặt Hàng Thành Công!
-        </h1>
-        
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-2">Thông Tin Giao Hàng</h2>
-          <div className="space-y-1 text-sm sm:text-base">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <Card className="mb-8">
+        <CardHeader className="text-center">
+          <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
+          <CardTitle className="text-3xl font-bold text-green-600">
+            Đặt Hàng Thành Công!
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center">
+          <p className="text-lg mb-4">Cảm ơn bạn đã đặt hàng. </p>
+          <p className="text-2xl font-bold mb-6">Mã đơn hàng của bạn là: #{latestOrder.id.slice(-6)}</p>
+          <p className="text-gray-600">
+            Chúng tôi sẽ xử lý đơn hàng của bạn trong thời gian sớm nhất.
+          </p>
+        </CardContent>
+      </Card>
+      
+      <div className="grid md:grid-cols-2 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Thông Tin Giao Hàng</CardTitle>
+          </CardHeader>
+          <CardContent>
             <p><strong>Tên:</strong> {latestOrder.fullName}</p>
             <p><strong>Số Điện Thoại:</strong> {latestOrder.phoneNumber}</p>
-            <p>
-              <strong>Địa Chỉ:</strong> {latestOrder.shippingAddress.address}, 
-              {latestOrder.shippingAddress.ward}, 
-              {latestOrder.shippingAddress.district}, 
-              {latestOrder.shippingAddress.province}
-            </p>
+            <p><strong>Địa Chỉ:</strong> {`${latestOrder.shippingAddress.address}, 
+              ${latestOrder.shippingAddress.ward}, 
+              ${latestOrder.shippingAddress.district}, 
+              ${latestOrder.shippingAddress.province}`}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Chi Tiết Đơn Hàng</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-4">
+              {latestOrder.items.map((item) => (
+                <li key={item.id} className="flex items-center space-x-4">
+                  <div className="relative w-16 h-16 flex-shrink-0">
+                    <Image 
+                      src={item.imageUrl} 
+                      alt={item.name} 
+                      fill
+                      sizes="64px"
+                      className="object-cover rounded"
+                    />
+                  </div>
+                  <div className="flex-grow">
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-sm text-gray-600">Số Lượng: {item.quantity}</p>
+                    <p className="text-sm font-medium">{item.price.toLocaleString("vi-VN")} ₫</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-8">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-gray-600">Tổng Phụ:</span>
+            <span>{latestOrder.subtotal.toLocaleString("vi-VN")} ₫</span>
           </div>
-        </div>
-
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-2">Chi Tiết Đơn Hàng</h2>
-          {latestOrder.items.map((item) => (
-            <div 
-              key={item.id} 
-              className="flex items-center mb-3 space-x-4"
-            >
-              <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
-                <Image 
-                  src={item.imageUrl} 
-                  alt={item.name} 
-                  fill
-                  sizes="(max-width: 768px) 48px, 64px"
-                  className="object-contain"
-                />
-              </div>
-              <div className="flex-grow text-sm sm:text-base">
-                <p className="font-semibold truncate max-w-[200px]">{item.name}</p>
-                <div className="flex justify-between">
-                  <p>Số Lượng: {item.quantity}</p>
-                  <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mb-4 text-sm sm:text-base">
-          <div className="space-y-1">
-            <p className="flex justify-between">
-              <span>Tổng Phụ:</span> 
-              <span>{latestOrder.subtotal.toLocaleString("vi-VN")} ₫</span>
-            </p>
-            <p className="flex justify-between">
-              <span>Phí Vận Chuyển:</span> 
-              <span>{latestOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
-            </p>
-            <p className="flex justify-between font-semibold text-lg">
-              <span>Tổng Cộng:</span> 
-              <span>{latestOrder.total.toLocaleString("vi-VN")} ₫</span>
-            </p>
-            <p className="mt-2">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-gray-600">Phí Vận Chuyển:</span>
+            <span>{latestOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
+          </div>
+          <div className="flex justify-between items-center text-lg font-semibold">
+            <span>Tổng Cộng:</span>
+            <span>{latestOrder.total.toLocaleString("vi-VN")} ₫</span>
+          </div>
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-gray-600">
               <strong>Phương thức thanh toán:</strong> {
                 latestOrder.paymentMethod === "cod" 
                   ? "Thanh toán khi nhận hàng (COD)" 
@@ -156,23 +175,22 @@ export default function OrderConfirmation() {
               }
             </p>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
-          <Link 
-            href="/pages/products" 
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center"
-          >
+      <div className="flex justify-center space-x-4 mt-8">
+        <Button asChild>
+          <Link href="/pages/products">
             Tiếp Tục Mua Hàng
           </Link>
-          <Link 
-            href="/pages/account/orders" 
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center"
-          >
-            Xem Đơn Hàng
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href={`/pages/account/orders/${latestOrder.id}`}>
+            Xem Chi Tiết Đơn Hàng
           </Link>
-        </div>
+        </Button>
       </div>
     </div>
   )
 }
+

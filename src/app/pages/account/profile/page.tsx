@@ -69,7 +69,7 @@ export default function AccountManagement() {
             id
           }))
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setOrders(userOrders.slice(0, 10))
+        setOrders(userOrders)
       }
     }
   }, [user])
@@ -276,41 +276,43 @@ export default function AccountManagement() {
             {orders.length === 0 ? (
               <p>Bạn chưa có đơn hàng nào.</p>
             ) : (
-              <ul className="space-y-4">
-                {orders.map((order) => (
-                  <li key={order.id} className="border-b pb-2">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold">Đơn hàng #{order.id.slice(-6)}</p>
-                        <p className="text-sm text-gray-600">
-                          Ngày đặt: {new Date(order.createdAt).toLocaleDateString('vi-VN')}
-                        </p>
-                        <p className="text-sm">
-                          Trạng thái: <span className={`font-semibold ${
-                            order.status === 'delivered' ? 'text-green-600' :
-                            order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
-                          }`}>
-                            {getStatusLabel(order.status)}
-                          </span>
-                        </p>
+              <div className="max-h-[500px] overflow-y-auto pr-2">
+                <ul className="space-y-4">
+                  {orders.map((order) => (
+                    <li key={order.id} className="border-b pb-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold">Đơn hàng #{order.id.slice(-6)}</p>
+                          <p className="text-sm text-gray-600">
+                            Ngày đặt: {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                          </p>
+                          <p className="text-sm">
+                            Trạng thái: <span className={`font-semibold ${
+                              order.status === 'delivered' ? 'text-green-600' :
+                              order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+                            }`}>
+                              {getStatusLabel(order.status)}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold">
+                            Tổng tiền: {order.total.toLocaleString('vi-VN')} ₫
+                          </p>
+                          <p className="text-sm">
+                            Phí vận chuyển: {order.shippingFee.toLocaleString('vi-VN')} ₫
+                          </p>
+                          <Link href={`/pages/account/orders/${order.id}`}>
+                            <Button variant="outline" size="sm" className="mt-2">
+                              Xem chi tiết
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">
-                          Tổng tiền: {order.total.toLocaleString('vi-VN')} ₫
-                        </p>
-                        <p className="text-sm">
-                          Phí vận chuyển: {order.shippingFee.toLocaleString('vi-VN')} ₫
-                        </p>
-                        <Link href={`/pages/account/orders/${order.id}`}>
-                          <Button variant="outline" size="sm" className="mt-2">
-                            Xem chi tiết
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>

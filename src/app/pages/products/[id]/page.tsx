@@ -23,12 +23,19 @@ import {
   faWeight
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "firebase/database"
+import { equalTo, get, get as getDatabase, onValue, orderByChild, push, query, ref, set } from "firebase/database"
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
+
+const maskUsername = (userId: string) => {
+  if (userId.length <= 4) {
+    return '*'.repeat(userId.length);
+  }
+  return userId.slice(0, 2) + '*'.repeat(userId.length - 4) + userId.slice(-2);
+};
 
 interface Product {
   id: string;
@@ -79,9 +86,16 @@ interface CartItem {
 
 interface Review {
   id: string;
+  userId: string;
+  userName: string;
   comment: string;
   rating: number;
   createdAt: number;
+}
+
+interface User {
+  id: string;
+  name: string;
 }
 
 export default function ProductDetails() {
@@ -91,6 +105,7 @@ export default function ProductDetails() {
   const { user } = useAuthContext()
   const params = useParams()
   const [reviews, setReviews] = useState<Review[]>([])
+  const [users, setUsers] = useState<Record<string, User>>({});
 
   const calculateDiscountPercentage = () => {
     if (product && product.salePrice && product.salePrice < product.price) {
@@ -100,19 +115,27 @@ export default function ProductDetails() {
   };
 
   const fetchReviews = useCallback(async () => {
-    if (!product) return
-    const reviewsRef = ref(database, `reviews/${product.id}`)
-    const snapshot = await get(reviewsRef)
+    if (!product) return;
+    const reviewsRef = ref(database, `reviews/${product.id}`);
+    const snapshot = await get(reviewsRef);
     if (snapshot.exists()) {
-      const reviewsData = snapshot.val()
-      // eslint-disable-next-line
-      const reviewsArray = Object.entries(reviewsData).map(([id, data]: [string, any]) => ({
-        id,
-        ...data
-      }))
-      setReviews(reviewsArray)
+      const reviewsData = snapshot.val();
+      const reviewsArray = await Promise.all(
+        Object.entries(reviewsData).map(async ([id, data]: [string, any]) => {
+          const userRef = ref(database, `users/${data.userId}`);
+          const userSnapshot = await getDatabase(userRef);
+          const userData = userSnapshot.val();
+          return {
+            id,
+            userId: data.userId,
+            userName: userData ? userData.name : 'Người dùng ẩn danh',
+            ...data
+          };
+        })
+      );
+      setReviews(reviewsArray);
     }
-  }, [product])
+  }, [product]);
 
   useEffect(() => {
     const productsRef = ref(database, 'products')
@@ -198,24 +221,25 @@ export default function ProductDetails() {
   const discountPercentage = calculateDiscountPercentage();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid md:grid-cols-2 gap-8 relative">
-        {discountPercentage > 0 && (
-          <div className="absolute top-0 left-0 bg-red-500 text-white px-3 py-1 rounded-br-lg text-sm z-10">
-            Giảm {discountPercentage}%
+    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="w-full lg:w-1/2">
+          <div className="relative">
+            {discountPercentage > 0 && (
+              <div className="absolute top-0 left-0 bg-red-500 text-white px-3 py-1 rounded-br-lg text-sm z-10">
+                Giảm {discountPercentage}%
+              </div>
+            )}
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              width={500}
+              height={500}
+              className="w-full h-auto object-cover rounded-lg shadow-lg"
+            />
           </div>
-        )}
-
-        <div className="relative">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            width={500}
-            height={500}
-            className="w-full h-auto object-cover rounded-lg shadow-lg"
-          />
         </div>
-        <div>
+        <div className="w-full lg:w-1/2">
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
           <div className="flex items-center mb-4">
             {[0, 1, 2, 3, 4].map((index) => (
@@ -241,7 +265,7 @@ export default function ProductDetails() {
             </span>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-baseline">
             <span className="text-2xl font-bold text-dark-600 mr-3">
               {(product.salePrice || product.price).toLocaleString('vi-VN')} ₫
             </span>
@@ -258,19 +282,28 @@ export default function ProductDetails() {
           </div>
 
           <p className="mb-4">{product.description}</p>
-          <div className="flex items-center mb-4">
+          <div className="flex items-center mb-4 flex-wrap">
+            <div className="flex items-center mr-4 mb-2">
+              <button
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="bg-gray-200 px-3 py-1 rounded-l"
+              >
+                -
+              </button>
+              <span className="bg-gray-100 px-4 py-1">{quantity}</span>
+              <button
+                onClick={() => setQuantity(Math.min(product.availableStock, quantity + 1))}
+                className="bg-gray-200 px-3 py-1 rounded-r"
+              >
+                +
+              </button>
+            </div>
             <button
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="bg-gray-200 px-3 py-1 rounded-l"
+              onClick={handleAddToCart}
+              disabled={isAdding || quantity > product.availableStock}
+              className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded ${isAdding || quantity > product.availableStock ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              -
-            </button>
-            <span className="bg-gray-100 px-4 py-1">{quantity}</span>
-            <button
-              onClick={() => setQuantity(Math.min(product.availableStock, quantity + 1))}
-              className="bg-gray-200 px-3 py-1 rounded-r"
-            >
-              +
+              {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
             </button>
           </div>
           {quantity > product.availableStock && (
@@ -279,20 +312,13 @@ export default function ProductDetails() {
               Số lượng vượt quá hàng có sẵn
             </div>
           )}
-          <button
-            onClick={handleAddToCart}
-            disabled={isAdding || quantity > product.availableStock}
-            className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded ${isAdding || quantity > product.availableStock ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
-          </button>
         </div>
       </div>
 
       <Tabs defaultValue="description" className="mt-8">
         <TabsList>
-          <TabsTrigger value="description">Mô tả chi tiết</TabsTrigger>
-          <TabsTrigger value="specifications">Thông số kỹ thuật</TabsTrigger>
+          <TabsTrigger value="description">Mô tả</TabsTrigger>
+          <TabsTrigger value="specifications">Thông số</TabsTrigger>
           <TabsTrigger value="features">Tính năng</TabsTrigger>
           <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
         </TabsList>
@@ -418,6 +444,9 @@ export default function ProductDetails() {
                         </span>
                       </div>
                       <p className="text-gray-700">{review.comment}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {review.userName}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -431,3 +460,4 @@ export default function ProductDetails() {
     </div>
   )
 }
+
