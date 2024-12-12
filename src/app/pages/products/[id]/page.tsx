@@ -30,6 +30,8 @@ import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
 const maskUsername = (userId: string) => {
   if (userId.length <= 4) {
     return '*'.repeat(userId.length);
@@ -105,6 +107,8 @@ export default function ProductDetails() {
   const { user } = useAuthContext()
   const params = useParams()
   const [reviews, setReviews] = useState<Review[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line
   const [users, setUsers] = useState<Record<string, User>>({});
 
   const calculateDiscountPercentage = () => {

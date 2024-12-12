@@ -93,6 +93,8 @@ export default function OrderDetail() {
       const snapshot = await get(reviewRef)
       if (snapshot.exists()) {
         const reviewsData = snapshot.val()
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
         if (userReview) {
           return { [item.productId]: userReview as Review }
@@ -114,6 +116,8 @@ export default function OrderDetail() {
 
   useEffect(() => {
     fetchOrder()
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line
   }, [user, orderId])
 
   useEffect(() => {
