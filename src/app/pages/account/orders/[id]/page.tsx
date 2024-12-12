@@ -10,7 +10,7 @@ import { ArrowLeft } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { toast } from "react-hot-toast"
 import ProductReview from "@/app/components/ProductReview"
 
@@ -48,6 +48,8 @@ interface Review {
   rating: number
   comment: string
   createdAt: string
+  userId: string
+  orderId: string
 }
 
 export default function OrderDetail() {
@@ -68,7 +70,7 @@ export default function OrderDetail() {
     try {
       const orderRef = ref(database, `orders/${user.id}/${orderId}`)
       const snapshot = await get(orderRef)
-      
+
       if (snapshot.exists()) {
         const orderData = snapshot.val()
         setOrder({ id: orderId, ...orderData })
@@ -83,41 +85,40 @@ export default function OrderDetail() {
     }
   }
 
+  const fetchReviews = useCallback(async () => {
+    if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return;
+
+    const reviewPromises = order.items.map(async (item) => {
+      const reviewRef = ref(database, `reviews/${item.productId}`)
+      const snapshot = await get(reviewRef)
+      if (snapshot.exists()) {
+        const reviewsData = snapshot.val()
+        const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
+        if (userReview) {
+          return { [item.productId]: userReview as Review }
+        }
+      }
+      return null
+    })
+
+    const reviewResults = await Promise.all(reviewPromises)
+    const newReviews = reviewResults.reduce((acc, review) => {
+      if (review) {
+        return { ...acc, ...review }
+      }
+      return acc
+    }, {} as Record<string, Review>)
+
+    setReviews(newReviews || {})
+  }, [order, user])
+
   useEffect(() => {
     fetchOrder()
   }, [user, orderId])
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return;
-
-      const reviewPromises = order.items.map(async (item) => {
-        const reviewRef = ref(database, `reviews/${item.productId}`)
-        const snapshot = await get(reviewRef)
-        if (snapshot.exists()) {
-          const reviewsData = snapshot.val()
-          const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
-          if (userReview) {
-            return { [item.productId]: userReview }
-          }
-        }
-        return null
-      })
-
-      const reviewResults = await Promise.all(reviewPromises)
-      const newReviews = reviewResults.reduce((acc, review) => {
-        if (review) {
-          return { ...acc, ...review }
-        }
-        return acc
-      }, {} as Record<string, Review>)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
-      setReviews(newReviews)
-    }
-
     fetchReviews()
-  }, [order, user])
+  }, [order, user, fetchReviews])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -230,12 +231,12 @@ export default function OrderDetail() {
             {order.items.map((item) => (
               <li key={item.id} className="border-b pb-6">
                 <div className="flex items-center space-x-4">
-                  <Image 
-                    src={item.imageUrl} 
-                    alt={item.name} 
-                    width={80} 
-                    height={80} 
-                    className="object-cover rounded-md" 
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.name}
+                    width={80}
+                    height={80}
+                    className="object-cover rounded-md"
                   />
                   <div className="flex-grow">
                     <p className="font-medium">{item.name}</p>
