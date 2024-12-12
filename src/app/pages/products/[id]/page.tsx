@@ -130,6 +130,8 @@ export default function ProductDetails() {
     if (snapshot.exists()) {
       const reviewsData = snapshot.val();
       const reviewsArray = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         Object.entries(reviewsData).map(async ([id, data]: [string, any]) => {
           const userRef = ref(database, `users/${data.userId}`);
           const userSnapshot = await get(userRef);
@@ -149,7 +151,7 @@ export default function ProductDetails() {
   useEffect(() => {
     const productsRef = ref(database, 'products')
     const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string))
-    
+
     const unsubscribe = onValue(productQuery, (snapshot) => {
       if (snapshot.exists()) {
         const productData = Object.values(snapshot.val())[0] as Product
@@ -305,7 +307,7 @@ export default function ProductDetails() {
           </div>
 
           <p className="text-gray-700">{product.description}</p>
-          
+
           <div className="flex items-center space-x-4">
             <div className="flex items-center border rounded-md">
               <button
@@ -340,93 +342,93 @@ export default function ProductDetails() {
       </div>
 
       <Tabs defaultValue="description" className="mt-12">
-  <TabsList className="w-full justify-start border-b mb-4">
-    <TabsTrigger value="description">Mô tả</TabsTrigger>
-    <TabsTrigger value="specifications">Thông số</TabsTrigger>
-    <TabsTrigger value="features">Tính năng</TabsTrigger>
-    <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-  </TabsList>
-  <TabsContent value="description">
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-gray-700 leading-relaxed">{product.detailedDescription}</p>
-      </CardContent>
-    </Card>
-  </TabsContent>
-  <TabsContent value="specifications">
-    <Card>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <SpecItem icon={faWeight} label="Trọng lượng" value={product.weight} />
-          <SpecItem icon={faRulerHorizontal} label="Kích thước đầu vợt" value={product.headSize} />
-          <SpecItem icon={faRulerVertical} label="Chiều dài" value={product.length} />
-          <SpecItem icon={faGripLines} label="Kích thước cán" value={product.gripSize} />
-          <SpecItem icon={faPalette} label="Màu sắc" value={product.color} />
-          <SpecItem icon={faCompressArrowsAlt} label="Mẫu dây" value={product.stringPattern} />
-          <SpecItem icon={faBalanceScale} label="Trọng lượng swing" value={product.swingWeight.toString()} />
-          <SpecItem icon={faBolt} label="Mức độ lực" value={product.powerLevel} />
-          <SpecItem icon={faHandPaper} label="Mức độ thoải mái" value={product.comfortLevel} />
-          <SpecItem icon={faCalendarAlt} label="Năm ra mắt" value={product.yearReleased.toString()} />
-          <SpecItem icon={faShieldAlt} label="Bảo hành" value={product.warranty} />
-          <SpecItem icon={faGlobe} label="Xuất xứ" value={product.origin} />
-          <SpecItem icon={faTrophy} label="Xếp hạng bán chạy" value={product.bestSellerRank.toString()} />
-          <SpecItem icon={faUser} label="Loại người chơi" value={product.playerType} />
-          <SpecItem icon={faCogs} label="Độ cứng" value={product.stiffness.toString()} />
-          <SpecItem icon={faCompressArrowsAlt} label="Cấu trúc khung" value={product.frameProfile} />
-        </div>
-      </CardContent>
-    </Card>
-  </TabsContent>
-  <TabsContent value="features">
-    <Card>
-      <CardContent className="pt-6">
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none pl-0">
-          {product.features.map((feature, index) => (
-            <li key={index} className="flex items-center bg-gray-50 p-3 rounded-md">
-              <FontAwesomeIcon icon={faCheck} className="mr-3 text-green-500" />
-              <span className="text-gray-700">{feature}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  </TabsContent>
-  <TabsContent value="reviews">
-    <Card>
-      <CardContent className="pt-6">
-        <h3 className="text-2xl font-semibold mb-6">Đánh giá từ khách hàng</h3>
-        {reviews.length > 0 ? (
-          <ul className="space-y-6">
-            {reviews.map((review) => (
-              <li key={review.id} className="border-b pb-6">
-                <div className="flex items-center mb-2">
-                  <div className="flex items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FontAwesomeIcon
-                        key={star}
-                        icon={faStar}
-                        className={star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}
-                      />
-                    ))}
-                  </div>
-                  <span className="ml-2 text-sm text-gray-600">
-                    {new Date(review.createdAt).toLocaleString('vi-VN')}
-                  </span>
-                </div>
-                <p className="text-gray-700 mb-2">{review.comment}</p>
-                <p className="text-sm text-gray-600">
-                  {review.userName}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-600 italic">Chưa có đánh giá nào cho sản phẩm này.</p>
-        )}
-      </CardContent>
-    </Card>
-  </TabsContent>
-</Tabs>
+        <TabsList className="w-full justify-start border-b mb-4">
+          <TabsTrigger value="description">Mô tả</TabsTrigger>
+          <TabsTrigger value="specifications">Thông số</TabsTrigger>
+          <TabsTrigger value="features">Tính năng</TabsTrigger>
+          <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+        </TabsList>
+        <TabsContent value="description">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-gray-700 leading-relaxed">{product.detailedDescription}</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="specifications">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <SpecItem icon={faWeight} label="Trọng lượng" value={product.weight} />
+                <SpecItem icon={faRulerHorizontal} label="Kích thước đầu vợt" value={product.headSize} />
+                <SpecItem icon={faRulerVertical} label="Chiều dài" value={product.length} />
+                <SpecItem icon={faGripLines} label="Kích thước cán" value={product.gripSize} />
+                <SpecItem icon={faPalette} label="Màu sắc" value={product.color} />
+                <SpecItem icon={faCompressArrowsAlt} label="Mẫu dây" value={product.stringPattern} />
+                <SpecItem icon={faBalanceScale} label="Trọng lượng swing" value={product.swingWeight.toString()} />
+                <SpecItem icon={faBolt} label="Mức độ lực" value={product.powerLevel} />
+                <SpecItem icon={faHandPaper} label="Mức độ thoải mái" value={product.comfortLevel} />
+                <SpecItem icon={faCalendarAlt} label="Năm ra mắt" value={product.yearReleased.toString()} />
+                <SpecItem icon={faShieldAlt} label="Bảo hành" value={product.warranty} />
+                <SpecItem icon={faGlobe} label="Xuất xứ" value={product.origin} />
+                <SpecItem icon={faTrophy} label="Xếp hạng bán chạy" value={product.bestSellerRank.toString()} />
+                <SpecItem icon={faUser} label="Loại người chơi" value={product.playerType} />
+                <SpecItem icon={faCogs} label="Độ cứng" value={product.stiffness.toString()} />
+                <SpecItem icon={faCompressArrowsAlt} label="Cấu trúc khung" value={product.frameProfile} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="features">
+          <Card>
+            <CardContent className="pt-6">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none pl-0">
+                {product.features.map((feature, index) => (
+                  <li key={index} className="flex items-center bg-gray-50 p-3 rounded-md">
+                    <FontAwesomeIcon icon={faCheck} className="mr-3 text-green-500" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="reviews">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-2xl font-semibold mb-6">Đánh giá từ khách hàng</h3>
+              {reviews.length > 0 ? (
+                <ul className="space-y-6">
+                  {reviews.map((review) => (
+                    <li key={review.id} className="border-b pb-6">
+                      <div className="flex items-center mb-2">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <FontAwesomeIcon
+                              key={star}
+                              icon={faStar}
+                              className={star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                            />
+                          ))}
+                        </div>
+                        <span className="ml-2 text-sm text-gray-600">
+                          {new Date(review.createdAt).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 mb-2">{review.comment}</p>
+                      <p className="text-sm text-gray-600">
+                        {review.userName}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 italic">Chưa có đánh giá nào cho sản phẩm này.</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
