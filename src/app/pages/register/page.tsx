@@ -282,9 +282,36 @@ export default function Register() {
             setShowTerms(false);
           }}
         >
-          <p>Đây là nội dung của điều khoản và điều kiện. Vui lòng đọc kỹ trước khi đồng ý.</p>
-          {/* Thêm thêm nội dung điều khoản và điều kiện ở đây */}
+          <p>Chào mừng bạn đến với website của chúng tôi! Khi sử dụng dịch vụ hoặc mua sắm tại đây, bạn đồng ý với các điều khoản và điều kiện sau:</p>
+          <ol className="list-decimal pl-4">
+            <li>
+              <strong>Điều kiện sử dụng:</strong> Bạn phải từ 18 tuổi trở lên hoặc có sự giám sát của người lớn khi truy cập và sử dụng website này.
+            </li>
+            <li>
+              <strong>Thông tin sản phẩm:</strong> Chúng tôi cố gắng cung cấp thông tin chính xác nhất về các sản phẩm, nhưng không đảm bảo không có lỗi xảy ra.
+            </li>
+            <li>
+              <strong>Thanh toán:</strong> Tất cả giao dịch phải được thực hiện thông qua các phương thức thanh toán hợp lệ được hỗ trợ trên website.
+            </li>
+            <li>
+              <strong>Chính sách đổi trả:</strong> Sản phẩm chỉ được đổi trả trong vòng 7 ngày kể từ ngày nhận hàng, với điều kiện còn nguyên vẹn và có hóa đơn mua hàng.
+            </li>
+            <li>
+              <strong>Bảo mật thông tin:</strong> Chúng tôi cam kết bảo mật thông tin cá nhân của bạn và không chia sẻ cho bên thứ ba nếu không có sự đồng ý.
+            </li>
+            <li>
+              <strong>Quyền sở hữu trí tuệ:</strong> Mọi nội dung trên website (bao gồm hình ảnh, văn bản) đều thuộc quyền sở hữu của chúng tôi và không được sử dụng trái phép.
+            </li>
+            <li>
+              <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc sử dụng website hoặc sản phẩm.
+            </li>
+            <li>
+              <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
+            </li>
+          </ol>
+          <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại hỗ trợ.</p>
         </Modal>
+
       </div>
     </div>
   );
