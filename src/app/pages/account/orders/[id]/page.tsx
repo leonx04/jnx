@@ -12,6 +12,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
+import ProductReview from "@/app/components/ProductReview"
 
 interface OrderItem {
   id: string
@@ -20,6 +21,7 @@ interface OrderItem {
   quantity: number
   imageUrl: string
   productId: string
+  reviewed?: boolean
 }
 
 interface Order {
@@ -42,41 +44,80 @@ interface Order {
   createdAt: string
 }
 
+interface Review {
+  rating: number
+  comment: string
+  createdAt: string
+}
+
 export default function OrderDetail() {
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [reviews, setReviews] = useState<Record<string, Review>>({})
   const { user } = useAuthContext()
   const params = useParams()
   const orderId = params.id as string
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      if (!user?.id) {
-        toast.error("Vui lòng đăng nhập để xem chi tiết đơn hàng")
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const orderRef = ref(database, `orders/${user.id}/${orderId}`)
-        const snapshot = await get(orderRef)
-        
-        if (snapshot.exists()) {
-          const orderData = snapshot.val()
-          setOrder({ id: orderId, ...orderData })
-        } else {
-          toast.error("Không tìm thấy thông tin đơn hàng")
-        }
-      } catch (error) {
-        console.error("Lỗi tải chi tiết đơn hàng:", error)
-        toast.error("Không thể tải thông tin đơn hàng")
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchOrder = async () => {
+    if (!user?.id) {
+      toast.error("Vui lòng đăng nhập để xem chi tiết đơn hàng")
+      setIsLoading(false)
+      return
     }
 
+    try {
+      const orderRef = ref(database, `orders/${user.id}/${orderId}`)
+      const snapshot = await get(orderRef)
+      
+      if (snapshot.exists()) {
+        const orderData = snapshot.val()
+        setOrder({ id: orderId, ...orderData })
+      } else {
+        toast.error("Không tìm thấy thông tin đơn hàng")
+      }
+    } catch (error) {
+      console.error("Lỗi tải chi tiết đơn hàng:", error)
+      toast.error("Không thể tải thông tin đơn hàng")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchOrder()
   }, [user, orderId])
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return;
+
+      const reviewPromises = order.items.map(async (item) => {
+        const reviewRef = ref(database, `reviews/${item.productId}`)
+        const snapshot = await get(reviewRef)
+        if (snapshot.exists()) {
+          const reviewsData = snapshot.val()
+          const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
+          if (userReview) {
+            return { [item.productId]: userReview }
+          }
+        }
+        return null
+      })
+
+      const reviewResults = await Promise.all(reviewPromises)
+      const newReviews = reviewResults.reduce((acc, review) => {
+        if (review) {
+          return { ...acc, ...review }
+        }
+        return acc
+      }, {} as Record<string, Review>)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
+      setReviews(newReviews)
+    }
+
+    fetchReviews()
+  }, [order, user])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -109,6 +150,10 @@ export default function OrderDetail() {
       default:
         return method
     }
+  }
+
+  const handleReviewSubmitted = () => {
+    fetchOrder()
   }
 
   if (isLoading) {
@@ -181,22 +226,46 @@ export default function OrderDetail() {
           <CardTitle>Sản Phẩm Đã Mua</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-4">
+          <ul className="space-y-8">
             {order.items.map((item) => (
-              <li key={item.id} className="flex items-center space-x-4 border-b pb-4">
-                <Image 
-                  src={item.imageUrl} 
-                  alt={item.name} 
-                  width={80} 
-                  height={80} 
-                  className="object-cover rounded-md" 
-                />
-                <div className="flex-grow">
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
-                  <p className="text-sm text-gray-600">Đơn giá: {item.price.toLocaleString("vi-VN")} ₫</p>
+              <li key={item.id} className="border-b pb-6">
+                <div className="flex items-center space-x-4">
+                  <Image 
+                    src={item.imageUrl} 
+                    alt={item.name} 
+                    width={80} 
+                    height={80} 
+                    className="object-cover rounded-md" 
+                  />
+                  <div className="flex-grow">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
+                    <p className="text-sm text-gray-600">Đơn giá: {item.price.toLocaleString("vi-VN")} ₫</p>
+                  </div>
+                  <p className="font-semibold">{(item.price * item.quantity).toLocaleString("vi-VN")} ₫</p>
                 </div>
-                <p className="font-semibold">{(item.price * item.quantity).toLocaleString("vi-VN")} ₫</p>
+                {order.status === 'delivered' && (
+                  <div className="mt-4">
+                    {reviews[item.productId] ? (
+                      <div className="bg-gray-100 p-4 rounded-md">
+                        <p className="font-semibold">Đánh giá của bạn:</p>
+                        <div className="flex items-center mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`text-2xl ${star <= reviews[item.productId].rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-2">{reviews[item.productId].comment}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Đánh giá vào: {new Date(reviews[item.productId].createdAt).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                    ) : (
+                      <ProductReview productId={item.productId} orderId={order.id} onReviewSubmitted={handleReviewSubmitted} />
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

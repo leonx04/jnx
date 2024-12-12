@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { database } from '@/firebaseConfig'
-import { ref, push, set, get } from 'firebase/database'
+import { ref, push, set, get, update } from 'firebase/database'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'react-hot-toast'
@@ -40,6 +40,7 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
     setIsSubmitting(true)
 
     try {
+      // Add the review
       const reviewRef = ref(database, `reviews/${productId}`)
       const newReviewRef = push(reviewRef)
       await set(newReviewRef, {
@@ -50,7 +51,7 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
         orderId
       })
 
-      // Cập nhật trạng thái đã đánh giá cho sản phẩm trong đơn hàng
+      // Update the reviewed status for the product in the order
       const orderProductRef = ref(database, `orders/${user.id}/${orderId}/items`)
       const orderSnapshot = await get(orderProductRef)
       if (orderSnapshot.exists()) {
@@ -61,18 +62,19 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
         await set(orderProductRef, updatedItems)
       }
 
-      // Cập nhật rating và reviewCount cho sản phẩm
+      // Update the product's rating and review count
       const productRef = ref(database, `products/${productId}`)
       const productSnapshot = await get(productRef)
       
-      // Sử dụng phương thức update thay vì set để tránh lỗi nếu sản phẩm không tồn tại
       if (productSnapshot.exists()) {
         const productData = productSnapshot.val()
-        const newReviewCount = (productData.reviewCount || 0) + 1
-        const newRating = ((productData.rating || 0) * (newReviewCount - 1) + rating) / newReviewCount
+        const currentRating = productData.rating || 0
+        const currentReviewCount = productData.reviewCount || 0
         
-        await set(productRef, {
-          ...productData,
+        const newReviewCount = currentReviewCount + 1
+        const newRating = ((currentRating * currentReviewCount) + rating) / newReviewCount
+
+        await update(productRef, {
           rating: newRating,
           reviewCount: newReviewCount
         })
@@ -125,3 +127,4 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
     </form>
   )
 }
+
