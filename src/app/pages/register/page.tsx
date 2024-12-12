@@ -7,6 +7,9 @@ import { FaUser, FaEnvelope, FaLock, FaUserPlus, FaEye, FaEyeSlash } from 'react
 import { getDatabase, ref, push, set } from 'firebase/database';
 import { app } from '@/firebaseConfig';
 import toast from 'react-hot-toast';
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox";
+import { Modal } from "@/components/ui/modal";
 
 interface TurnstileInstance {
   render: (selector: string, options: TurnstileOptions) => string;
@@ -36,6 +39,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaWidgetId, setCaptchaWidgetId] = useState('');
+  const [showTerms, setShowTerms] = useState(false);
   const router = useRouter();
 
   const togglePasswordVisibility = (field: 'password' | 'confirmPassword') => {
@@ -231,16 +235,20 @@ export default function Register() {
           </div>
 
           <div className="flex items-center">
-            <input
+            <Checkbox
               id="accept-terms"
-              name="accept-terms"
-              type="checkbox"
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
               checked={acceptTerms}
-              onChange={(e) => setAcceptTerms(e.target.checked)}
+              onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
             />
-            <label htmlFor="accept-terms" className="ml-2 block text-sm text-gray-900">
-              Tôi đồng ý với <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</a>
+            <label
+              htmlFor="accept-terms"
+              className="ml-2 block text-sm text-gray-900 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowTerms(true);
+              }}
+            >
+              Tôi đồng ý với <span className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</span>
             </label>
           </div>
 
@@ -266,6 +274,18 @@ export default function Register() {
             </Link>
           </p>
         </div>
+        <Modal
+          isOpen={showTerms}
+          onClose={() => setShowTerms(false)}
+          title="Điều khoản và Điều kiện"
+          onConfirm={() => {
+            setAcceptTerms(true);
+            setShowTerms(false);
+          }}
+        >
+          <p>Đây là nội dung của điều khoản và điều kiện. Vui lòng đọc kỹ trước khi đồng ý.</p>
+          {/* Thêm thêm nội dung điều khoản và điều kiện ở đây */}
+        </Modal>
       </div>
     </div>
   );
