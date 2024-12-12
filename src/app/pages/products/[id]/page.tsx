@@ -124,7 +124,11 @@ export default function ProductDetails() {
     const snapshot = await get(reviewsRef);
     if (snapshot.exists()) {
       const reviewsData = snapshot.val();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
       const reviewsArray = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         Object.entries(reviewsData).map(async ([id, data]: [string, any]) => {
           const userRef = ref(database, `users/${data.userId}`);
           const userSnapshot = await getDatabase(userRef);
