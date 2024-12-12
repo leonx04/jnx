@@ -1,6 +1,10 @@
 'use client'
 
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { onValue, ref } from "firebase/database";
+import { database } from '@/firebaseConfig';
 import ProductCard from '@/app/components/ProductCard';
+import NoResultsFound from '@/app/components/NoResultsFound';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -16,9 +20,7 @@ import {
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { database } from '@/firebaseConfig';
-import { onValue, ref } from "firebase/database";
-import { useEffect, useMemo, useState } from 'react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -43,11 +45,11 @@ const ProductsPage = () => {
   const [sortOption, setSortOption] = useState<string>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const productListRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
-    // eslint-disable-next-line
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -105,12 +107,24 @@ const ProductsPage = () => {
       prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
     );
     setCurrentPage(1);
+    scrollToTop();
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
+
+  const scrollToTop = useCallback(() => {
+    if (productListRef.current) {
+      productListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  const handleFilterChange = useCallback(() => {
+    setCurrentPage(1);
+    scrollToTop();
+  }, []);
 
   const renderPaginationItems = () => {
     const items = [];
@@ -184,23 +198,26 @@ const ProductsPage = () => {
     <>
       <div className="mb-4">
         <Label htmlFor="search">Tìm kiếm sản phẩm</Label>
-        <Input
-          id="search"
-          type="text"
-          placeholder="Tìm kiếm sản phẩm..."
-          className="w-full"
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
+        <div className="relative">
+          <Input
+            id="search"
+            type="text"
+            placeholder="Tìm kiếm sản phẩm..."
+            className="w-full pl-10"
+            value={filter}
+            onChange={(e) => {
+              setFilter(e.target.value);
+              handleFilterChange();
+            }}
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        </div>
       </div>
       <div className="mb-4">
         <Label>Trạng thái giá</Label>
         <Select value={saleFilter} onValueChange={(value: 'all' | 'sale' | 'regular') => {
           setSaleFilter(value);
-          setCurrentPage(1);
+          handleFilterChange();
         }}>
           <SelectTrigger>
             <SelectValue placeholder="Trạng thái giá" />
@@ -216,7 +233,7 @@ const ProductsPage = () => {
         <Label>Sắp xếp</Label>
         <Select value={sortOption} onValueChange={(value) => {
           setSortOption(value);
-          setCurrentPage(1);
+          handleFilterChange();
         }}>
           <SelectTrigger>
             <SelectValue placeholder="Sắp xếp" />
@@ -233,7 +250,7 @@ const ProductsPage = () => {
       </div>
       <div>
         <Label>Thương hiệu</Label>
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-48 overflow-y-auto">
           {brands.map(brand => (
             <div key={brand} className="flex items-center">
               <Checkbox
@@ -256,64 +273,73 @@ const ProductsPage = () => {
       <h1 className="text-3xl font-bold mb-6">Danh sách sản phẩm</h1>
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-1/4">
-          <div className="hidden lg:block sticky top-4">
+          <div className="hidden lg:block sticky top-20 overflow-y-auto max-h-[calc(100vh-5rem)]" ref={filterRef}>
             <FilterContent />
           </div>
           <div className="lg:hidden mb-4">
-            <Input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm..."
-              className="w-full mb-2"
-              value={filter}
-              onChange={(e) => {
-                setFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="w-full">
-                  Lọc và Sắp xếp
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                <SheetHeader>
-                  <SheetTitle>Lọc và Sắp xếp</SheetTitle>
-                  <SheetDescription>
-                    Điều chỉnh các tùy chọn lọc và sắp xếp sản phẩm
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-4">
-                  <FilterContent />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="w-full"
+                value={filter}
+                onChange={(e) => {
+                  setFilter(e.target.value);
+                  handleFilterChange();
+                }}
+              />
+              <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="whitespace-nowrap">
+                    <SlidersHorizontal className="mr-2" size={20} />
+                    Lọc
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle>Lọc và Sắp xếp</SheetTitle>
+                    <SheetDescription>
+                      Điều chỉnh các tùy chọn lọc và sắp xếp sản phẩm
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-4">
+                    <FilterContent />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
-        <div className="lg:w-3/4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <Pagination className="mt-8">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-                {renderPaginationItems()}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+        <div className="lg:w-3/4" ref={productListRef}>
+          {paginatedProducts.length === 0 ? (
+            <NoResultsFound />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <Pagination className="mt-8">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    {renderPaginationItems()}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
           )}
         </div>
       </div>
