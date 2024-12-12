@@ -1,15 +1,14 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { FaUser, FaEnvelope, FaLock, FaUserPlus, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { getDatabase, ref, push, set } from 'firebase/database';
-import { app } from '@/firebaseConfig';
-import toast from 'react-hot-toast';
-import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/ui/modal";
+import { app } from '@/firebaseConfig';
+import { getDatabase, push, ref, set } from 'firebase/database';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUser, FaUserPlus } from 'react-icons/fa';
 
 interface TurnstileInstance {
   render: (selector: string, options: TurnstileOptions) => string;
