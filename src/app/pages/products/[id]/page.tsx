@@ -1,11 +1,14 @@
 'use client'
 
-import { useAuthContext } from '@/app/context/AuthContext'
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { database } from '@/firebaseConfig'
+import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { toast } from 'react-hot-toast'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faBalanceScale, faBolt,
+  faBalanceScale,
+  faBolt,
   faBoxOpen,
   faCalendarAlt,
   faCheck,
@@ -16,28 +19,20 @@ import {
   faGripLines,
   faHandPaper,
   faPalette,
-  faRulerHorizontal, faRulerVertical,
+  faRulerHorizontal,
+  faRulerVertical,
   faShieldAlt,
   faStar,
-  faTrophy, faUser,
+  faTrophy,
+  faUser,
   faWeight
 } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { equalTo, get, get as getDatabase, onValue, orderByChild, push, query, ref, set } from "firebase/database"
-import Image from 'next/image'
-import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
+import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "firebase/database"
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line
-const maskUsername = (userId: string) => {
-  if (userId.length <= 4) {
-    return '*'.repeat(userId.length);
-  }
-  return userId.slice(0, 2) + '*'.repeat(userId.length - 4) + userId.slice(-2);
-};
+import { useAuthContext } from '@/app/context/AuthContext'
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { database } from '@/firebaseConfig'
 
 interface Product {
   id: string;
@@ -95,28 +90,38 @@ interface Review {
   createdAt: number;
 }
 
-interface User {
-  id: string;
-  name: string;
+interface SpecItemProps {
+  icon: typeof faStar;
+  label: string;
+  value: string;
+}
+
+function SpecItem({ icon, label, value }: SpecItemProps) {
+  return (
+    <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-md">
+      <FontAwesomeIcon icon={icon} className="text-primary" />
+      <div>
+        <span className="text-sm text-gray-600">{label}:</span>
+        <span className="ml-1 font-medium">{value}</span>
+      </div>
+    </div>
+  )
 }
 
 export default function ProductDetails() {
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
   const { user } = useAuthContext()
   const params = useParams()
-  const [reviews, setReviews] = useState<Review[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // eslint-disable-next-line
-  const [users, setUsers] = useState<Record<string, User>>({});
 
-  const calculateDiscountPercentage = () => {
+  const calculateDiscountPercentage = useCallback(() => {
     if (product && product.salePrice && product.salePrice < product.price) {
       return Math.round(((product.price - product.salePrice) / product.price) * 100);
     }
     return 0;
-  };
+  }, [product]);
 
   const fetchReviews = useCallback(async () => {
     if (!product) return;
@@ -124,14 +129,10 @@ export default function ProductDetails() {
     const snapshot = await get(reviewsRef);
     if (snapshot.exists()) {
       const reviewsData = snapshot.val();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       const reviewsArray = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        // eslint-disable-next-line
         Object.entries(reviewsData).map(async ([id, data]: [string, any]) => {
           const userRef = ref(database, `users/${data.userId}`);
-          const userSnapshot = await getDatabase(userRef);
+          const userSnapshot = await get(userRef);
           const userData = userSnapshot.val();
           return {
             id,
@@ -148,9 +149,8 @@ export default function ProductDetails() {
   useEffect(() => {
     const productsRef = ref(database, 'products')
     const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string))
-    // eslint-disable-next-line
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onValue(productQuery, (snapshot) => {
+    
+    const unsubscribe = onValue(productQuery, (snapshot) => {
       if (snapshot.exists()) {
         const productData = Object.values(snapshot.val())[0] as Product
         setProduct(productData)
@@ -158,6 +158,8 @@ export default function ProductDetails() {
         console.log("Không tìm thấy sản phẩm với ID đã cho")
       }
     })
+
+    return () => unsubscribe()
   }, [params.id])
 
   useEffect(() => {
@@ -204,12 +206,12 @@ export default function ProductDetails() {
         setIsAdding(false);
         return;
       }
-      set(ref(database, `carts/${user.id}/${key}`), {
+      await set(ref(database, `carts/${user.id}/${key}`), {
         ...item,
         quantity: newQuantity
       });
     } else {
-      push(cartRef, {
+      await push(cartRef, {
         name: product.name,
         price: product.salePrice || product.price,
         quantity: quantity,
@@ -229,10 +231,10 @@ export default function ProductDetails() {
   const discountPercentage = calculateDiscountPercentage();
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="w-full lg:w-1/2">
-          <div className="relative">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="grid md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <div className="relative aspect-square">
             {discountPercentage > 0 && (
               <div className="absolute top-0 left-0 bg-red-500 text-white px-3 py-1 rounded-br-lg text-sm z-10">
                 Giảm {discountPercentage}%
@@ -241,15 +243,28 @@ export default function ProductDetails() {
             <Image
               src={product.imageUrl}
               alt={product.name}
-              width={500}
-              height={500}
-              className="w-full h-auto object-cover rounded-lg shadow-lg"
+              layout="fill"
+              objectFit="cover"
+              className="rounded-lg shadow-lg"
             />
           </div>
+          {/* <div className="grid grid-cols-4 gap-2">
+            {[product.imageUrl, product.imageUrl, product.imageUrl, product.imageUrl].map((img, index) => (
+              <div key={index} className="aspect-square relative">
+                <Image
+                  src={img}
+                  alt={`${product.name} - Ảnh ${index + 1}`}
+                  layout="fill"
+                  objectFit="cover"
+                  className="rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                />
+              </div>
+            ))}
+          </div> */}
         </div>
-        <div className="w-full lg:w-1/2">
-          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-          <div className="flex items-center mb-4">
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold">{product.name}</h1>
+          <div className="flex items-center">
             {[0, 1, 2, 3, 4].map((index) => (
               <div key={index} className="relative w-5 h-5 mx-0.5">
                 <FontAwesomeIcon
@@ -273,8 +288,8 @@ export default function ProductDetails() {
             </span>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-baseline">
-            <span className="text-2xl font-bold text-dark-600 mr-3">
+          <div className="flex items-baseline space-x-3">
+            <span className="text-3xl font-bold text-primary">
               {(product.salePrice || product.price).toLocaleString('vi-VN')} ₫
             </span>
             {product.salePrice && product.salePrice < product.price && (
@@ -284,24 +299,25 @@ export default function ProductDetails() {
             )}
           </div>
 
-          <div className="mb-4 flex items-center">
-            <FontAwesomeIcon icon={faBoxOpen} className="mr-2 text-green-500" />
+          <div className="flex items-center text-green-600">
+            <FontAwesomeIcon icon={faBoxOpen} className="mr-2" />
             <span>Còn hàng: {product.availableStock} sản phẩm</span>
           </div>
 
-          <p className="mb-4">{product.description}</p>
-          <div className="flex items-center mb-4 flex-wrap">
-            <div className="flex items-center mr-4 mb-2">
+          <p className="text-gray-700">{product.description}</p>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center border rounded-md">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="bg-gray-200 px-3 py-1 rounded-l"
+                className="px-3 py-2 hover:bg-gray-100"
               >
                 -
               </button>
-              <span className="bg-gray-100 px-4 py-1">{quantity}</span>
+              <span className="px-4 py-2 border-x">{quantity}</span>
               <button
                 onClick={() => setQuantity(Math.min(product.availableStock, quantity + 1))}
-                className="bg-gray-200 px-3 py-1 rounded-r"
+                className="px-3 py-2 hover:bg-gray-100"
               >
                 +
               </button>
@@ -309,13 +325,13 @@ export default function ProductDetails() {
             <button
               onClick={handleAddToCart}
               disabled={isAdding || quantity > product.availableStock}
-              className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded ${isAdding || quantity > product.availableStock ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-md transition-colors ${isAdding || quantity > product.availableStock ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
             </button>
           </div>
           {quantity > product.availableStock && (
-            <div className="text-red-500 mb-2">
+            <div className="text-red-500">
               <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
               Số lượng vượt quá hàng có sẵn
             </div>
@@ -323,148 +339,94 @@ export default function ProductDetails() {
         </div>
       </div>
 
-      <Tabs defaultValue="description" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="description">Mô tả</TabsTrigger>
-          <TabsTrigger value="specifications">Thông số</TabsTrigger>
-          <TabsTrigger value="features">Tính năng</TabsTrigger>
-          <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-        </TabsList>
-        <TabsContent value="description">
-          <Card>
-            <CardContent className="pt-6">
-              <p>{product.detailedDescription}</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="specifications">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+      <Tabs defaultValue="description" className="mt-12">
+  <TabsList className="w-full justify-start border-b mb-4">
+    <TabsTrigger value="description">Mô tả</TabsTrigger>
+    <TabsTrigger value="specifications">Thông số</TabsTrigger>
+    <TabsTrigger value="features">Tính năng</TabsTrigger>
+    <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
+  </TabsList>
+  <TabsContent value="description">
+    <Card>
+      <CardContent className="pt-6">
+        <p className="text-gray-700 leading-relaxed">{product.detailedDescription}</p>
+      </CardContent>
+    </Card>
+  </TabsContent>
+  <TabsContent value="specifications">
+    <Card>
+      <CardContent className="pt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <SpecItem icon={faWeight} label="Trọng lượng" value={product.weight} />
+          <SpecItem icon={faRulerHorizontal} label="Kích thước đầu vợt" value={product.headSize} />
+          <SpecItem icon={faRulerVertical} label="Chiều dài" value={product.length} />
+          <SpecItem icon={faGripLines} label="Kích thước cán" value={product.gripSize} />
+          <SpecItem icon={faPalette} label="Màu sắc" value={product.color} />
+          <SpecItem icon={faCompressArrowsAlt} label="Mẫu dây" value={product.stringPattern} />
+          <SpecItem icon={faBalanceScale} label="Trọng lượng swing" value={product.swingWeight.toString()} />
+          <SpecItem icon={faBolt} label="Mức độ lực" value={product.powerLevel} />
+          <SpecItem icon={faHandPaper} label="Mức độ thoải mái" value={product.comfortLevel} />
+          <SpecItem icon={faCalendarAlt} label="Năm ra mắt" value={product.yearReleased.toString()} />
+          <SpecItem icon={faShieldAlt} label="Bảo hành" value={product.warranty} />
+          <SpecItem icon={faGlobe} label="Xuất xứ" value={product.origin} />
+          <SpecItem icon={faTrophy} label="Xếp hạng bán chạy" value={product.bestSellerRank.toString()} />
+          <SpecItem icon={faUser} label="Loại người chơi" value={product.playerType} />
+          <SpecItem icon={faCogs} label="Độ cứng" value={product.stiffness.toString()} />
+          <SpecItem icon={faCompressArrowsAlt} label="Cấu trúc khung" value={product.frameProfile} />
+        </div>
+      </CardContent>
+    </Card>
+  </TabsContent>
+  <TabsContent value="features">
+    <Card>
+      <CardContent className="pt-6">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none pl-0">
+          {product.features.map((feature, index) => (
+            <li key={index} className="flex items-center bg-gray-50 p-3 rounded-md">
+              <FontAwesomeIcon icon={faCheck} className="mr-3 text-green-500" />
+              <span className="text-gray-700">{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  </TabsContent>
+  <TabsContent value="reviews">
+    <Card>
+      <CardContent className="pt-6">
+        <h3 className="text-2xl font-semibold mb-6">Đánh giá từ khách hàng</h3>
+        {reviews.length > 0 ? (
+          <ul className="space-y-6">
+            {reviews.map((review) => (
+              <li key={review.id} className="border-b pb-6">
+                <div className="flex items-center mb-2">
                   <div className="flex items-center">
-                    <FontAwesomeIcon icon={faWeight} className="mr-2 text-dark-500" />
-                    <span>Trọng lượng: {product.weight}</span>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <FontAwesomeIcon
+                        key={star}
+                        icon={faStar}
+                        className={star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                      />
+                    ))}
                   </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faRulerHorizontal} className="mr-2 text-dark-500" />
-                    <span>Kích thước đầu vợt: {product.headSize}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faRulerVertical} className="mr-2 text-dark-500" />
-                    <span>Chiều dài: {product.length}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faGripLines} className="mr-2 text-dark-500" />
-                    <span>Kích thước cán: {product.gripSize}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faPalette} className="mr-2 text-dark-500" />
-                    <span>Màu sắc: {product.color}</span>
-                  </div>
+                  <span className="ml-2 text-sm text-gray-600">
+                    {new Date(review.createdAt).toLocaleString('vi-VN')}
+                  </span>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faCompressArrowsAlt} className="mr-2 text-dark-500" />
-                    <span>Mẫu dây: {product.stringPattern}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faBalanceScale} className="mr-2 text-dark-500" />
-                    <span>Trọng lượng swing: {product.swingWeight}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faBolt} className="mr-2 text-dark-500" />
-                    <span>Mức độ lực: {product.powerLevel}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faHandPaper} className="mr-2 text-dark-500" />
-                    <span>Mức độ thoải mái: {product.comfortLevel}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-dark-500" />
-                    <span>Năm ra mắt: {product.yearReleased}</span>
-                  </div>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faShieldAlt} className="mr-2 text-dark-500" />
-                    <span>Bảo hành: {product.warranty}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faGlobe} className="mr-2 text-dark-500" />
-                    <span>Xuất xứ: {product.origin}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faTrophy} className="mr-2 text-dark-500" />
-                    <span>Xếp hạng bán chạy: {product.bestSellerRank}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faUser} className="mr-2 text-dark-500" />
-                    <span>Loại người chơi: {product.playerType}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faCogs} className="mr-2 text-dark-500" />
-                    <span>Độ cứng: {product.stiffness}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faCompressArrowsAlt} className="mr-2 text-dark-500" />
-                    <span>Cấu trúc khung: {product.frameProfile}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="features">
-          <Card>
-            <CardContent className="pt-6">
-              <ul className="grid md:grid-cols-2 gap-2 list-none pl-0">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="flex items-center">
-                    <FontAwesomeIcon icon={faCheck} className="mr-2 text-green-500" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="reviews">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-4">Đánh giá từ khách hàng</h3>
-              {reviews.length > 0 ? (
-                <ul className="space-y-4">
-                  {reviews.map((review) => (
-                    <li key={review.id} className="border-b pb-4">
-                      <div className="flex items-center mb-2">
-                        <div className="flex items-center">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <FontAwesomeIcon
-                              key={star}
-                              icon={faStar}
-                              className={star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}
-                            />
-                          ))}
-                        </div>
-                        <span className="ml-2 text-sm text-gray-600">
-                          {new Date(review.createdAt).toLocaleString('vi-VN')}
-                        </span>
-                      </div>
-                      <p className="text-gray-700">{review.comment}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {review.userName}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Chưa có đánh giá nào cho sản phẩm này.</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                <p className="text-gray-700 mb-2">{review.comment}</p>
+                <p className="text-sm text-gray-600">
+                  {review.userName}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-600 italic">Chưa có đánh giá nào cho sản phẩm này.</p>
+        )}
+      </CardContent>
+    </Card>
+  </TabsContent>
+</Tabs>
     </div>
   )
 }
