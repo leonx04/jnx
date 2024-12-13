@@ -1,20 +1,20 @@
 "use client"
 
+import ProductReview from "@/app/components/ProductReview"
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import { database } from "@/firebaseConfig"
-import { get, ref, update, push } from "firebase/database"
+import { get, push, ref, update } from "firebase/database"
 import { ArrowLeft, Star } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useState, useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
-import ProductReview from "@/app/components/ProductReview"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
 
 interface OrderItem {
   id: string
