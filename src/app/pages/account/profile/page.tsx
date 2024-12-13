@@ -150,6 +150,7 @@ export default function AccountManagement() {
     const statusMap: { [key: string]: string } = {
       'pending': 'Đang xử lý',
       'processing': 'Đang chuẩn bị',
+      "shipping": "Đang giao hàng",
       'shipped': 'Đã giao hàng',
       'delivered': 'Đã nhận hàng',
       'cancelled': 'Đã hủy'
