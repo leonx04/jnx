@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { database } from "@/firebaseConfig"
-import { get, ref } from "firebase/database"
+import { get, ref, update, push } from "firebase/database"
 import { ArrowLeft } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
@@ -13,6 +13,7 @@ import { useParams } from "next/navigation"
 import { useEffect, useState, useCallback } from "react"
 import { toast } from "react-hot-toast"
 import ProductReview from "@/app/components/ProductReview"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface OrderItem {
   id: string
@@ -56,6 +57,9 @@ export default function OrderDetail() {
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [reviews, setReviews] = useState<Record<string, Review>>({})
+  const [showBulkReviewDialog, setShowBulkReviewDialog] = useState(false)
+  const [bulkRating, setBulkRating] = useState(0)
+  const [bulkComment, setBulkComment] = useState("")
   const { user } = useAuthContext()
   const params = useParams()
   const orderId = params.id as string
@@ -86,15 +90,13 @@ export default function OrderDetail() {
   }
 
   const fetchReviews = useCallback(async () => {
-    if (!order || order.status !== 'delivered' || !order.items || !Array.isArray(order.items)) return;
+    if (!order || !order.items || !Array.isArray(order.items)) return;
 
     const reviewPromises = order.items.map(async (item) => {
       const reviewRef = ref(database, `reviews/${item.productId}`)
       const snapshot = await get(reviewRef)
       if (snapshot.exists()) {
         const reviewsData = snapshot.val()
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        // eslint-disable-next-line
         const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
         if (userReview) {
           return { [item.productId]: userReview as Review }
@@ -116,8 +118,6 @@ export default function OrderDetail() {
 
   useEffect(() => {
     fetchOrder()
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    // eslint-disable-next-line
   }, [user, orderId])
 
   useEffect(() => {
@@ -141,6 +141,7 @@ export default function OrderDetail() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "delivered":
+      case "reviewed":
         return "text-green-600"
       case "cancelled":
         return "text-red-600"
@@ -160,8 +161,87 @@ export default function OrderDetail() {
     }
   }
 
-  const handleReviewSubmitted = () => {
-    fetchOrder()
+  const handleReviewSubmitted = async (productId: string) => {
+    await fetchReviews();
+
+    const updatedOrder = { ...order! };
+    updatedOrder.items = updatedOrder.items.map(item => 
+      item.productId === productId ? { ...item, reviewed: true } : item
+    );
+
+    const allReviewed = updatedOrder.items.every(item => item.reviewed);
+    if (allReviewed) {
+      updatedOrder.status = 'reviewed';
+      const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
+      await update(orderRef, { status: 'reviewed', items: updatedOrder.items });
+    } else {
+      const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
+      await update(orderRef, { items: updatedOrder.items });
+    }
+
+    setOrder(updatedOrder);
+
+    if (!allReviewed) {
+      setShowBulkReviewDialog(true);
+    } else {
+      toast.success('Tất cả sản phẩm đã được đánh giá. Cảm ơn bạn!');
+    }
+  }
+
+  const handleConfirmDelivery = async () => {
+    if (!user?.id || !order) return;
+
+    try {
+      const orderRef = ref(database, `orders/${user.id}/${order.id}`);
+      await update(orderRef, { status: 'delivered' });
+      setOrder({ ...order, status: 'delivered' });
+      toast.success('Đã xác nhận nhận hàng thành công');
+    } catch (error) {
+      console.error('Lỗi khi xác nhận nhận hàng:', error);
+      toast.error('Không thể xác nhận nhận hàng. Vui lòng thử lại sau.');
+    }
+  }
+
+  const handleBulkReview = async () => {
+    if (!order || !user) return;
+
+    const unreviewed = order.items.filter(item => !reviews[item.productId]);
+    for (const item of unreviewed) {
+      const reviewRef = ref(database, `reviews/${item.productId}`);
+      await push(reviewRef, {
+        userId: user.id,
+        rating: bulkRating,
+        comment: bulkComment,
+        createdAt: new Date().toISOString(),
+        orderId: order.id
+      });
+
+      const productRef = ref(database, `products/${item.productId}`);
+      const productSnapshot = await get(productRef);
+      if (productSnapshot.exists()) {
+        const productData = productSnapshot.val();
+        const currentRating = productData.rating || 0;
+        const currentReviewCount = productData.reviewCount || 0;
+        const newReviewCount = currentReviewCount + 1;
+        const newRating = ((currentRating * currentReviewCount) + bulkRating) / newReviewCount;
+        await update(productRef, {
+          rating: newRating,
+          reviewCount: newReviewCount
+        });
+      }
+    }
+
+    const updatedItems = order.items.map(item => ({ ...item, reviewed: true }));
+    const orderRef = ref(database, `orders/${user.id}/${order.id}`);
+    await update(orderRef, { 
+      status: 'reviewed',
+      items: updatedItems
+    });
+
+    setOrder({ ...order, status: 'reviewed', items: updatedItems });
+    await fetchReviews();
+    setShowBulkReviewDialog(false);
+    toast.success('Đã đánh giá tất cả sản phẩm còn lại thành công!');
   }
 
   if (isLoading) {
@@ -215,6 +295,11 @@ export default function OrderDetail() {
           <p><strong>Phương thức thanh toán:</strong> {getPaymentMethodLabel(order.paymentMethod)}</p>
           <p><strong>Tổng tiền:</strong> {order.total.toLocaleString("vi-VN")} ₫</p>
           <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString("vi-VN")} ₫</p>
+          {order.status === 'shipped' && (
+            <Button onClick={handleConfirmDelivery} className="mt-4">
+              Xác nhận đã nhận hàng
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -252,7 +337,7 @@ export default function OrderDetail() {
                   </div>
                   <p className="font-semibold">{(item.price * item.quantity).toLocaleString("vi-VN")} ₫</p>
                 </div>
-                {order.status === 'delivered' && (
+                {(order.status === 'delivered' || order.status === 'reviewed') && (
                   <div className="mt-4">
                     {reviews[item.productId] ? (
                       <div className="bg-gray-100 p-4 rounded-md">
@@ -270,7 +355,11 @@ export default function OrderDetail() {
                         </p>
                       </div>
                     ) : (
-                      <ProductReview productId={item.productId} orderId={order.id} onReviewSubmitted={handleReviewSubmitted} />
+                      <ProductReview 
+                        productId={item.productId} 
+                        orderId={order.id} 
+                        onReviewSubmitted={() => handleReviewSubmitted(item.productId)} 
+                      />
                     )}
                   </div>
                 )}
@@ -279,6 +368,51 @@ export default function OrderDetail() {
           </ul>
         </CardContent>
       </Card>
+
+      <Dialog open={showBulkReviewDialog && order?.items.some(item => !reviews[item.productId])} onOpenChange={setShowBulkReviewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Đánh giá các sản phẩm còn lại</DialogTitle>
+            <DialogDescription>
+              Bạn có muốn đánh giá tất cả các sản phẩm còn lại với cùng đánh giá không?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Đánh giá</label>
+              <div className="flex space-x-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setBulkRating(star)}
+                    className={`text-2xl ${bulkRating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label htmlFor="bulkComment" className="block text-sm font-medium text-gray-700 mb-1">
+                Nhận xét
+              </label>
+              <textarea
+                id="bulkComment"
+                value={bulkComment}
+                onChange={(e) => setBulkComment(e.target.value)}
+                className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none"
+                rows={4}
+                placeholder="Chia sẻ trải nghiệm của bạn về các sản phẩm này"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button onClick={() => setShowBulkReviewDialog(false)}>Hủy</Button>
+              <Button onClick={handleBulkReview}>Đánh giá tất cả</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-6 text-right">
         <Button asChild>
