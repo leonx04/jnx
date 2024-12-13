@@ -56,7 +56,7 @@ export default function OrderHistory() {
       try {
         const ordersRef = ref(database, `orders/${user.id}`)
         const snapshot = await get(ordersRef)
-        
+
         if (snapshot.exists()) {
           const ordersData = snapshot.val()
           // eslint-disable-next-line
@@ -82,11 +82,13 @@ export default function OrderHistory() {
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      "pending": "Đang xử lý",
+      "pending": "Đã đặt hàng",
       "processing": "Đang chuẩn bị",
       "shipping": "Đang giao hàng",
       "shipped": "Đã giao hàng",
       "delivered": "Đã nhận hàng",
+      "reviewed": "Đã đánh giá",
+      "completed": "Đã hoàn thành",
       "cancelled": "Đã hủy"
     }
     return statusMap[status.toLowerCase()] || status
@@ -184,12 +186,12 @@ export default function OrderHistory() {
                     <>
                       {order.items.slice(0, 2).map((item) => (
                         <div key={item.id} className="flex items-center space-x-4">
-                          <Image 
-                            src={item.imageUrl} 
-                            alt={item.name} 
-                            width={50} 
-                            height={50} 
-                            className="object-cover rounded-md" 
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.name}
+                            width={50}
+                            height={50}
+                            className="object-cover rounded-md"
                           />
                           <div>
                             <p className="font-medium">{item.name}</p>

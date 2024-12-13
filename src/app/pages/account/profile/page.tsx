@@ -148,12 +148,14 @@ export default function AccountManagement() {
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'pending': 'Đang xử lý',
-      'processing': 'Đang chuẩn bị',
+      "pending": "Đã đặt hàng",
+      "processing": "Đang chuẩn bị",
       "shipping": "Đang giao hàng",
-      'shipped': 'Đã giao hàng',
-      'delivered': 'Đã nhận hàng',
-      'cancelled': 'Đã hủy'
+      "shipped": "Đã giao hàng",
+      "delivered": "Đã nhận hàng",
+      "reviewed": "Đã đánh giá",
+      "completed": "Đã hoàn thành",
+      "cancelled": "Đã hủy"
     }
     return statusMap[status.toLowerCase()] || status
   }
@@ -288,10 +290,9 @@ export default function AccountManagement() {
                             Ngày đặt: {new Date(order.createdAt).toLocaleDateString('vi-VN')}
                           </p>
                           <p className="text-sm">
-                            Trạng thái: <span className={`font-semibold ${
-                              order.status === 'delivered' ? 'text-green-600' :
-                              order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
-                            }`}>
+                            Trạng thái: <span className={`font-semibold ${order.status === 'delivered' ? 'text-green-600' :
+                                order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+                              }`}>
                               {getStatusLabel(order.status)}
                             </span>
                           </p>

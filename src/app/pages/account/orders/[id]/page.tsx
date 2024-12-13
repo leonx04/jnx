@@ -126,11 +126,13 @@ export default function OrderDetail() {
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      "pending": "Đang xử lý",
+      "pending": "Đã đặt hàng",
       "processing": "Đang chuẩn bị",
       "shipping": "Đang giao hàng",
       "shipped": "Đã giao hàng",
       "delivered": "Đã nhận hàng",
+      "reviewed": "Đã đánh giá",
+      "completed": "Đã hoàn thành",
       "cancelled": "Đã hủy"
     }
     return statusMap[status.toLowerCase()] || status
