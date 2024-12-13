@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { database } from "@/firebaseConfig"
 import { get, ref, update, push } from "firebase/database"
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Star } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
 import { useParams } from "next/navigation"
@@ -14,6 +14,7 @@ import { useEffect, useState, useCallback } from "react"
 import { toast } from "react-hot-toast"
 import ProductReview from "@/app/components/ProductReview"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 interface OrderItem {
   id: string
@@ -181,9 +182,7 @@ export default function OrderDetail() {
 
     setOrder(updatedOrder);
 
-    if (!allReviewed) {
-      setShowBulkReviewDialog(true);
-    } else {
+    if (allReviewed) {
       toast.success('Tất cả sản phẩm đã được đánh giá. Cảm ơn bạn!');
     }
   }
@@ -241,7 +240,11 @@ export default function OrderDetail() {
     setOrder({ ...order, status: 'reviewed', items: updatedItems });
     await fetchReviews();
     setShowBulkReviewDialog(false);
-    toast.success('Đã đánh giá tất cả sản phẩm còn lại thành công!');
+    toast.success('Đã đánh giá tất cả sản phẩm thành công!');
+  }
+
+  const openBulkReviewDialog = () => {
+    setShowBulkReviewDialog(true);
   }
 
   if (isLoading) {
@@ -271,6 +274,8 @@ export default function OrderDetail() {
       </div>
     )
   }
+
+  const unreviewedItems = order.items.filter(item => !reviews[item.productId]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -316,7 +321,14 @@ export default function OrderDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sản Phẩm Đã Mua</CardTitle>
+          <CardTitle className="flex justify-between items-center">
+            <span>Sản Phẩm Đã Mua</span>
+            {(order.status === 'delivered' || order.status === 'reviewed') && unreviewedItems.length > 0 && (
+              <Button onClick={openBulkReviewDialog}>
+                Đánh giá tất cả sản phẩm
+              </Button>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-8">
@@ -369,12 +381,12 @@ export default function OrderDetail() {
         </CardContent>
       </Card>
 
-      <Dialog open={showBulkReviewDialog && order?.items.some(item => !reviews[item.productId])} onOpenChange={setShowBulkReviewDialog}>
+      <Dialog open={showBulkReviewDialog} onOpenChange={setShowBulkReviewDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Đánh giá các sản phẩm còn lại</DialogTitle>
+            <DialogTitle>Đánh giá tất cả sản phẩm</DialogTitle>
             <DialogDescription>
-              Bạn có muốn đánh giá tất cả các sản phẩm còn lại với cùng đánh giá không?
+              Đánh giá này sẽ áp dụng cho tất cả sản phẩm chưa được đánh giá trong đơn hàng.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -388,7 +400,7 @@ export default function OrderDetail() {
                     onClick={() => setBulkRating(star)}
                     className={`text-2xl ${bulkRating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
                   >
-                    ★
+                    <Star className="w-6 h-6" />
                   </button>
                 ))}
               </div>
@@ -397,7 +409,7 @@ export default function OrderDetail() {
               <label htmlFor="bulkComment" className="block text-sm font-medium text-gray-700 mb-1">
                 Nhận xét
               </label>
-              <textarea
+              <Textarea
                 id="bulkComment"
                 value={bulkComment}
                 onChange={(e) => setBulkComment(e.target.value)}
