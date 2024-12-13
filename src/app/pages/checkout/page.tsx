@@ -4,7 +4,7 @@ import { useAuthContext } from "@/app/context/AuthContext"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { database } from "@/firebaseConfig"
-import { equalTo, get, onValue, orderByChild, query, ref, runTransaction, set } from "firebase/database"
+import { equalTo, get, onValue, orderByChild, query, ref, runTransaction, set, push } from "firebase/database"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -138,10 +138,7 @@ export default function Checkout() {
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
     } else if (user?.id) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const cartRef = ref(database, `carts/${user.id}`)
-      // eslint-disable-next-line
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
         if (data) {
@@ -260,6 +257,17 @@ export default function Checkout() {
     }
   }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee])
 
+  const createNotification = async (orderId: string, message: string) => {
+    const notificationsRef = ref(database, 'notifications')
+    const newNotification = {
+      orderId,
+      message,
+      createdAt: new Date().toISOString(),
+      read: false,
+    }
+    await push(notificationsRef, newNotification)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -310,9 +318,11 @@ export default function Checkout() {
       }
 
       const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
-
       await set(orderRef, order)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+      // Create notification for the new order
+      await createNotification(orderRef.key as string, `Đơn hàng mới #${(orderRef.key as string).slice(-6)} từ ${order.userName}`)
+
       const cartRef = ref(database, `carts/${user.id}`)
       const updateCartPromises = cartItems.map(async (item) => {
         const itemRef = ref(database, `carts/${user.id}/${item.id}`)
@@ -526,4 +536,3 @@ export default function Checkout() {
     </div>
   )
 }
-
