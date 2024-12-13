@@ -98,6 +98,8 @@ export default function OrderDetail() {
       const snapshot = await get(reviewRef)
       if (snapshot.exists()) {
         const reviewsData = snapshot.val()
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
         if (userReview) {
           return { [item.productId]: userReview as Review }
@@ -166,7 +168,7 @@ export default function OrderDetail() {
     await fetchReviews();
 
     const updatedOrder = { ...order! };
-    updatedOrder.items = updatedOrder.items.map(item => 
+    updatedOrder.items = updatedOrder.items.map(item =>
       item.productId === productId ? { ...item, reviewed: true } : item
     );
 
@@ -232,7 +234,7 @@ export default function OrderDetail() {
 
     const updatedItems = order.items.map(item => ({ ...item, reviewed: true }));
     const orderRef = ref(database, `orders/${user.id}/${order.id}`);
-    await update(orderRef, { 
+    await update(orderRef, {
       status: 'reviewed',
       items: updatedItems
     });
@@ -367,10 +369,10 @@ export default function OrderDetail() {
                         </p>
                       </div>
                     ) : (
-                      <ProductReview 
-                        productId={item.productId} 
-                        orderId={order.id} 
-                        onReviewSubmitted={() => handleReviewSubmitted(item.productId)} 
+                      <ProductReview
+                        productId={item.productId}
+                        orderId={order.id}
+                        onReviewSubmitted={() => handleReviewSubmitted(item.productId)}
                       />
                     )}
                   </div>
