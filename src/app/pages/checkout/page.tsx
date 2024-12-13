@@ -138,7 +138,11 @@ export default function Checkout() {
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
     } else if (user?.id) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
       const cartRef = ref(database, `carts/${user.id}`)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
         if (data) {
@@ -322,7 +326,8 @@ export default function Checkout() {
 
       // Create notification for the new order
       await createNotification(orderRef.key as string, `Đơn hàng mới #${(orderRef.key as string).slice(-6)} từ ${order.userName}`)
-
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
       const cartRef = ref(database, `carts/${user.id}`)
       const updateCartPromises = cartItems.map(async (item) => {
         const itemRef = ref(database, `carts/${user.id}/${item.id}`)
