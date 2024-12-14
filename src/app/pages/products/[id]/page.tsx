@@ -117,6 +117,7 @@ export default function ProductDetails() {
   const [reviewCount, setReviewCount] = useState<number>(0)
   const { user } = useAuthContext()
   const params = useParams()
+  const productId = params.id as string
 
   const calculateDiscountPercentage = useCallback(() => {
     if (product && product.salePrice && product.salePrice < product.price) {
@@ -137,10 +138,9 @@ export default function ProductDetails() {
           const userSnapshot = await get(userRef);
           const userData = userSnapshot.val();
           return {
+            ...(data as Review),
             id,
-            userId: (data as Review).userId,
             userName: userData ? userData.name : 'Người dùng ẩn danh',
-            ...(data as Review)
           };
         })
       );
@@ -161,7 +161,7 @@ export default function ProductDetails() {
 
   useEffect(() => {
     const productsRef = ref(database, 'products')
-    const productQuery = query(productsRef, orderByChild('id'), equalTo(params.id as string))
+    const productQuery = query(productsRef, orderByChild('id'), equalTo(productId))
 
     const unsubscribe = onValue(productQuery, (snapshot) => {
       if (snapshot.exists()) {
@@ -173,7 +173,7 @@ export default function ProductDetails() {
     })
 
     return () => unsubscribe()
-  }, [params.id])
+  }, [productId])
 
   useEffect(() => {
     fetchReviews()
