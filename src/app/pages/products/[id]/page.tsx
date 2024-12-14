@@ -132,15 +132,15 @@ export default function ProductDetails() {
     if (snapshot.exists()) {
       const reviewsData = snapshot.val();
       const reviewsArray = await Promise.all(
-        Object.entries(reviewsData).map(async ([id, data]: [string, any]) => {
-          const userRef = ref(database, `users/${data.userId}`);
+        Object.entries(reviewsData).map(async ([id, data]) => {
+          const userRef = ref(database, `users/${(data as Review).userId}`);
           const userSnapshot = await get(userRef);
           const userData = userSnapshot.val();
           return {
             id,
-            userId: data.userId,
+            userId: (data as Review).userId,
             userName: userData ? userData.name : 'Người dùng ẩn danh',
-            ...data
+            ...(data as Review)
           };
         })
       );
