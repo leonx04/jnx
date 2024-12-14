@@ -1,11 +1,5 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { toast } from 'react-hot-toast'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBalanceScale,
   faBolt,
@@ -27,7 +21,13 @@ import {
   faUser,
   faWeight
 } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { equalTo, get, onValue, orderByChild, push, query, ref, set } from "firebase/database"
+import Image from 'next/image'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'react-hot-toast'
 
 import { useAuthContext } from '@/app/context/AuthContext'
 import { Card, CardContent } from "@/components/ui/card"
