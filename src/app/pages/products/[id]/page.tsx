@@ -42,8 +42,6 @@ interface Product {
   imageUrl: string;
   description: string;
   detailedDescription: string;
-  rating: number;
-  reviewCount: number;
   availableStock: number;
   brand: string;
   category: string;
@@ -113,6 +111,8 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
   const [reviews, setReviews] = useState<Review[]>([])
+  const [averageRating, setAverageRating] = useState<number | null>(null)
+  const [reviewCount, setReviewCount] = useState<number>(0)
   const { user } = useAuthContext()
   const params = useParams()
 
@@ -130,8 +130,6 @@ export default function ProductDetails() {
     if (snapshot.exists()) {
       const reviewsData = snapshot.val();
       const reviewsArray = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        // eslint-disable-next-line
         Object.entries(reviewsData).map(async ([id, data]: [string, any]) => {
           const userRef = ref(database, `users/${data.userId}`);
           const userSnapshot = await get(userRef);
@@ -145,6 +143,17 @@ export default function ProductDetails() {
         })
       );
       setReviews(reviewsArray);
+
+      // Calculate average rating
+      const ratings = reviewsArray.map(review => review.rating);
+      const totalRating = ratings.reduce((sum, rating) => sum + rating, 0);
+      const avgRating = totalRating / ratings.length;
+      setAverageRating(avgRating);
+      setReviewCount(ratings.length);
+    } else {
+      setReviews([]);
+      setAverageRating(null);
+      setReviewCount(0);
     }
   }, [product]);
 
@@ -250,19 +259,6 @@ export default function ProductDetails() {
               className="rounded-lg shadow-lg"
             />
           </div>
-          {/* <div className="grid grid-cols-4 gap-2">
-            {[product.imageUrl, product.imageUrl, product.imageUrl, product.imageUrl].map((img, index) => (
-              <div key={index} className="aspect-square relative">
-                <Image
-                  src={img}
-                  alt={`${product.name} - Ảnh ${index + 1}`}
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-md cursor-pointer hover:opacity-80 transition-opacity"
-                />
-              </div>
-            ))}
-          </div> */}
         </div>
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">{product.name}</h1>
@@ -273,11 +269,11 @@ export default function ProductDetails() {
                   icon={faStar}
                   className="absolute text-gray-300"
                 />
-                {product.rating >= index && (
+                {averageRating !== null && averageRating > index && (
                   <div
                     className="absolute overflow-hidden text-yellow-500"
                     style={{
-                      width: `${product.rating >= index + 1 ? '100%' : `${(product.rating - index) * 100}%`}`
+                      width: `${averageRating >= index + 1 ? '100%' : `${(averageRating - index) * 100}%`}`
                     }}
                   >
                     <FontAwesomeIcon icon={faStar} />
@@ -286,7 +282,7 @@ export default function ProductDetails() {
               </div>
             ))}
             <span className="ml-2 text-gray-600">
-              ({product.rating.toFixed(1)}) {product.reviewCount} đánh giá
+              {averageRating !== null ? `(${averageRating.toFixed(1)}) ${reviewCount} đánh giá` : 'Chưa có đánh giá'}
             </span>
           </div>
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuthContext } from '@/app/context/AuthContext';
 import { database } from '@/firebaseConfig';
 import { ref, push, set, get } from "firebase/database";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
 interface Product {
@@ -15,8 +15,6 @@ interface Product {
   salePrice: number;
   imageUrl: string;
   brand: string;
-  rating: number;
-  reviewCount: number;
   availableStock: number;
 }
 
@@ -31,6 +29,8 @@ interface CartItem {
 const ProductCard = ({ product }: { product: Product }) => {
   const { user } = useAuthContext();
   const [isAdding, setIsAdding] = useState(false);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [reviewCount, setReviewCount] = useState<number>(0);
 
   const calculateDiscountPercentage = () => {
     if (product.salePrice < product.price) {
@@ -91,6 +91,27 @@ const ProductCard = ({ product }: { product: Product }) => {
     setTimeout(() => setIsAdding(false), 500);
   };
 
+  const calculateAverageRating = async () => {
+    const reviewsRef = ref(database, `reviews/${product.id}`);
+    const snapshot = await get(reviewsRef);
+    const reviews = snapshot.val();
+
+    if (reviews) {
+      const ratings = Object.values(reviews).map((review: any) => review.rating);
+      const totalRating = ratings.reduce((sum: number, rating: number) => sum + rating, 0);
+      const avgRating = totalRating / ratings.length;
+      setAverageRating(avgRating);
+      setReviewCount(ratings.length);
+    } else {
+      setAverageRating(null);
+      setReviewCount(0);
+    }
+  };
+
+  useEffect(() => {
+    calculateAverageRating();
+  }, [product.id]);
+
   const discountPercentage = calculateDiscountPercentage();
 
   return (
@@ -127,11 +148,11 @@ const ProductCard = ({ product }: { product: Product }) => {
                     icon={faStar} 
                     className="absolute text-gray-300" 
                   />
-                  {product.rating >= index && (
+                  {averageRating !== null && averageRating > index && (
                     <div 
                       className="absolute overflow-hidden text-yellow-500"
                       style={{
-                        width: `${product.rating >= index + 1 ? '100%' : `${(product.rating - index) * 100}%`}`
+                        width: `${averageRating >= index + 1 ? '100%' : `${(averageRating - index) * 100}%`}`
                       }}
                     >
                       <FontAwesomeIcon icon={faStar} />
@@ -140,7 +161,7 @@ const ProductCard = ({ product }: { product: Product }) => {
                 </div>
               ))}
               <span className="text-xs text-gray-600 ml-2">
-                ({product.rating.toFixed(1)}) {product.reviewCount}
+                {averageRating !== null ? `(${averageRating.toFixed(1)}) ${reviewCount}` : 'No reviews yet'}
               </span>
             </div>
           </div>
@@ -187,3 +208,4 @@ const ProductCard = ({ product }: { product: Product }) => {
 };
 
 export default ProductCard;
+
