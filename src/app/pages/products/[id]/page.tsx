@@ -40,35 +40,35 @@ interface Product {
   price: number;
   salePrice?: number;
   imageUrl: string;
-  description: string;
-  detailedDescription: string;
-  availableStock: number;
-  brand: string;
-  category: string;
-  features: string[];
-  weight: string;
-  headSize: string;
-  length: string;
-  composition: string;
-  gripSize: string;
-  color: string;
-  recommendedFor: string;
-  stringPattern: string;
-  swingWeight: number;
-  powerLevel: string;
-  comfortLevel: string;
-  yearReleased: number;
-  warranty: string;
-  origin: string;
-  bestSellerRank: number;
-  balance: string;
-  stiffness: number;
-  swingSpeed: string;
-  playerType: string;
-  stringTension: string;
-  material: string;
-  technology: string;
-  frameProfile: string;
+  description?: string;
+  detailedDescription?: string;
+  availableStock?: number;
+  brand?: string;
+  category?: string;
+  features?: string[];
+  weight?: string;
+  headSize?: string;
+  length?: string;
+  composition?: string;
+  gripSize?: string;
+  color?: string;
+  recommendedFor?: string;
+  stringPattern?: string;
+  swingWeight?: number;
+  powerLevel?: string;
+  comfortLevel?: string;
+  yearReleased?: number;
+  warranty?: string;
+  origin?: string;
+  bestSellerRank?: number;
+  balance?: string;
+  stiffness?: number;
+  swingSpeed?: string;
+  playerType?: string;
+  stringTension?: string;
+  material?: string;
+  technology?: string;
+  frameProfile?: string;
 }
 
 interface CartItem {
@@ -91,7 +91,7 @@ interface Review {
 interface SpecItemProps {
   icon: typeof faStar;
   label: string;
-  value: string;
+  value?: string | number;
 }
 
 function SpecItem({ icon, label, value }: SpecItemProps) {
@@ -100,7 +100,9 @@ function SpecItem({ icon, label, value }: SpecItemProps) {
       <FontAwesomeIcon icon={icon} className="text-primary" />
       <div>
         <span className="text-sm text-gray-600">{label}:</span>
-        <span className="ml-1 font-medium">{value}</span>
+        <span className="ml-1 font-medium">
+          {value !== undefined ? value.toString() : 'Không có dữ liệu'}
+        </span>
       </div>
     </div>
   )
@@ -197,7 +199,7 @@ export default function ProductDetails() {
       return;
     }
 
-    if (quantity > product.availableStock) {
+    if (product.availableStock !== undefined && quantity > product.availableStock) {
       toast.error(`Số lượng vượt quá hàng có sẵn (${product.availableStock})`);
       return;
     }
@@ -212,7 +214,7 @@ export default function ProductDetails() {
     if (existingItem) {
       const [key, item] = existingItem;
       const newQuantity = item.quantity + quantity;
-      if (newQuantity > product.availableStock) {
+      if (product.availableStock !== undefined && newQuantity > product.availableStock) {
         toast.error(`Tổng số lượng vượt quá hàng có sẵn (${product.availableStock})`);
         setIsAdding(false);
         return;
@@ -297,12 +299,14 @@ export default function ProductDetails() {
             )}
           </div>
 
-          <div className="flex items-center text-green-600">
-            <FontAwesomeIcon icon={faBoxOpen} className="mr-2" />
-            <span>Còn hàng: {product.availableStock} sản phẩm</span>
-          </div>
+          {product.availableStock !== undefined && (
+            <div className="flex items-center text-green-600">
+              <FontAwesomeIcon icon={faBoxOpen} className="mr-2" />
+              <span>Còn hàng: {product.availableStock} sản phẩm</span>
+            </div>
+          )}
 
-          <p className="text-gray-700">{product.description}</p>
+          {product.description && <p className="text-gray-700">{product.description}</p>}
 
           <div className="flex items-center space-x-4">
             <div className="flex items-center border rounded-md">
@@ -314,7 +318,7 @@ export default function ProductDetails() {
               </button>
               <span className="px-4 py-2 border-x">{quantity}</span>
               <button
-                onClick={() => setQuantity(Math.min(product.availableStock, quantity + 1))}
+                onClick={() => setQuantity(Math.min(product.availableStock ?? Infinity, quantity + 1))}
                 className="px-3 py-2 hover:bg-gray-100"
               >
                 +
@@ -322,13 +326,13 @@ export default function ProductDetails() {
             </div>
             <button
               onClick={handleAddToCart}
-              disabled={isAdding || quantity > product.availableStock}
-              className={`flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-md transition-colors ${isAdding || quantity > product.availableStock ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isAdding || (product.availableStock !== undefined && quantity > product.availableStock)}
+              className={`flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-md transition-colors ${isAdding || (product.availableStock !== undefined && quantity > product.availableStock) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
             </button>
           </div>
-          {quantity > product.availableStock && (
+          {product.availableStock !== undefined && quantity > product.availableStock && (
             <div className="text-red-500">
               <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
               Số lượng vượt quá hàng có sẵn
@@ -347,7 +351,7 @@ export default function ProductDetails() {
         <TabsContent value="description">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-gray-700 leading-relaxed">{product.detailedDescription}</p>
+              <p className="text-gray-700 leading-relaxed">{product.detailedDescription || 'Không có mô tả chi tiết.'}</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -361,15 +365,15 @@ export default function ProductDetails() {
                 <SpecItem icon={faGripLines} label="Kích thước cán" value={product.gripSize} />
                 <SpecItem icon={faPalette} label="Màu sắc" value={product.color} />
                 <SpecItem icon={faCompressArrowsAlt} label="Mẫu dây" value={product.stringPattern} />
-                <SpecItem icon={faBalanceScale} label="Trọng lượng swing" value={product.swingWeight.toString()} />
+                <SpecItem icon={faBalanceScale} label="Trọng lượng swing" value={product.swingWeight} />
                 <SpecItem icon={faBolt} label="Mức độ lực" value={product.powerLevel} />
                 <SpecItem icon={faHandPaper} label="Mức độ thoải mái" value={product.comfortLevel} />
-                <SpecItem icon={faCalendarAlt} label="Năm ra mắt" value={product.yearReleased.toString()} />
+                <SpecItem icon={faCalendarAlt} label="Năm ra mắt" value={product.yearReleased} />
                 <SpecItem icon={faShieldAlt} label="Bảo hành" value={product.warranty} />
                 <SpecItem icon={faGlobe} label="Xuất xứ" value={product.origin} />
-                <SpecItem icon={faTrophy} label="Xếp hạng bán chạy" value={product.bestSellerRank.toString()} />
+                <SpecItem icon={faTrophy} label="Xếp hạng bán chạy" value={product.bestSellerRank} />
                 <SpecItem icon={faUser} label="Loại người chơi" value={product.playerType} />
-                <SpecItem icon={faCogs} label="Độ cứng" value={product.stiffness.toString()} />
+                <SpecItem icon={faCogs} label="Độ cứng" value={product.stiffness} />
                 <SpecItem icon={faCompressArrowsAlt} label="Cấu trúc khung" value={product.frameProfile} />
               </div>
             </CardContent>
@@ -378,14 +382,18 @@ export default function ProductDetails() {
         <TabsContent value="features">
           <Card>
             <CardContent className="pt-6">
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none pl-0">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="flex items-center bg-gray-50 p-3 rounded-md">
-                    <FontAwesomeIcon icon={faCheck} className="mr-3 text-green-500" />
-                    <span className="text-gray-700">{feature}</span>
-                  </li>
-                ))}
-              </ul>
+              {product.features && product.features.length > 0 ? (
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 list-none pl-0">
+                  {product.features.map((feature, index) => (
+                    <li key={index} className="flex items-center bg-gray-50 p-3 rounded-md">
+                      <FontAwesomeIcon icon={faCheck} className="mr-3 text-green-500" />
+                      <span className="text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 italic">Không có thông tin về tính năng sản phẩm.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
