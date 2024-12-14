@@ -1,11 +1,11 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar, faShoppingCart, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
-import Image from 'next/image';
-import Link from 'next/link';
 import { useAuthContext } from '@/app/context/AuthContext';
 import { database } from '@/firebaseConfig';
-import { ref, push, set, get } from "firebase/database";
-import { useState, useEffect } from 'react';
+import { faExclamationTriangle, faShoppingCart, faStar } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { get, push, ref, set } from "firebase/database";
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 interface Product {
@@ -24,6 +24,10 @@ interface CartItem {
   price: number;
   quantity: number;
   imageUrl: string;
+}
+
+interface Review {
+  rating: number;
 }
 
 const ProductCard = ({ product }: { product: Product }) => {
@@ -94,11 +98,11 @@ const ProductCard = ({ product }: { product: Product }) => {
   const calculateAverageRating = async () => {
     const reviewsRef = ref(database, `reviews/${product.id}`);
     const snapshot = await get(reviewsRef);
-    const reviews = snapshot.val();
+    const reviews = snapshot.val() as Record<string, Review> | null;
 
     if (reviews) {
-      const ratings = Object.values(reviews).map((review: any) => review.rating);
-      const totalRating = ratings.reduce((sum: number, rating: number) => sum + rating, 0);
+      const ratings = Object.values(reviews).map((review) => review.rating);
+      const totalRating = ratings.reduce((sum, rating) => sum + rating, 0);
       const avgRating = totalRating / ratings.length;
       setAverageRating(avgRating);
       setReviewCount(ratings.length);
@@ -110,7 +114,7 @@ const ProductCard = ({ product }: { product: Product }) => {
 
   useEffect(() => {
     calculateAverageRating();
-  }, [product.id]);
+  }, [product.id, calculateAverageRating]);
 
   const discountPercentage = calculateDiscountPercentage();
 
