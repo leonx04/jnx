@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { database } from "@/firebaseConfig"
-import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
+import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set, update } from "firebase/database"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -75,6 +75,7 @@ export default function Checkout() {
   ])
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const [selectedSavedAddress, setSelectedSavedAddress] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuthContext()
   const router = useRouter()
 
@@ -153,8 +154,7 @@ export default function Checkout() {
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
     } else if (user?.id) {
-      const cartRef = ref(database, `carts/${user.id}`)
-      const unsubscribe = onValue(cartRef, (snapshot) => {
+      const unsubscribe = onValue(ref(database, `carts/${user.id}`), (snapshot) => {
         const data = snapshot.val()
         if (data) {
           const items = Object.entries(data).map(([id, item]) => ({
@@ -293,14 +293,16 @@ export default function Checkout() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+    e.preventDefault();
+    setIsSubmitting(true);
     if (!validateForm()) {
+      setIsSubmitting(false);
       return
     }
 
     if (!user?.id) {
       showToast("Vui lòng đăng nhập để hoàn tất đơn hàng.", 'error')
+      setIsSubmitting(false);
       return
     }
 
@@ -338,6 +340,7 @@ export default function Checkout() {
 
       if (orderValidationErrors.length > 0) {
         orderValidationErrors.forEach(error => showToast(error, 'error'))
+        setIsSubmitting(false);
         return
       }
 
@@ -347,23 +350,22 @@ export default function Checkout() {
       // Create notification for the new order
       await createNotification(orderRef.key as string, `Đơn hàng mới #${(orderRef.key as string).slice(-6)} từ ${order.userName}`)
 
-      const cartRef = ref(database, `carts/${user.id}`)
-      const updateCartPromises = cartItems.map(async (item) => {
-        const itemRef = ref(database, `carts/${user.id}/${item.id}`)
-        await runTransaction(itemRef, (currentItem) => {
-          if (currentItem) {
-            if (currentItem.quantity > item.quantity) {
-              currentItem.quantity -= item.quantity
-              return currentItem
-            } else {
-              return null // This will remove the item from the cart
-            }
-          }
-          return currentItem
-        })
-      })
+      // Update cart
+      const cartRef = ref(database, `carts/${user.id}`);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
+      const updates: { [key: string]: any } = {};
 
-      await Promise.all(updateCartPromises)
+      cartItems.forEach((item) => {
+        if (item.quantity > 0) {
+          updates[`${item.id}/quantity`] = item.quantity;
+        } else {
+          updates[item.id] = null;  // This will remove the item
+        }
+      });
+
+      await update(cartRef, updates);
+
 
       const updateStockPromises = cartItems.map(async (item) => {
         const productRef = ref(database, `products/${item.productId}`)
@@ -391,6 +393,8 @@ export default function Checkout() {
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
       showToast("Đã có lỗi xảy ra. Vui lòng thử lại.", 'error')
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -526,6 +530,7 @@ export default function Checkout() {
                 onChange={(e) => setFullName(e.target.value)}
                 required
                 placeholder="Nhập họ và tên"
+                aria-label="Họ và Tên"
               />
             </div>
             <div className="mb-4">
@@ -537,6 +542,7 @@ export default function Checkout() {
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 required
                 placeholder="Nhập số điện thoại"
+                aria-label="Số Điện Thoại"
               />
             </div>
             <div className="mb-4">
@@ -593,7 +599,15 @@ export default function Checkout() {
                 onChange={(e) => setAddress(e.target.value)}
                 required
                 placeholder="Số nhà, tên đường..."
+                aria-label="Địa Chỉ Chi Tiết"
               />
+            </div>
+            <div className="mb-4 p-4 bg-gray-100 rounded-md">
+              <h3 className="text-lg font-semibold mb-2">Địa chỉ giao hàng</h3>
+              <p>{fullName}</p>
+              <p>{phoneNumber}</p>
+              <p>{address}</p>
+              <p>{wards.find(w => w.WardCode === selectedWard)?.WardName}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName}</p>
             </div>
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">Phương thức thanh toán</h3>
@@ -609,8 +623,8 @@ export default function Checkout() {
                 ))}
               </RadioGroup>
             </div>
-            <Button type="submit" className="w-full">
-              Đặt Hàng
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Đang xử lý..." : "Đặt Hàng"}
             </Button>
           </form>
         </div>
