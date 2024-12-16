@@ -90,7 +90,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       logout();
-      window.location.href = '/';
+      window.location.href = '/pages/login';
     } catch (error) {
       console.error("Logout failed:", error);
     }
