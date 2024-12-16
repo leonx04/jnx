@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -183,7 +183,7 @@ const Navbar = () => {
                     <h2 className="text-sm font-semibold">Thông báo</h2>
                     {notifications.length > 0 && (
                       <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-                        <FontAwesomeIcon icon={faUser} className="mr-2 h-4 w-4" />
+                        <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
                         Đánh dấu tất cả đã đọc
                       </Button>
                     )}
@@ -334,7 +334,7 @@ const Navbar = () => {
 
               {user ? (
                 <>
-                  <MobileNavItem href="/pages/account/profile" icon={faUser} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
+                  <MobileNavItem href="/pages/account/profile" icon={faCheck} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
                   <MobileNavItem href="/pages/account/orders" icon={faShoppingCart} onClick={toggleMobileMenu}>Lịch sử đơn hàng</MobileNavItem>
                   <button
                     onClick={() => {
@@ -348,7 +348,7 @@ const Navbar = () => {
                   </button>
                 </>
               ) : (
-                <MobileNavItem href="/pages/login" icon={faUser} onClick={toggleMobileMenu}>Đăng nhập</MobileNavItem>
+                <MobileNavItem href="/pages/login" icon={faCheck} onClick={toggleMobileMenu}>Đăng nhập</MobileNavItem>
               )}
             </nav>
           </div>

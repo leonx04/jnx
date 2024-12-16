@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { database } from "@/firebaseConfig"
-import { get, push, ref, update } from "firebase/database"
+import { get, push, ref, update, serverTimestamp } from "firebase/database"
 import { ArrowLeft, Star } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
@@ -164,6 +164,16 @@ export default function OrderDetail() {
     }
   }
 
+  const createNotification = async (message: string) => {
+    const notificationsRef = ref(database, 'notifications');
+    await push(notificationsRef, {
+      orderId: order?.id,
+      message,
+      createdAt: serverTimestamp(),
+      read: false
+    });
+  };
+
   const handleReviewSubmitted = async (productId: string) => {
     await fetchReviews();
 
@@ -177,6 +187,7 @@ export default function OrderDetail() {
       updatedOrder.status = 'reviewed';
       const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
       await update(orderRef, { status: 'reviewed', items: updatedOrder.items });
+      await createNotification(`Đơn hàng #${order?.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
     } else {
       const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
       await update(orderRef, { items: updatedOrder.items });
@@ -197,6 +208,7 @@ export default function OrderDetail() {
       await update(orderRef, { status: 'delivered' });
       setOrder({ ...order, status: 'delivered' });
       toast.success('Đã xác nhận nhận hàng thành công');
+      await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng xác nhận nhận hàng`);
     } catch (error) {
       console.error('Lỗi khi xác nhận nhận hàng:', error);
       toast.error('Không thể xác nhận nhận hàng. Vui lòng thử lại sau.');
@@ -242,6 +254,10 @@ export default function OrderDetail() {
     setOrder({ ...order, status: 'reviewed', items: updatedItems });
     await fetchReviews();
     setShowBulkReviewDialog(false);
+
+    // Create only one notification after all reviews are submitted
+    await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
+
     toast.success('Đã đánh giá tất cả sản phẩm thành công!');
   }
 
