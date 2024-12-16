@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { database } from "@/firebaseConfig"
 import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
+import { Loader2 } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -377,7 +378,11 @@ export default function Checkout() {
       showToast("Đặt hàng thành công!", 'success')
       localStorage.removeItem("selectedProducts")
       setCartItems([]) // Clear the local cart state
-      router.push("/pages/order-confirmation")
+
+      // Add a delay before navigation
+      setTimeout(() => {
+        router.push("/pages/order-confirmation")
+      }, 2000); // 2 second delay
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
       showToast("Đã có lỗi xảy ra. Vui lòng thử lại.", 'error')
@@ -612,7 +617,14 @@ export default function Checkout() {
               </RadioGroup>
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Đang xử lý..." : "Đặt Hàng"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Đặt Hàng"
+              )}
             </Button>
           </form>
         </div>
