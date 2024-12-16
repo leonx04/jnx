@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { database } from "@/firebaseConfig"
-import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set, update } from "firebase/database"
+import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -228,7 +228,6 @@ export default function Checkout() {
     }
   }, [selectedDistrict]);
 
-
   const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
 
@@ -309,6 +308,7 @@ export default function Checkout() {
     try {
       const isStockAvailable = await checkProductStock(cartItems)
       if (!isStockAvailable) {
+        setIsSubmitting(false);
         return
       }
 
@@ -350,22 +350,9 @@ export default function Checkout() {
       // Create notification for the new order
       await createNotification(orderRef.key as string, `Đơn hàng mới #${(orderRef.key as string).slice(-6)} từ ${order.userName}`)
 
-      // Update cart
+      // Clear the cart
       const cartRef = ref(database, `carts/${user.id}`);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
-      const updates: { [key: string]: any } = {};
-
-      cartItems.forEach((item) => {
-        if (item.quantity > 0) {
-          updates[`${item.id}/quantity`] = item.quantity;
-        } else {
-          updates[item.id] = null;  // This will remove the item
-        }
-      });
-
-      await update(cartRef, updates);
-
+      await set(cartRef, null);
 
       const updateStockPromises = cartItems.map(async (item) => {
         const productRef = ref(database, `products/${item.productId}`)
@@ -389,6 +376,7 @@ export default function Checkout() {
 
       showToast("Đặt hàng thành công!", 'success')
       localStorage.removeItem("selectedProducts")
+      setCartItems([]) // Clear the local cart state
       router.push("/pages/order-confirmation")
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
@@ -471,26 +459,26 @@ export default function Checkout() {
       setPhoneNumber(selectedAddress.phoneNumber);
       setAddress(selectedAddress.address);
 
-      // Tìm và cập nhật tỉnh/thành phố
+      // Find and update province
       const province = provinces.find(p => p.ProvinceName === selectedAddress.province);
       if (province) {
         setSelectedProvince(province.ProvinceID.toString());
-        // Tải danh sách quận/huyện cho tỉnh/thành phố đã chọn
+        // Load districts for the selected province
         await fetchDistricts(province.ProvinceID.toString());
-      }
 
-      // Tìm và cập nhật quận/huyện
-      const district = districts.find(d => d.DistrictName === selectedAddress.district);
-      if (district) {
-        setSelectedDistrict(district.DistrictID.toString());
-        // Tải danh sách phường/xã cho quận/huyện đã chọn
-        await fetchWards(district.DistrictID.toString());
-      }
+        // Find and update district
+        const district = districts.find(d => d.DistrictName === selectedAddress.district);
+        if (district) {
+          setSelectedDistrict(district.DistrictID.toString());
+          // Load wards for the selected district
+          await fetchWards(district.DistrictID.toString());
 
-      // Tìm và cập nhật phường/xã
-      const ward = wards.find(w => w.WardName === selectedAddress.ward);
-      if (ward) {
-        setSelectedWard(ward.WardCode);
+          // Find and update ward
+          const ward = wards.find(w => w.WardName === selectedAddress.ward);
+          if (ward) {
+            setSelectedWard(ward.WardCode);
+          }
+        }
       }
 
       setSelectedSavedAddress(addressIndex);
