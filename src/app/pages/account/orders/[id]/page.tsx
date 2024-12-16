@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { database } from "@/firebaseConfig"
-import { get, push, ref, update, serverTimestamp } from "firebase/database"
+import { get, push, ref, serverTimestamp, update } from "firebase/database"
 import { ArrowLeft, Star } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"

@@ -1,10 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { onValue, ref } from "firebase/database"
-import { database } from '@/firebaseConfig'
-import ProductCard from '@/app/components/ProductCard'
 import NoResultsFound from '@/app/components/NoResultsFound'
+import ProductCard from '@/app/components/ProductCard'
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -12,7 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { database } from '@/firebaseConfig'
+import { onValue, ref } from "firebase/database"
 import { Search, SlidersHorizontal } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Product {
   id: string

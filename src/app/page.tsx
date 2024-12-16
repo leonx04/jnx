@@ -1,21 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ref, onValue } from 'firebase/database';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowRight,
+  faCalendarPlus,
+  faDollarSign,
   faHeadset,
   faMoneyBillWave,
   faShippingFast,
-  faCalendarPlus,
   faTag,
-  faDollarSign,
 } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { onValue, ref } from 'firebase/database';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { database } from '../firebaseConfig';
 import Carousel from './components/Carousel';
 import ProductCard from './components/ProductCard';
-import { database } from '../firebaseConfig';
 
 interface Product {
   id: string;

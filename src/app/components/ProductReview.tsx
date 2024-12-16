@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import { useAuthContext } from '@/app/context/AuthContext'
-import { database } from '@/firebaseConfig'
-import { ref, push, set, get, update } from 'firebase/database'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'react-hot-toast'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { database } from '@/firebaseConfig'
 import { faStar } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { get, push, ref, set, update } from 'firebase/database'
+import { useState } from 'react'
+import { toast } from 'react-hot-toast'
 
 interface ProductReviewProps {
   productId: string

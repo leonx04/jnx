@@ -1,21 +1,21 @@
 'use client'
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faCheck, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { onValue, ref, update, get, remove } from 'firebase/database';
+import { get, onValue, ref, update } from 'firebase/database';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
+import { useAuthContext } from '../context/AuthContext';
 
 interface CartItem {
   productId: string;
