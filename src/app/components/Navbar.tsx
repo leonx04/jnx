@@ -3,31 +3,74 @@
 import { Badge } from "@/components/ui/badge";
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { onValue, ref } from 'firebase/database';
+import { onValue, ref, update, get } from 'firebase/database';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuthContext } from '../context/AuthContext';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
 
 interface CartItem {
   productId: string;
   quantity: number;
 }
 
+interface Notification {
+  id: string;
+  orderId: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+  userId: string;
+}
+
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuthContext();
   const [cartItemsCount, setCartItemsCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !user.id) return;
+
+    const notificationsRef = ref(database, 'notifications');
+    onValue(notificationsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const notificationList: Notification[] = Object.entries(data)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
+          .map(([key, value]: [string, any]) => ({
+            id: key,
+            ...value,
+          }))
+          .filter(notification => notification.userId === user.id)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setNotifications(notificationList);
+        setUnreadCount(notificationList.filter(n => !n.read).length);
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    });
+  }, [user]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     if (user && user.id) {
       const cartRef = ref(database, `carts/${user.id}`);
-      // eslint-disable-next-line
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -57,6 +100,46 @@ const Navbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const notificationRef = ref(database, `notifications/${notificationId}`);
+      await update(notificationRef, { read: true });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const notificationsRef = ref(database, 'notifications');
+      const snapshot = await get(notificationsRef);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
+      const updates: { [key: string]: any } = {};
+
+      snapshot.forEach((childSnapshot) => {
+        const notification = childSnapshot.val();
+        if (notification.userId === user?.id && !notification.read) {
+          updates[`${childSnapshot.key}/read`] = true;
+        }
+      });
+
+      await update(notificationsRef, updates);
+      toast.success('Tất cả thông báo đã được đánh dấu là đã đọc');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật thông báo');
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+    // Navigate to order detail page
+    window.location.href = `/pages/account/orders/${notification.orderId}`;
+  };
+
   return (
     <nav className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg sticky top-0 z-50">
       {/* Desktop Navigation */}
@@ -83,6 +166,58 @@ const Navbar = () => {
                 </Badge>
               )}
             </Link>
+            {user && (
+              <DropdownMenu.Root open={showNotifications} onOpenChange={setShowNotifications}>
+                <DropdownMenu.Trigger asChild>
+                  <Button variant="ghost" size="icon" className="relative text-white">
+                    <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <Badge variant="destructive" className="absolute -top-2 -right-2">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content align="end" className="w-80 bg-white rounded-md shadow-lg">
+                  <div className="flex items-center justify-between px-4 py-2">
+                    <h2 className="text-sm font-semibold">Thông báo</h2>
+                    {notifications.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                        <FontAwesomeIcon icon={faUser} className="mr-2 h-4 w-4" />
+                        Đánh dấu tất cả đã đọc
+                      </Button>
+                    )}
+                  </div>
+                  <Separator />
+                  <ScrollArea className="h-[300px]">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <DropdownMenu.Item key={notification.id} className="p-0">
+                          <div
+                            className="flex items-start w-full p-4 space-x-3 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                            onClick={() => handleNotificationClick(notification)}
+                          >
+                            <div className={`w-2 h-2 mt-2 rounded-full ${notification.read ? 'bg-gray-300' : 'bg-blue-500'}`} />
+                            <div className="flex-1 space-y-1">
+                              <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(notification.createdAt).toLocaleString('vi-VN')}
+                              </p>
+                            </div>
+                          </div>
+                        </DropdownMenu.Item>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-sm text-gray-500">
+                        Không có thông báo mới
+                      </div>
+                    )}
+                  </ScrollArea>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+            )}
             {user ? (
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
@@ -140,6 +275,16 @@ const Navbar = () => {
                 )}
               </div>
             </Link>
+            {user && (
+              <Button variant="ghost" size="icon" className="relative text-white mr-3" onClick={() => setShowNotifications(!showNotifications)}>
+                <FontAwesomeIcon icon={faBell} className="text-2xl" />
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs px-1 min-w-[1.25rem] h-5 flex items-center justify-center">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            )}
             <button
               onClick={toggleMobileMenu}
               className="text-white focus:outline-none ml-2"
@@ -190,6 +335,7 @@ const Navbar = () => {
               {user ? (
                 <>
                   <MobileNavItem href="/pages/account/profile" icon={faUser} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
+                  <MobileNavItem href="/pages/account/orders" icon={faShoppingCart} onClick={toggleMobileMenu}>Lịch sử đơn hàng</MobileNavItem>
                   <button
                     onClick={() => {
                       toggleMobileMenu();
@@ -208,6 +354,42 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {/* Notifications Modal for Mobile */}
+      {showNotifications && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
+          <div className="bg-white w-full h-full overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-lg font-semibold">Thông báo</h2>
+              <button onClick={() => setShowNotifications(false)} className="text-gray-500">
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <ScrollArea className="h-full">
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="p-4 border-b hover:bg-gray-100"
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(notification.createdAt).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-sm text-gray-500">
+                  Không có thông báo mới
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
