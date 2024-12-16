@@ -1,8 +1,11 @@
 "use client"
 
 import { useAuthContext } from "@/app/context/AuthContext"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { database } from "@/firebaseConfig"
 import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
 import Image from "next/image"
@@ -44,6 +47,15 @@ interface PaymentMethod {
   description: string
 }
 
+interface SavedAddress {
+  fullName: string
+  phoneNumber: string
+  province: string
+  district: string
+  ward: string
+  address: string
+}
+
 export default function Checkout() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
@@ -61,6 +73,8 @@ export default function Checkout() {
     { id: "cod", name: "Thanh toán khi nhận hàng (COD)", description: "Thanh toán bằng tiền mặt khi nhận hàng" },
     { id: "vnpay", name: "Thanh toán qua VNPAY", description: "Thanh toán trực tuyến bằng ví điện tử VNPAY" },
   ])
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState<string | null>(null)
   const { user } = useAuthContext()
   const router = useRouter()
 
@@ -73,7 +87,8 @@ export default function Checkout() {
   }, [cartItems])
 
   const calculateTotal = useCallback(() => {
-    return calculateSubtotal() + shippingFee
+    const subtotal = calculateSubtotal()
+    return subtotal > 2000000 ? subtotal : subtotal + shippingFee
   }, [calculateSubtotal, shippingFee])
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -138,11 +153,7 @@ export default function Checkout() {
     if (selectedProducts) {
       setCartItems(JSON.parse(selectedProducts))
     } else if (user?.id) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       const cartRef = ref(database, `carts/${user.id}`)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       const unsubscribe = onValue(cartRef, (snapshot) => {
         const data = snapshot.val()
         if (data) {
@@ -172,42 +183,51 @@ export default function Checkout() {
       })
   }, [showToast])
 
+  const fetchDistricts = async (provinceId: string) => {
+    try {
+      const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provinceId}`, {
+        headers: { "Token": token }
+      });
+      const data = await response.json();
+      setDistricts(data.data);
+    } catch (error) {
+      console.error("Lỗi tải danh sách quận/huyện:", error);
+      showToast("Không thể tải danh sách quận/huyện", 'error');
+    }
+  };
+
+  const fetchWards = async (districtId: string) => {
+    try {
+      const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${districtId}`, {
+        headers: { "Token": token }
+      });
+      const data = await response.json();
+      setWards(data.data);
+    } catch (error) {
+      console.error("Lỗi tải danh sách phường/xã:", error);
+      showToast("Không thể tải danh sách phường/xã", 'error');
+    }
+  };
+
   useEffect(() => {
     if (selectedProvince) {
-      fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${selectedProvince}`, {
-        headers: { "Token": token }
-      })
-        .then(response => response.json())
-        .then(data => setDistricts(data.data))
-        .catch(error => {
-          console.error("Lỗi tải danh sách quận/huyện:", error)
-          showToast("Không thể tải danh sách quận/huyện", 'error')
-        })
-
-      setSelectedDistrict("")
-      setSelectedWard("")
+      fetchDistricts(selectedProvince);
     } else {
-      setDistricts([])
+      setDistricts([]);
+      setSelectedDistrict("");
+      setSelectedWard("");
     }
-  }, [selectedProvince, showToast])
+  }, [selectedProvince]);
 
   useEffect(() => {
     if (selectedDistrict) {
-      fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${selectedDistrict}`, {
-        headers: { "Token": token }
-      })
-        .then(response => response.json())
-        .then(data => setWards(data.data))
-        .catch(error => {
-          console.error("Lỗi tải danh sách phường/xã:", error)
-          showToast("Không thể tải danh sách phường/xã", 'error')
-        })
-
-      setSelectedWard("")
+      fetchWards(selectedDistrict);
     } else {
-      setWards([])
+      setWards([]);
+      setSelectedWard("");
     }
-  }, [selectedDistrict, showToast])
+  }, [selectedDistrict]);
+
 
   const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
@@ -302,7 +322,7 @@ export default function Checkout() {
           address: address
         },
         subtotal: calculateSubtotal(),
-        shippingFee: shippingFee,
+        shippingFee: calculateSubtotal() > 2000000 ? 0 : shippingFee,
         total: calculateTotal(),
         status: "pending",
         paymentMethod: paymentMethod,
@@ -326,8 +346,7 @@ export default function Checkout() {
 
       // Create notification for the new order
       await createNotification(orderRef.key as string, `Đơn hàng mới #${(orderRef.key as string).slice(-6)} từ ${order.userName}`)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
+
       const cartRef = ref(database, `carts/${user.id}`)
       const updateCartPromises = cartItems.map(async (item) => {
         const itemRef = ref(database, `carts/${user.id}/${item.id}`)
@@ -407,6 +426,73 @@ export default function Checkout() {
     }
   }
 
+  useEffect(() => {
+    if (user?.id) {
+      const ordersRef = ref(database, `orders/${user.id}`)
+      get(ordersRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          const orders = snapshot.val()
+          const addresses: SavedAddress[] = Object.values(orders)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line
+            .map((order: any) => ({
+              fullName: order.fullName,
+              phoneNumber: order.phoneNumber,
+              province: order.shippingAddress.province,
+              district: order.shippingAddress.district,
+              ward: order.shippingAddress.ward,
+              address: order.shippingAddress.address
+            }))
+            .filter((address, index, self) =>
+              index === self.findIndex((t) => (
+                t.fullName === address.fullName &&
+                t.phoneNumber === address.phoneNumber &&
+                t.province === address.province &&
+                t.district === address.district &&
+                t.ward === address.ward &&
+                t.address === address.address
+              ))
+            )
+          setSavedAddresses(addresses)
+        }
+      })
+    }
+  }, [user])
+
+  const handleSavedAddressSelect = async (addressIndex: string) => {
+    const index = parseInt(addressIndex);
+    if (index >= 0 && index < savedAddresses.length) {
+      const selectedAddress = savedAddresses[index];
+      setFullName(selectedAddress.fullName);
+      setPhoneNumber(selectedAddress.phoneNumber);
+      setAddress(selectedAddress.address);
+
+      // Tìm và cập nhật tỉnh/thành phố
+      const province = provinces.find(p => p.ProvinceName === selectedAddress.province);
+      if (province) {
+        setSelectedProvince(province.ProvinceID.toString());
+        // Tải danh sách quận/huyện cho tỉnh/thành phố đã chọn
+        await fetchDistricts(province.ProvinceID.toString());
+      }
+
+      // Tìm và cập nhật quận/huyện
+      const district = districts.find(d => d.DistrictName === selectedAddress.district);
+      if (district) {
+        setSelectedDistrict(district.DistrictID.toString());
+        // Tải danh sách phường/xã cho quận/huyện đã chọn
+        await fetchWards(district.DistrictID.toString());
+      }
+
+      // Tìm và cập nhật phường/xã
+      const ward = wards.find(w => w.WardName === selectedAddress.ward);
+      if (ward) {
+        setSelectedWard(ward.WardCode);
+      }
+
+      setSelectedSavedAddress(addressIndex);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Thanh Toán</h1>
@@ -414,85 +500,97 @@ export default function Checkout() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Thông Tin Giao Hàng</h2>
           <form onSubmit={handleSubmit}>
+            {savedAddresses.length > 0 && (
+              <div className="mb-4">
+                <Label htmlFor="savedAddress">Địa chỉ đã lưu</Label>
+                <Select onValueChange={handleSavedAddressSelect} value={selectedSavedAddress || undefined}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn địa chỉ đã lưu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedAddresses.map((address, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {`${address.fullName}, ${address.phoneNumber}, ${address.address}, ${address.ward}, ${address.district}, ${address.province}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="mb-4">
-              <label htmlFor="fullName" className="block mb-2">Họ và Tên</label>
-              <input
+              <Label htmlFor="fullName">Họ và Tên</Label>
+              <Input
                 type="text"
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full p-2 border rounded"
                 required
                 placeholder="Nhập họ và tên"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="phoneNumber" className="block mb-2">Số Điện Thoại</label>
-              <input
+              <Label htmlFor="phoneNumber">Số Điện Thoại</Label>
+              <Input
                 type="tel"
                 id="phoneNumber"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full p-2 border rounded"
                 required
                 placeholder="Nhập số điện thoại"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="province" className="block mb-2">Tỉnh/Thành Phố</label>
-              <select
-                id="province"
-                value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              >
-                <option value="">Chọn Tỉnh/Thành Phố</option>
-                {provinces.map((province) => (
-                  <option key={province.ProvinceID} value={province.ProvinceID.toString()}>{province.ProvinceName}</option>
-                ))}
-              </select>
+              <Label htmlFor="province">Tỉnh/Thành Phố</Label>
+              <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn Tỉnh/Thành Phố" />
+                </SelectTrigger>
+                <SelectContent>
+                  {provinces.map((province) => (
+                    <SelectItem key={province.ProvinceID} value={province.ProvinceID.toString()}>
+                      {province.ProvinceName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="mb-4">
-              <label htmlFor="district" className="block mb-2">Quận/Huyện</label>
-              <select
-                id="district"
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-                disabled={!selectedProvince}
-              >
-                <option value="">Chọn Quận/Huyện</option>
-                {districts.map((district) => (
-                  <option key={district.DistrictID} value={district.DistrictID.toString()}>{district.DistrictName}</option>
-                ))}
-              </select>
+              <Label htmlFor="district">Quận/Huyện</Label>
+              <Select onValueChange={setSelectedDistrict} value={selectedDistrict} disabled={!selectedProvince}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn Quận/Huyện" />
+                </SelectTrigger>
+                <SelectContent>
+                  {districts.map((district) => (
+                    <SelectItem key={district.DistrictID} value={district.DistrictID.toString()}>
+                      {district.DistrictName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="mb-4">
-              <label htmlFor="ward" className="block mb-2">Phường/Xã</label>
-              <select
-                id="ward"
-                value={selectedWard}
-                onChange={(e) => setSelectedWard(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-                disabled={!selectedDistrict}
-              >
-                <option value="">Chọn Phường/Xã</option>
-                {wards.map((ward) => (
-                  <option key={ward.WardCode} value={ward.WardCode}>{ward.WardName}</option>
-                ))}
-              </select>
+              <Label htmlFor="ward">Phường/Xã</Label>
+              <Select onValueChange={setSelectedWard} value={selectedWard} disabled={!selectedDistrict}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn Phường/Xã" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wards.map((ward) => (
+                    <SelectItem key={ward.WardCode} value={ward.WardCode}>
+                      {ward.WardName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="mb-4">
-              <label htmlFor="address" className="block mb-2">Địa Chỉ Chi Tiết</label>
-              <input
+              <Label htmlFor="address">Địa Chỉ Chi Tiết</Label>
+              <Input
                 type="text"
                 id="address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full p-2 border rounded"
                 required
                 placeholder="Số nhà, tên đường..."
               />
@@ -511,12 +609,9 @@ export default function Checkout() {
                 ))}
               </RadioGroup>
             </div>
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
+            <Button type="submit" className="w-full">
               Đặt Hàng
-            </button>
+            </Button>
           </form>
         </div>
         <div>
@@ -533,7 +628,7 @@ export default function Checkout() {
           ))}
           <div className="border-t pt-4 mt-4">
             <p className="flex justify-between"><span>Tổng Phụ:</span> <span>{calculateSubtotal().toLocaleString("vi-VN")} ₫</span></p>
-            <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{shippingFee.toLocaleString("vi-VN")} ₫</span></p>
+            <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{calculateSubtotal() > 2000000 ? "Miễn phí" : shippingFee.toLocaleString("vi-VN") + " ₫"}</span></p>
             <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{calculateTotal().toLocaleString("vi-VN")} ₫</span></p>
           </div>
         </div>
@@ -541,3 +636,4 @@ export default function Checkout() {
     </div>
   )
 }
+
