@@ -3,11 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { onValue, ref, update, get } from 'firebase/database';
+import { onValue, ref, update, get, remove } from 'firebase/database';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
@@ -132,11 +132,32 @@ const Navbar = () => {
     }
   };
 
+  const deleteAllReadNotifications = async () => {
+    try {
+      const notificationsRef = ref(database, 'notifications');
+      const snapshot = await get(notificationsRef);
+      const updates: { [key: string]: null } = {};
+
+      snapshot.forEach((childSnapshot) => {
+        const notification = childSnapshot.val();
+        if (notification.userId === user?.id && notification.read) {
+          updates[childSnapshot.key] = null;
+        }
+      });
+
+      await update(notificationsRef, updates);
+      toast.success('Tất cả thông báo đã đọc đã được xóa');
+      fetchNotifications(); // Refresh the notifications list
+    } catch (error) {
+      console.error('Error deleting read notifications:', error);
+      toast.error('Có lỗi xảy ra khi xóa thông báo đã đọc');
+    }
+  };
+
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.read) {
       await markAsRead(notification.id);
     }
-    // Navigate to order detail page
     window.location.href = `/pages/account/orders/${notification.orderId}`;
   };
 
@@ -215,6 +236,14 @@ const Navbar = () => {
                       </div>
                     )}
                   </ScrollArea>
+                  {notifications.length > 0 && (
+                    <div className="p-2 border-t">
+                      <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
+                        <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
+                        Xóa thông báo đã đọc
+                      </Button>
+                    </div>
+                  )}
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
             )}
@@ -358,35 +387,51 @@ const Navbar = () => {
       {/* Notifications Modal for Mobile */}
       {showNotifications && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-          <div className="bg-white w-full h-full overflow-y-auto">
+          <div className="bg-white w-full h-full flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-lg font-semibold">Thông báo</h2>
               <button onClick={() => setShowNotifications(false)} className="text-gray-500">
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
-            <ScrollArea className="h-full">
+            <ScrollArea className="flex-grow">
               {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="p-4 border-b hover:bg-gray-100"
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(notification.createdAt).toLocaleString('vi-VN')}
-                    </p>
+                <>
+                  <div className="flex justify-between items-center p-4 border-b">
+                    <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                      <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
+                      Đánh dấu tất cả đã đọc
+                    </Button>
                   </div>
-                ))
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="p-4 border-b hover:bg-gray-100"
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(notification.createdAt).toLocaleString('vi-VN')}
+                      </p>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="p-4 text-center text-sm text-gray-500">
                   Không có thông báo mới
                 </div>
               )}
             </ScrollArea>
+            {notifications.length > 0 && (
+              <div className="p-4 border-t">
+                <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
+                  <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
+                  Xóa thông báo đã đọc
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
