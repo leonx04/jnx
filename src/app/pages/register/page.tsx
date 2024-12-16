@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { app } from '@/firebaseConfig';
-import { getDatabase, push, ref, set } from 'firebase/database';
+import { equalTo, get, getDatabase, orderByChild, push, query, ref, set } from 'firebase/database';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -105,6 +105,18 @@ export default function Register() {
     try {
       const db = getDatabase(app);
       const usersRef = ref(db, 'user');
+
+      // Check if email already exists
+      const emailQuery = query(usersRef, orderByChild('email'), equalTo(email));
+      const emailSnapshot = await get(emailQuery);
+
+      if (emailSnapshot.exists()) {
+        toast.error('Email đã tồn tại. Vui lòng sử dụng email khác.');
+        setIsLoading(false);
+        return;
+      }
+
+      // If email doesn't exist, proceed with user creation
       const newUserRef = push(usersRef);
       await set(newUserRef, {
         name,
