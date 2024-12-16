@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faRightToBracket, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -428,7 +428,7 @@ const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; 
             </button>
           </>
         ) : (
-          <MobileNavItem href="/pages/login" icon={faCheck} onClick={onClose}>Đăng nhập</MobileNavItem>
+          <MobileNavItem href="/pages/login" icon={faRightToBracket} onClick={onClose}>Đăng nhập</MobileNavItem>
         )}
       </nav>
     </div>
