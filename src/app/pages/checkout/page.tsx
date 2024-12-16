@@ -13,6 +13,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 
 interface CartItem {
   id: string
@@ -182,9 +183,9 @@ export default function Checkout() {
         console.error("Lỗi tải danh sách tỉnh:", error)
         showToast("Không thể tải danh sách tỉnh", 'error')
       })
-  }, [showToast])
+  }, [showToast, token])
 
-  const fetchDistricts = async (provinceId: string) => {
+  const fetchDistricts = useCallback(async (provinceId: string) => {
     try {
       const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provinceId}`, {
         headers: { "Token": token }
@@ -195,9 +196,9 @@ export default function Checkout() {
       console.error("Lỗi tải danh sách quận/huyện:", error);
       showToast("Không thể tải danh sách quận/huyện", 'error');
     }
-  };
+  }, [showToast, token]);
 
-  const fetchWards = async (districtId: string) => {
+  const fetchWards = useCallback(async (districtId: string) => {
     try {
       const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${districtId}`, {
         headers: { "Token": token }
@@ -208,7 +209,7 @@ export default function Checkout() {
       console.error("Lỗi tải danh sách phường/xã:", error);
       showToast("Không thể tải danh sách phường/xã", 'error');
     }
-  };
+  }, [showToast, token]);
 
   useEffect(() => {
     if (selectedProvince) {
@@ -218,7 +219,7 @@ export default function Checkout() {
       setSelectedDistrict("");
       setSelectedWard("");
     }
-  }, [selectedProvince]);
+  }, [selectedProvince, fetchDistricts]);
 
   useEffect(() => {
     if (selectedDistrict) {
@@ -227,7 +228,7 @@ export default function Checkout() {
       setWards([]);
       setSelectedWard("");
     }
-  }, [selectedDistrict]);
+  }, [selectedDistrict, fetchWards]);
 
   const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
@@ -375,7 +376,7 @@ export default function Checkout() {
         showToast("Thanh toán qua VNPAY thành công!", 'success')
       }
 
-      showToast("Đặt hàng thành công!", 'success')
+      showToast("Đặt hàng thànhcông!", 'success')
       localStorage.removeItem("selectedProducts")
       setCartItems([]) // Clear the local cart state
 
@@ -456,8 +457,7 @@ export default function Checkout() {
     }
   }, [user])
 
-  const handleSavedAddressSelect = async (addressIndex: string) => {
-    const index = parseInt(addressIndex);
+  const handleSavedAddressSelect = useCallback((index: number) => {
     if (index >= 0 && index < savedAddresses.length) {
       const selectedAddress = savedAddresses[index];
       setFullName(selectedAddress.fullName);
@@ -469,121 +469,123 @@ export default function Checkout() {
       if (province) {
         setSelectedProvince(province.ProvinceID.toString());
         // Load districts for the selected province
-        await fetchDistricts(province.ProvinceID.toString());
-
-        // Find and update district
-        const district = districts.find(d => d.DistrictName === selectedAddress.district);
-        if (district) {
-          setSelectedDistrict(district.DistrictID.toString());
-          // Load wards for the selected district
-          await fetchWards(district.DistrictID.toString());
-
-          // Find and update ward
-          const ward = wards.find(w => w.WardName === selectedAddress.ward);
-          if (ward) {
-            setSelectedWard(ward.WardCode);
+        fetchDistricts(province.ProvinceID.toString()).then(() => {
+          // Find and update district
+          const district = districts.find(d => d.DistrictName === selectedAddress.district);
+          if (district) {
+            setSelectedDistrict(district.DistrictID.toString());
+            // Load wards for the selected district
+            fetchWards(district.DistrictID.toString()).then(() => {
+              // Find and update ward
+              const ward = wards.find(w => w.WardName === selectedAddress.ward);
+              if (ward) {
+                setSelectedWard(ward.WardCode);
+              }
+            });
           }
-        }
+        });
       }
 
-      setSelectedSavedAddress(addressIndex);
+      setSelectedSavedAddress(index.toString());
     }
-  };
+  }, [savedAddresses, provinces, districts, wards, fetchDistricts, fetchWards]);
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Thanh Toán</h1>
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-2 gap-8">
         <div>
           <h2 className="text-xl font-semibold mb-4">Thông Tin Giao Hàng</h2>
           <form onSubmit={handleSubmit}>
             {savedAddresses.length > 0 && (
               <div className="mb-4">
-                <Label htmlFor="savedAddress">Địa chỉ đã lưu</Label>
-                <Select onValueChange={handleSavedAddressSelect} value={selectedSavedAddress || undefined}>
+                <h3 className="text-lg font-semibold mb-2">Địa chỉ đã lưu</h3>
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                  {savedAddresses.map((address, index) => (
+                    <SavedAddressCard
+                      key={index}
+                      address={address}
+                      isSelected={selectedSavedAddress === index.toString()}
+                      onSelect={() => handleSavedAddressSelect(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="fullName">Họ và Tên</Label>
+                <Input
+                  type="text"
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  placeholder="Nhập họ và tên"
+                  aria-label="Họ và Tên"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phoneNumber">Số Điện Thoại</Label>
+                <Input
+                  type="tel"
+                  id="phoneNumber"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                  placeholder="Nhập số điện thoại"
+                  aria-label="Số Điện Thoại"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <Label htmlFor="province">Tỉnh/Thành Phố</Label>
+                <Select onValueChange={setSelectedProvince} value={selectedProvince}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn địa chỉ đã lưu" />
+                    <SelectValue placeholder="Chọn Tỉnh/Thành Phố" />
                   </SelectTrigger>
                   <SelectContent>
-                    {savedAddresses.map((address, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {`${address.fullName}, ${address.phoneNumber}, ${address.address}, ${address.ward}, ${address.district}, ${address.province}`}
+                    {provinces.map((province) => (
+                      <SelectItem key={province.ProvinceID} value={province.ProvinceID.toString()}>
+                        {province.ProvinceName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            <div className="mb-4">
-              <Label htmlFor="fullName">Họ và Tên</Label>
-              <Input
-                type="text"
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                placeholder="Nhập họ và tên"
-                aria-label="Họ và Tên"
-              />
+              <div>
+                <Label htmlFor="district">Quận/Huyện</Label>
+                <Select onValueChange={setSelectedDistrict} value={selectedDistrict} disabled={!selectedProvince}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn Quận/Huyện" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districts.map((district) => (
+                      <SelectItem key={district.DistrictID} value={district.DistrictID.toString()}>
+                        {district.DistrictName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="ward">Phường/Xã</Label>
+                <Select onValueChange={setSelectedWard} value={selectedWard} disabled={!selectedDistrict}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn Phường/Xã" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wards.map((ward) => (
+                      <SelectItem key={ward.WardCode} value={ward.WardCode}>
+                        {ward.WardName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="mb-4">
-              <Label htmlFor="phoneNumber">Số Điện Thoại</Label>
-              <Input
-                type="tel"
-                id="phoneNumber"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                required
-                placeholder="Nhập số điện thoại"
-                aria-label="Số Điện Thoại"
-              />
-            </div>
-            <div className="mb-4">
-              <Label htmlFor="province">Tỉnh/Thành Phố</Label>
-              <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn Tỉnh/Thành Phố" />
-                </SelectTrigger>
-                <SelectContent>
-                  {provinces.map((province) => (
-                    <SelectItem key={province.ProvinceID} value={province.ProvinceID.toString()}>
-                      {province.ProvinceName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mb-4">
-              <Label htmlFor="district">Quận/Huyện</Label>
-              <Select onValueChange={setSelectedDistrict} value={selectedDistrict} disabled={!selectedProvince}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn Quận/Huyện" />
-                </SelectTrigger>
-                <SelectContent>
-                  {districts.map((district) => (
-                    <SelectItem key={district.DistrictID} value={district.DistrictID.toString()}>
-                      {district.DistrictName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mb-4">
-              <Label htmlFor="ward">Phường/Xã</Label>
-              <Select onValueChange={setSelectedWard} value={selectedWard} disabled={!selectedDistrict}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn Phường/Xã" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wards.map((ward) => (
-                    <SelectItem key={ward.WardCode} value={ward.WardCode}>
-                      {ward.WardName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mb-4">
+            <div className="mt-4">
               <Label htmlFor="address">Địa Chỉ Chi Tiết</Label>
               <Input
                 type="text"
@@ -595,28 +597,30 @@ export default function Checkout() {
                 aria-label="Địa Chỉ Chi Tiết"
               />
             </div>
-            <div className="mb-4 p-4 bg-gray-100 rounded-md">
+            <div className="mt-4 p-4 bg-gray-100 rounded-md">
               <h3 className="text-lg font-semibold mb-2">Địa chỉ giao hàng</h3>
               <p>{fullName}</p>
               <p>{phoneNumber}</p>
               <p>{address}</p>
               <p>{wards.find(w => w.WardCode === selectedWard)?.WardName}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName}</p>
             </div>
-            <div className="mb-4">
+            <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Phương thức thanh toán</h3>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
                 {paymentMethods.map((method) => (
                   <div key={method.id} className="flex items-center space-x-2 mb-2">
-                    <RadioGroupItem value={method.id} id={method.id} />
+                    <RadioGroupItem value={method.id} id={method.id} disabled={method.id === "vnpay"} />
                     <Label htmlFor={method.id}>
                       <span className="font-medium">{method.name}</span>
-                      <p className="text-sm text-gray-500">{method.description}</p>
+                      <p className="text-sm text-gray-500">
+                        {method.id === "vnpay" ? "Tính năng đang được phát triển" : method.description}
+                      </p>
                     </Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -630,17 +634,19 @@ export default function Checkout() {
         </div>
         <div>
           <h2 className="text-xl font-semibold mb-4">Tóm Tắt Đơn Hàng</h2>
-          {cartItems.map((item) => (
-            <div key={item.id} className="flex items-center mb-4">
-              <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="mr-4" />
-              <div>
-                <p className="font-semibold">{item.name}</p>
-                <p>Số Lượng: {item.quantity}</p>
-                <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
+          <div className="space-y-4">
+            {cartItems.map((item) => (
+              <div key={item.id} className="flex items-center">
+                <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="mr-4" />
+                <div className="flex-grow">
+                  <p className="font-semibold">{item.name}</p>
+                  <p>Số Lượng: {item.quantity}</p>
+                  <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
+                </div>
               </div>
-            </div>
-          ))}
-          <div className="border-t pt-4 mt-4">
+            ))}
+          </div>
+          <div className="border-t pt-4 mt-4 space-y-2">
             <p className="flex justify-between"><span>Tổng Phụ:</span> <span>{calculateSubtotal().toLocaleString("vi-VN")} ₫</span></p>
             <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{calculateSubtotal() > 2000000 ? "Miễn phí" : shippingFee.toLocaleString("vi-VN") + " ₫"}</span></p>
             <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{calculateTotal().toLocaleString("vi-VN")} ₫</span></p>
