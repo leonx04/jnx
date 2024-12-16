@@ -1,5 +1,16 @@
 "use client"
 
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
+import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { get, push, ref, serverTimestamp, update } from "firebase/database"
+import { ArrowLeft, CheckCircle, Clock, Package, Truck, XCircle } from 'lucide-react'
+import Image from "next/image"
+import { useParams, useRouter } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
+
+import OrderStatusHistory from "@/app/components/OrderStatusHistory"
 import ProductReview from "@/app/components/ProductReview"
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
@@ -8,13 +19,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { database } from "@/firebaseConfig"
-import { get, push, ref, serverTimestamp, update } from "firebase/database"
-import { ArrowLeft, Star } from 'lucide-react'
-import Image from "next/image"
-import Link from "next/link"
-import { useParams } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
-import { toast } from "react-hot-toast"
 
 interface OrderItem {
   id: string
@@ -54,6 +58,13 @@ interface Review {
   orderId: string
 }
 
+interface OrderHistory {
+  status: string
+  timestamp: string
+  updatedBy: string
+  reason?: string
+}
+
 export default function OrderDetail() {
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -61,11 +72,13 @@ export default function OrderDetail() {
   const [showBulkReviewDialog, setShowBulkReviewDialog] = useState(false)
   const [bulkRating, setBulkRating] = useState(0)
   const [bulkComment, setBulkComment] = useState("")
+  const [orderHistory, setOrderHistory] = useState<OrderHistory[]>([])
   const { user } = useAuthContext()
   const params = useParams()
+  const router = useRouter()
   const orderId = params.id as string
 
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     if (!user?.id) {
       toast.error("Vui lòng đăng nhập để xem chi tiết đơn hàng")
       setIsLoading(false)
@@ -79,6 +92,22 @@ export default function OrderDetail() {
       if (snapshot.exists()) {
         const orderData = snapshot.val()
         setOrder({ id: orderId, ...orderData })
+
+        // Fetch order history
+        const historyRef = ref(database, `orderStatusHistory/${orderId}`)
+        const historySnapshot = await get(historyRef)
+        if (historySnapshot.exists()) {
+          const historyData = historySnapshot.val()
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
+          const historyArray = Object.entries(historyData).map(([, value]: [string, any]) => ({
+            status: value.status,
+            timestamp: value.timestamp,
+            updatedBy: value.updatedBy,
+            reason: value.reason
+          }))
+          setOrderHistory(historyArray.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()))
+        }
       } else {
         toast.error("Không tìm thấy thông tin đơn hàng")
       }
@@ -88,7 +117,7 @@ export default function OrderDetail() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [user, orderId])
 
   const fetchReviews = useCallback(async () => {
     if (!order || !order.items || !Array.isArray(order.items)) return;
@@ -121,11 +150,11 @@ export default function OrderDetail() {
 
   useEffect(() => {
     fetchOrder()
-  }, [user, orderId])
+  }, [fetchOrder])
 
   useEffect(() => {
     fetchReviews()
-  }, [order, user, fetchReviews])
+  }, [fetchReviews])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -145,11 +174,32 @@ export default function OrderDetail() {
     switch (status.toLowerCase()) {
       case "delivered":
       case "reviewed":
+      case "completed":
         return "text-green-600"
       case "cancelled":
         return "text-red-600"
       default:
         return "text-yellow-600"
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return <Clock className="w-5 h-5" />
+      case "processing":
+        return <Package className="w-5 h-5" />
+      case "shipping":
+      case "shipped":
+        return <Truck className="w-5 h-5" />
+      case "delivered":
+      case "reviewed":
+      case "completed":
+        return <CheckCircle className="w-5 h-5" />
+      case "cancelled":
+        return <XCircle className="w-5 h-5" />
+      default:
+        return null
     }
   }
 
@@ -174,6 +224,16 @@ export default function OrderDetail() {
     });
   };
 
+  const updateOrderStatusHistory = async (newStatus: string, reason?: string) => {
+    const historyRef = ref(database, `orderStatusHistory/${orderId}/${Date.now()}`);
+    await update(historyRef, {
+      status: newStatus,
+      timestamp: serverTimestamp(),
+      updatedBy: user?.id || 'Khách hàng',
+      reason: reason || ''
+    });
+  };
+
   const handleReviewSubmitted = async (productId: string) => {
     await fetchReviews();
 
@@ -188,12 +248,14 @@ export default function OrderDetail() {
       const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
       await update(orderRef, { status: 'reviewed', items: updatedOrder.items });
       await createNotification(`Đơn hàng #${order?.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
+      await updateOrderStatusHistory('reviewed');
     } else {
       const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
       await update(orderRef, { items: updatedOrder.items });
     }
 
     setOrder(updatedOrder);
+    await fetchOrder();
 
     if (allReviewed) {
       toast.success('Tất cả sản phẩm đã được đánh giá. Cảm ơn bạn!');
@@ -209,6 +271,8 @@ export default function OrderDetail() {
       setOrder({ ...order, status: 'delivered' });
       toast.success('Đã xác nhận nhận hàng thành công');
       await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng xác nhận nhận hàng`);
+      await updateOrderStatusHistory('delivered');
+      await fetchOrder();
     } catch (error) {
       console.error('Lỗi khi xác nhận nhận hàng:', error);
       toast.error('Không thể xác nhận nhận hàng. Vui lòng thử lại sau.');
@@ -255,8 +319,9 @@ export default function OrderDetail() {
     await fetchReviews();
     setShowBulkReviewDialog(false);
 
-    // Create only one notification after all reviews are submitted
     await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
+    await updateOrderStatusHistory('reviewed');
+    await fetchOrder();
 
     toast.success('Đã đánh giá tất cả sản phẩm thành công!');
   }
@@ -297,10 +362,13 @@ export default function OrderDetail() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link href="/pages/account/orders" className="inline-flex items-center mb-4 text-blue-600 hover:text-blue-800">
-        <ArrowLeft className="mr-2" size={20} />
-        Quay lại danh sách đơn hàng
-      </Link>
+      <Button
+        variant="ghost"
+        onClick={() => router.push('/pages/account/orders')}
+        className="mb-4"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại danh sách đơn hàng
+      </Button>
 
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Chi Tiết Đơn Hàng #{order.id.slice(-6)}</h1>
 
@@ -308,8 +376,9 @@ export default function OrderDetail() {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             <span>Thông Tin Đơn Hàng</span>
-            <span className={`text-sm font-normal ${getStatusColor(order.status)}`}>
-              {getStatusLabel(order.status)}
+            <span className={`text-sm font-normal ${getStatusColor(order.status)} flex items-center`}>
+              {getStatusIcon(order.status)}
+              <span className="ml-2">{getStatusLabel(order.status)}</span>
             </span>
           </CardTitle>
         </CardHeader>
@@ -334,6 +403,15 @@ export default function OrderDetail() {
           <p><strong>Họ tên:</strong> {order.fullName}</p>
           <p><strong>Số điện thoại:</strong> {order.phoneNumber}</p>
           <p><strong>Địa chỉ:</strong> {`${order.shippingAddress.address}, ${order.shippingAddress.ward}, ${order.shippingAddress.district}, ${order.shippingAddress.province}`}</p>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Lịch Sử Trạng Thái Đơn Hàng</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <OrderStatusHistory orderHistory={orderHistory} />
         </CardContent>
       </Card>
 
@@ -374,9 +452,11 @@ export default function OrderDetail() {
                         <p className="font-semibold">Đánh giá của bạn:</p>
                         <div className="flex items-center mt-2">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <span key={star} className={`text-2xl ${star <= reviews[item.productId].rating ? 'text-yellow-400' : 'text-gray-300'}`}>
-                              ★
-                            </span>
+                            <FontAwesomeIcon
+                              key={star}
+                              icon={star <= reviews[item.productId].rating ? faStarSolid : faStarRegular}
+                              className={`text-2xl ${star <= reviews[item.productId].rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                            />
                           ))}
                         </div>
                         <p className="mt-2">{reviews[item.productId].comment}</p>
@@ -418,7 +498,7 @@ export default function OrderDetail() {
                     onClick={() => setBulkRating(star)}
                     className={`text-2xl ${bulkRating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
                   >
-                    <Star className="w-6 h-6" />
+                    <FontAwesomeIcon icon={bulkRating >= star ? faStarSolid : faStarRegular} />
                   </button>
                 ))}
               </div>
@@ -443,14 +523,6 @@ export default function OrderDetail() {
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="mt-6 text-right">
-        <Button asChild>
-          <Link href="/pages/account/orders">
-            Quay lại danh sách đơn hàng
-          </Link>
-        </Button>
-      </div>
     </div>
   )
 }
