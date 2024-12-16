@@ -6,9 +6,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faCheck, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { get, onValue, ref, update } from 'firebase/database';
 import Image from 'next/image';
@@ -147,7 +147,7 @@ const Navbar = () => {
 
       await update(notificationsRef, updates);
       toast.success('Tất cả thông báo đã đọc đã được xóa');
-      fetchNotifications(); // Refresh the notifications list
+      fetchNotifications();
     } catch (error) {
       console.error('Error deleting read notifications:', error);
       toast.error('Có lỗi xảy ra khi xóa thông báo đã đọc');
@@ -178,108 +178,19 @@ const Navbar = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center">
-            <Link href="/pages/cart" className="text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium mr-2 relative">
-              <FontAwesomeIcon icon={faShoppingCart} className="mr-1" />
-              {cartItemsCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {cartItemsCount}
-                </Badge>
-              )}
-            </Link>
+          <div className="flex items-center space-x-4">
+            <NavIconLink href="/pages/cart" icon={faShoppingCart} badgeCount={cartItemsCount} />
             {user && (
-              <DropdownMenu.Root open={showNotifications} onOpenChange={setShowNotifications}>
-                <DropdownMenu.Trigger asChild>
-                  <Button variant="ghost" size="icon" className="relative text-white">
-                    <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                      <Badge variant="destructive" className="absolute -top-2 -right-2">
-                        {unreadCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" className="w-80 bg-white rounded-md shadow-lg">
-                  <div className="flex items-center justify-between px-4 py-2">
-                    <h2 className="text-sm font-semibold">Thông báo</h2>
-                    {notifications.length > 0 && (
-                      <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-                        <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
-                        Đánh dấu tất cả đã đọc
-                      </Button>
-                    )}
-                  </div>
-                  <Separator />
-                  <ScrollArea className="h-[300px]">
-                    {notifications.length > 0 ? (
-                      notifications.map((notification) => (
-                        <DropdownMenu.Item key={notification.id} className="p-0">
-                          <div
-                            className="flex items-start w-full p-4 space-x-3 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
-                            onClick={() => handleNotificationClick(notification)}
-                          >
-                            <div className={`w-2 h-2 mt-2 rounded-full ${notification.read ? 'bg-gray-300' : 'bg-blue-500'}`} />
-                            <div className="flex-1 space-y-1">
-                              <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(notification.createdAt).toLocaleString('vi-VN')}
-                              </p>
-                            </div>
-                          </div>
-                        </DropdownMenu.Item>
-                      ))
-                    ) : (
-                      <div className="p-4 text-center text-sm text-gray-500">
-                        Không có thông báo mới
-                      </div>
-                    )}
-                  </ScrollArea>
-                  {notifications.length > 0 && (
-                    <div className="p-2 border-t">
-                      <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
-                        <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
-                        Xóa thông báo đã đọc
-                      </Button>
-                    </div>
-                  )}
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
+              <NotificationsDropdown
+                notifications={notifications}
+                unreadCount={unreadCount}
+                markAllAsRead={markAllAsRead}
+                deleteAllReadNotifications={deleteAllReadNotifications}
+                handleNotificationClick={handleNotificationClick}
+              />
             )}
             {user ? (
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button className="flex items-center text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
-                    <Image
-                      src={user.imageUrl || "https://placehold.jp/30x30.png"}
-                      alt={user.name || "User"}
-                      width={32}
-                      height={32}
-                      className="rounded-full mr-2"
-                    />
-                    <span>{user.name || user.email}</span>
-                    <ChevronDownIcon className="ml-2 h-5 w-5" />
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content className="mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-                  <DropdownMenu.Item>
-                    <Link href="/pages/account/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Quản lý tài khoản
-                    </Link>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item>
-                    <Link href="/pages/account/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Lịch sử đơn hàng
-                    </Link>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item>
-                    <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Đăng xuất
-                    </button>
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
+              <UserDropdown user={user} handleLogout={handleLogout} />
             ) : (
               <NavLink href="/pages/login">Đăng nhập</NavLink>
             )}
@@ -293,148 +204,51 @@ const Navbar = () => {
           <Link href="/" className="flex-shrink-0">
             <span className="text-white text-2xl font-bold">JNX</span>
           </Link>
-          <div className="flex items-center">
-            <Link href="/pages/cart" className="text-white mr-3 relative">
-              <div className="relative inline-block">
-                <FontAwesomeIcon icon={faShoppingCart} className="text-2xl" />
-                {cartItemsCount > 0 && (
-                  <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs px-1 min-w-[1.25rem] h-5 flex items-center justify-center">
-                    {cartItemsCount}
-                  </Badge>
-                )}
-              </div>
-            </Link>
+          <div className="flex items-center space-x-3">
+            <NavIconLink href="/pages/cart" icon={faShoppingCart} badgeCount={cartItemsCount} />
             {user && (
-              <Button variant="ghost" size="icon" className="relative text-white mr-3" onClick={() => setShowNotifications(!showNotifications)}>
-                <FontAwesomeIcon icon={faBell} className="text-2xl" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative text-white"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs px-1 min-w-[1.25rem] h-5 flex items-center justify-center">
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5">
                     {unreadCount}
                   </Badge>
                 )}
               </Button>
             )}
-            <button
-              onClick={toggleMobileMenu}
-              className="text-white focus:outline-none ml-2"
-            >
+            <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-white">
               {isMobileMenuOpen ? (
                 <XMarkIcon className="h-6 w-6" />
               ) : (
                 <Bars3Icon className="h-6 w-6" />
               )}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Mobile Menu Slide */}
-        <div
-          className={`fixed inset-0 bg-blue-900 z-40 transform transition-transform duration-300 ease-in-out 
-            ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        >
-          {/* Close menu button */}
-          <button
-            onClick={toggleMobileMenu}
-            className="absolute top-4 right-4 text-white p-2"
-          >
-            <FontAwesomeIcon icon={faTimes} className="text-2xl" />
-          </button>
-
-          <div className="p-4 pt-16">
-            {user ? (
-              <div className="flex items-center mb-6 px-4">
-                <Image
-                  src={user.imageUrl || "https://placehold.jp/30x30.png"}
-                  alt={user.name || "User"}
-                  width={48}
-                  height={48}
-                  className="rounded-full mr-4"
-                />
-                <div>
-                  <p className="text-white font-semibold">{user.name || user.email}</p>
-                </div>
-              </div>
-            ) : null}
-
-            <nav className="space-y-2">
-              <MobileNavItem href="/" icon={faHome} onClick={toggleMobileMenu}>Trang chủ</MobileNavItem>
-              <MobileNavItem href="/pages/products" icon={faBox} onClick={toggleMobileMenu}>Sản phẩm</MobileNavItem>
-              <MobileNavItem href="/pages/about" icon={faInfoCircle} onClick={toggleMobileMenu}>Giới thiệu</MobileNavItem>
-
-              {user ? (
-                <>
-                  <MobileNavItem href="/pages/account/profile" icon={faCheck} onClick={toggleMobileMenu}>Quản lý tài khoản</MobileNavItem>
-                  <MobileNavItem href="/pages/account/orders" icon={faShoppingCart} onClick={toggleMobileMenu}>Lịch sử đơn hàng</MobileNavItem>
-                  <button
-                    onClick={() => {
-                      toggleMobileMenu();
-                      handleLogout();
-                    }}
-                    className="w-full text-left px-4 py-3 text-white hover:bg-blue-700 flex items-center"
-                  >
-                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-3" />
-                    Đăng xuất
-                  </button>
-                </>
-              ) : (
-                <MobileNavItem href="/pages/login" icon={faCheck} onClick={toggleMobileMenu}>Đăng nhập</MobileNavItem>
-              )}
-            </nav>
-          </div>
-        </div>
+        <MobileMenu
+          isOpen={isMobileMenuOpen}
+          onClose={toggleMobileMenu}
+          user={user}
+          handleLogout={handleLogout}
+        />
       </div>
 
       {/* Notifications Modal for Mobile */}
-      {showNotifications && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-          <div className="bg-white w-full h-full flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-semibold">Thông báo</h2>
-              <button onClick={() => setShowNotifications(false)} className="text-gray-500">
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-            <ScrollArea className="flex-grow">
-              {notifications.length > 0 ? (
-                <>
-                  <div className="flex justify-between items-center p-4 border-b">
-                    <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-                      <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
-                      Đánh dấu tất cả đã đọc
-                    </Button>
-                  </div>
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className="p-4 border-b hover:bg-gray-100"
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(notification.createdAt).toLocaleString('vi-VN')}
-                      </p>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div className="p-4 text-center text-sm text-gray-500">
-                  Không có thông báo mới
-                </div>
-              )}
-            </ScrollArea>
-            {notifications.length > 0 && (
-              <div className="p-4 border-t">
-                <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
-                  <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
-                  Xóa thông báo đã đọc
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <MobileNotifications
+        show={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+        markAllAsRead={markAllAsRead}
+        deleteAllReadNotifications={deleteAllReadNotifications}
+        handleNotificationClick={handleNotificationClick}
+      />
     </nav>
   );
 };
@@ -443,6 +257,182 @@ const NavLink = ({ href, children }: { href: string; children: React.ReactNode }
   <Link href={href} className="text-white hover:bg-blue-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
     {children}
   </Link>
+);
+
+const NavIconLink = ({ href, icon, badgeCount }: { href: string; icon: IconDefinition; badgeCount: number }) => (
+  <Link href={href} className="text-white hover:bg-blue-700 p-2 rounded-md relative">
+    <FontAwesomeIcon icon={icon} className="h-5 w-5" />
+    {badgeCount > 0 && (
+      <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5">
+        {badgeCount}
+      </Badge>
+    )}
+  </Link>
+);
+
+const NotificationsDropdown = ({
+  notifications,
+  unreadCount,
+  markAllAsRead,
+  deleteAllReadNotifications,
+  handleNotificationClick
+}: {
+  notifications: Notification[];
+  unreadCount: number;
+  markAllAsRead: () => void;
+  deleteAllReadNotifications: () => void;
+  handleNotificationClick: (notification: Notification) => void;
+}) => (
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger asChild>
+      <Button variant="ghost" size="icon" className="relative text-white">
+        <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5">
+            {unreadCount}
+          </Badge>
+        )}
+      </Button>
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content align="end" className="w-80 bg-white rounded-md shadow-lg">
+      <div className="flex items-center justify-between px-4 py-2">
+        <h2 className="text-sm font-semibold">Thông báo</h2>
+        {notifications.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+            <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
+            Đánh dấu tất cả đã đọc
+          </Button>
+        )}
+      </div>
+      <Separator />
+      <ScrollArea className="h-[300px]">
+        {notifications.length > 0 ? (
+          notifications.map((notification) => (
+            <DropdownMenu.Item key={notification.id} className="p-0">
+              <div
+                className="flex items-start w-full p-4 space-x-3 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <div className={`w-2 h-2 mt-2 rounded-full ${notification.read ? 'bg-gray-300' : 'bg-blue-500'}`} />
+                <div className="flex-1 space-y-1">
+                  <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                    {notification.message}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(notification.createdAt).toLocaleString('vi-VN')}
+                  </p>
+                </div>
+              </div>
+            </DropdownMenu.Item>
+          ))
+        ) : (
+          <div className="p-4 text-center text-sm text-gray-500">
+            Không có thông báo mới
+          </div>
+        )}
+      </ScrollArea>
+      {notifications.length > 0 && (
+        <div className="p-2 border-t">
+          <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
+            <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
+            Xóa thông báo đã đọc
+          </Button>
+        </div>
+      )}
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
+const UserDropdown = ({ user, handleLogout }: { user: any; handleLogout: () => void }) => (
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger asChild>
+      <button className="flex items-center text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+        <Image
+          src={user.imageUrl || "https://placehold.jp/30x30.png"}
+          alt={user.name || "User"}
+          width={32}
+          height={32}
+          className="rounded-full mr-2"
+        />
+        <span>{user.name || user.email}</span>
+      </button>
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content className="mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+      <DropdownMenu.Item>
+        <Link href="/pages/account/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          Quản lý tài khoản
+        </Link>
+      </DropdownMenu.Item>
+      <DropdownMenu.Item>
+        <Link href="/pages/account/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          Lịch sử đơn hàng
+        </Link>
+      </DropdownMenu.Item>
+      <DropdownMenu.Item>
+        <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          Đăng xuất
+        </button>
+      </DropdownMenu.Item>
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line
+const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; onClose: () => void; user: any; handleLogout: () => void }) => (
+  <div
+    className={`fixed inset-0 bg-blue-900 z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}
+  >
+    <button
+      onClick={onClose}
+      className="absolute top-4 right-4 text-white p-2"
+    >
+      <FontAwesomeIcon icon={faTimes} className="text-2xl" />
+    </button>
+
+    <div className="p-4 pt-16">
+      {user ? (
+        <div className="flex items-center mb-6 px-4">
+          <Image
+            src={user.imageUrl || "https://placehold.jp/30x30.png"}
+            alt={user.name || "User"}
+            width={48}
+            height={48}
+            className="rounded-full mr-4"
+          />
+          <div>
+            <p className="text-white font-semibold">{user.name || user.email}</p>
+          </div>
+        </div>
+      ) : null}
+
+      <nav className="space-y-2">
+        <MobileNavItem href="/" icon={faHome} onClick={onClose}>Trang chủ</MobileNavItem>
+        <MobileNavItem href="/pages/products" icon={faBox} onClick={onClose}>Sản phẩm</MobileNavItem>
+        <MobileNavItem href="/pages/about" icon={faInfoCircle} onClick={onClose}>Giới thiệu</MobileNavItem>
+
+        {user ? (
+          <>
+            <MobileNavItem href="/pages/account/profile" icon={faUser} onClick={onClose}>Quản lý tài khoản</MobileNavItem>
+            <MobileNavItem href="/pages/account/orders" icon={faClockRotateLeft} onClick={onClose}>Lịch sử đơn hàng</MobileNavItem>
+            <button
+              onClick={() => {
+                onClose();
+                handleLogout();
+              }}
+              className="w-full text-left px-4 py-3 text-white hover:bg-blue-700 flex items-center"
+            >
+              <FontAwesomeIcon icon={faSignOutAlt} className="mr-3" />
+              Đăng xuất
+            </button>
+          </>
+        ) : (
+          <MobileNavItem href="/pages/login" icon={faCheck} onClick={onClose}>Đăng nhập</MobileNavItem>
+        )}
+      </nav>
+    </div>
+  </div>
 );
 
 const MobileNavItem = ({
@@ -461,9 +451,74 @@ const MobileNavItem = ({
     onClick={onClick}
     className="block px-4 py-3 text-white hover:bg-blue-700 flex items-center"
   >
-    <FontAwesomeIcon icon={icon} className="mr-3" />
+    <FontAwesomeIcon icon={icon} className="mr-3 w-5" />
     {children}
   </Link>
+);
+
+const MobileNotifications = ({
+  show,
+  onClose,
+  notifications,
+  markAllAsRead,
+  deleteAllReadNotifications,
+  handleNotificationClick
+}: {
+  show: boolean;
+  onClose: () => void;
+  notifications: Notification[];
+  markAllAsRead: () => void;
+  deleteAllReadNotifications: () => void;
+  handleNotificationClick: (notification: Notification) => void;
+}) => (
+  <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden ${show ? 'block' : 'hidden'}`}>
+    <div className="bg-white w-full h-full flex flex-col">
+      <div className="flex justify-between items-center p-4 border-b">
+        <h2 className="text-lg font-semibold">Thông báo</h2>
+        <button onClick={onClose} className="text-gray-500">
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+      </div>
+      <ScrollArea className="flex-grow">
+        {notifications.length > 0 ? (
+          <>
+            <div className="flex justify-between items-center p-4 border-b">
+              <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
+                Đánh dấu tất cả đã đọc
+              </Button>
+            </div>
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className="p-4 border-b hover:bg-gray-100"
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                  {notification.message}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(notification.createdAt).toLocaleString('vi-VN')}
+                </p>
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="p-4 text-center text-sm text-gray-500">
+            Không có thông báo mới
+          </div>
+        )}
+      </ScrollArea>
+      {notifications.length > 0 && (
+        <div className="p-4 border-t">
+          <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
+            <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
+            Xóa thông báo đã đọc
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
 );
 
 export default Navbar;
