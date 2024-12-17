@@ -1,12 +1,7 @@
 'use client'
 
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-
-const SearchParamsWrapper = () => {
-  const searchParams = useSearchParams();
-  return null;
-};
 
 const LoadingIndicator = () => {
     const pathname = usePathname();
@@ -43,10 +38,10 @@ const LoadingIndicator = () => {
 const LoadingIndicatorWrapper = () => {
     return (
         <Suspense fallback={null}>
-            <SearchParamsWrapper />
             <LoadingIndicator />
         </Suspense>
     );
 };
 
 export default LoadingIndicatorWrapper;
+

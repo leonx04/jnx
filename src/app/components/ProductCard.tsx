@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { get, push, ref, set } from "firebase/database";
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 interface Product {
@@ -95,7 +95,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     setTimeout(() => setIsAdding(false), 500);
   };
 
-  const calculateAverageRating = async () => {
+  const calculateAverageRating = useCallback(async () => {
     const reviewsRef = ref(database, `reviews/${product.id}`);
     const snapshot = await get(reviewsRef);
     const reviews = snapshot.val() as Record<string, Review> | null;
@@ -110,11 +110,11 @@ const ProductCard = ({ product }: { product: Product }) => {
       setAverageRating(null);
       setReviewCount(0);
     }
-  };
+  }, [product.id]);
 
   useEffect(() => {
     calculateAverageRating();
-  }, [product.id, calculateAverageRating]);
+  }, [calculateAverageRating]);
 
   const discountPercentage = calculateDiscountPercentage();
 
