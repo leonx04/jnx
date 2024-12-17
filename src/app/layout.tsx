@@ -39,7 +39,7 @@ export default function RootLayout({
             position="top-right" 
             toastOptions={{
               className: 'toast-below-navbar',
-              duration: 5000,
+              duration: 2000,
               style: {
                 background: '#333',
                 color: '#fff',

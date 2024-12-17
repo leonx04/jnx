@@ -1,11 +1,15 @@
 'use client'
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+
+const SearchParamsWrapper = () => {
+  const searchParams = useSearchParams();
+  return null;
+};
 
 const LoadingIndicator = () => {
     const pathname = usePathname();
-    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -25,7 +29,7 @@ const LoadingIndicator = () => {
 
     useEffect(() => {
         setIsLoading(false);
-    }, [pathname, searchParams]);
+    }, [pathname]);
 
     if (!isLoading) return null;
 
@@ -36,5 +40,13 @@ const LoadingIndicator = () => {
     );
 };
 
-export default LoadingIndicator;
+const LoadingIndicatorWrapper = () => {
+    return (
+        <Suspense fallback={null}>
+            <SearchParamsWrapper />
+            <LoadingIndicator />
+        </Suspense>
+    );
+};
 
+export default LoadingIndicatorWrapper;

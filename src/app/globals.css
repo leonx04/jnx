@@ -126,6 +126,6 @@
 
 /* Thêm style mới cho toast */
 .toast-below-navbar {
-  margin-top: 4rem; /* Điều chỉnh giá trị này để phù hợp với chiều cao của navbar */
+  margin-top: 1.7rem; /* Điều chỉnh giá trị này để phù hợp với chiều cao của navbar */
 }
 

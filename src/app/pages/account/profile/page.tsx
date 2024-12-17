@@ -291,7 +291,7 @@ export default function AccountManagement() {
                           </p>
                           <p className="text-sm">
                             Trạng thái: <span className={`font-semibold ${order.status === 'delivered' ? 'text-green-600' :
-                                order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+                              order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
                               }`}>
                               {getStatusLabel(order.status)}
                             </span>
@@ -322,4 +322,3 @@ export default function AccountManagement() {
     </div>
   )
 }
-
