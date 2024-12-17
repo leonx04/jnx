@@ -4,6 +4,8 @@ import React from 'react'
 interface OrderHistory {
   status: string
   timestamp: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line
   updatedBy: string
   reason?: string
 }
@@ -81,7 +83,6 @@ const OrderStatusHistory: React.FC<OrderStatusHistoryProps> = ({ orderHistory })
             <div className="bg-white p-4 rounded-lg shadow-md">
               <h3 className="font-semibold text-lg mb-1">{getStatusLabel(history.status)}</h3>
               <p className="text-sm text-gray-600 mb-1">{new Date(history.timestamp).toLocaleString("vi-VN")}</p>
-              <p className="text-sm text-gray-600 mb-1">Cập nhật bởi: {history.updatedBy}</p>
               {history.reason && <p className="text-sm text-gray-600">Lý do: {history.reason}</p>}
             </div>
           </div>
