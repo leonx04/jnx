@@ -220,7 +220,7 @@ export default function OrderDetail() {
       orderId: order?.id,
       message,
       createdAt: serverTimestamp(),
-      read: false
+      seen: false
     });
   };
 

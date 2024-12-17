@@ -1,5 +1,6 @@
 "use client"
 
+import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +14,6 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
-import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 
 interface CartItem {
   id: string
@@ -288,7 +288,7 @@ export default function Checkout() {
       orderId,
       message,
       createdAt: new Date().toISOString(),
-      read: false,
+      seen: false,
     }
     await push(notificationsRef, newNotification)
   }

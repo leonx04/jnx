@@ -27,7 +27,7 @@ interface Notification {
   orderId: string;
   message: string;
   createdAt: string;
-  read: boolean;
+  seen: boolean;
   userId: string;
 }
 
@@ -37,7 +37,7 @@ const Navbar = () => {
   const [cartItemsCount, setCartItemsCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unseenCount, setUnseenCount] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !user.id) return;
@@ -56,10 +56,10 @@ const Navbar = () => {
           .filter(notification => notification.userId === user.id)
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setNotifications(notificationList);
-        setUnreadCount(notificationList.filter(n => !n.read).length);
+        setUnseenCount(notificationList.filter(n => !n.seen).length);
       } else {
         setNotifications([]);
-        setUnreadCount(0);
+        setUnseenCount(0);
       }
     });
   }, [user]);
@@ -100,16 +100,16 @@ const Navbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsseen = async (notificationId: string) => {
     try {
       const notificationRef = ref(database, `notifications/${notificationId}`);
-      await update(notificationRef, { read: true });
+      await update(notificationRef, { seen: true });
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error marking notification as seen:', error);
     }
   };
 
-  const markAllAsRead = async () => {
+  const markAllAsseen = async () => {
     try {
       const notificationsRef = ref(database, 'notifications');
       const snapshot = await get(notificationsRef);
@@ -119,20 +119,20 @@ const Navbar = () => {
 
       snapshot.forEach((childSnapshot) => {
         const notification = childSnapshot.val();
-        if (notification.userId === user?.id && !notification.read) {
-          updates[`${childSnapshot.key}/read`] = true;
+        if (notification.userId === user?.id && !notification.seen) {
+          updates[`${childSnapshot.key}/seen`] = true;
         }
       });
 
       await update(notificationsRef, updates);
       toast.success('Tất cả thông báo đã được đánh dấu là đã đọc');
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error('Error marking all notifications as seen:', error);
       toast.error('Có lỗi xảy ra khi cập nhật thông báo');
     }
   };
 
-  const deleteAllReadNotifications = async () => {
+  const deleteAllseenNotifications = async () => {
     try {
       const notificationsRef = ref(database, 'notifications');
       const snapshot = await get(notificationsRef);
@@ -140,7 +140,7 @@ const Navbar = () => {
 
       snapshot.forEach((childSnapshot) => {
         const notification = childSnapshot.val();
-        if (notification.userId === user?.id && notification.read) {
+        if (notification.userId === user?.id && notification.seen) {
           updates[childSnapshot.key] = null;
         }
       });
@@ -149,14 +149,14 @@ const Navbar = () => {
       toast.success('Tất cả thông báo đã đọc đã được xóa');
       fetchNotifications();
     } catch (error) {
-      console.error('Error deleting read notifications:', error);
+      console.error('Error deleting seen notifications:', error);
       toast.error('Có lỗi xảy ra khi xóa thông báo đã đọc');
     }
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.read) {
-      await markAsRead(notification.id);
+    if (!notification.seen) {
+      await markAsseen(notification.id);
     }
     window.location.href = `/pages/account/orders/${notification.orderId}`;
   };
@@ -183,9 +183,9 @@ const Navbar = () => {
             {user && (
               <NotificationsDropdown
                 notifications={notifications}
-                unreadCount={unreadCount}
-                markAllAsRead={markAllAsRead}
-                deleteAllReadNotifications={deleteAllReadNotifications}
+                unseenCount={unseenCount}
+                markAllAsseen={markAllAsseen}
+                deleteAllseenNotifications={deleteAllseenNotifications}
                 handleNotificationClick={handleNotificationClick}
               />
             )}
@@ -214,9 +214,9 @@ const Navbar = () => {
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
-                {unreadCount > 0 && (
+                {unseenCount > 0 && (
                   <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5">
-                    {unreadCount}
+                    {unseenCount}
                   </Badge>
                 )}
               </Button>
@@ -245,8 +245,8 @@ const Navbar = () => {
         show={showNotifications}
         onClose={() => setShowNotifications(false)}
         notifications={notifications}
-        markAllAsRead={markAllAsRead}
-        deleteAllReadNotifications={deleteAllReadNotifications}
+        markAllAsseen={markAllAsseen}
+        deleteAllseenNotifications={deleteAllseenNotifications}
         handleNotificationClick={handleNotificationClick}
       />
     </nav>
@@ -272,24 +272,24 @@ const NavIconLink = ({ href, icon, badgeCount }: { href: string; icon: IconDefin
 
 const NotificationsDropdown = ({
   notifications,
-  unreadCount,
-  markAllAsRead,
-  deleteAllReadNotifications,
+  unseenCount,
+  markAllAsseen,
+  deleteAllseenNotifications,
   handleNotificationClick
 }: {
   notifications: Notification[];
-  unreadCount: number;
-  markAllAsRead: () => void;
-  deleteAllReadNotifications: () => void;
+  unseenCount: number;
+  markAllAsseen: () => void;
+  deleteAllseenNotifications: () => void;
   handleNotificationClick: (notification: Notification) => void;
 }) => (
   <DropdownMenu.Root>
     <DropdownMenu.Trigger asChild>
       <Button variant="ghost" size="icon" className="relative text-white">
         <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
-        {unreadCount > 0 && (
+        {unseenCount > 0 && (
           <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5">
-            {unreadCount}
+            {unseenCount}
           </Badge>
         )}
       </Button>
@@ -298,7 +298,7 @@ const NotificationsDropdown = ({
       <div className="flex items-center justify-between px-4 py-2">
         <h2 className="text-sm font-semibold">Thông báo</h2>
         {notifications.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+          <Button variant="ghost" size="sm" onClick={markAllAsseen}>
             <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
             Đánh dấu tất cả đã đọc
           </Button>
@@ -313,9 +313,9 @@ const NotificationsDropdown = ({
                 className="flex items-start w-full p-4 space-x-3 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                 onClick={() => handleNotificationClick(notification)}
               >
-                <div className={`w-2 h-2 mt-2 rounded-full ${notification.read ? 'bg-gray-300' : 'bg-blue-500'}`} />
+                <div className={`w-2 h-2 mt-2 rounded-full ${notification.seen ? 'bg-gray-300' : 'bg-blue-500'}`} />
                 <div className="flex-1 space-y-1">
-                  <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                  <p className={`text-sm ${notification.seen ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
                     {notification.message}
                   </p>
                   <p className="text-xs text-gray-500">
@@ -333,7 +333,7 @@ const NotificationsDropdown = ({
       </ScrollArea>
       {notifications.length > 0 && (
         <div className="p-2 border-t">
-          <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
+          <Button variant="ghost" size="sm" onClick={deleteAllseenNotifications} className="w-full justify-center">
             <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
             Xóa thông báo đã đọc
           </Button>
@@ -460,15 +460,15 @@ const MobileNotifications = ({
   show,
   onClose,
   notifications,
-  markAllAsRead,
-  deleteAllReadNotifications,
+  markAllAsseen,
+  deleteAllseenNotifications,
   handleNotificationClick
 }: {
   show: boolean;
   onClose: () => void;
   notifications: Notification[];
-  markAllAsRead: () => void;
-  deleteAllReadNotifications: () => void;
+  markAllAsseen: () => void;
+  deleteAllseenNotifications: () => void;
   handleNotificationClick: (notification: Notification) => void;
 }) => (
   <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden ${show ? 'block' : 'hidden'}`}>
@@ -483,7 +483,7 @@ const MobileNotifications = ({
         {notifications.length > 0 ? (
           <>
             <div className="flex justify-between items-center p-4 border-b">
-              <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+              <Button variant="ghost" size="sm" onClick={markAllAsseen}>
                 <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
                 Đánh dấu tất cả đã đọc
               </Button>
@@ -494,7 +494,7 @@ const MobileNotifications = ({
                 className="p-4 border-b hover:bg-gray-100"
                 onClick={() => handleNotificationClick(notification)}
               >
-                <p className={`text-sm ${notification.read ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
+                <p className={`text-sm ${notification.seen ? 'text-gray-500' : 'font-medium text-gray-900'}`}>
                   {notification.message}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -511,7 +511,7 @@ const MobileNotifications = ({
       </ScrollArea>
       {notifications.length > 0 && (
         <div className="p-4 border-t">
-          <Button variant="ghost" size="sm" onClick={deleteAllReadNotifications} className="w-full justify-center">
+          <Button variant="ghost" size="sm" onClick={deleteAllseenNotifications} className="w-full justify-center">
             <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
             Xóa thông báo đã đọc
           </Button>
