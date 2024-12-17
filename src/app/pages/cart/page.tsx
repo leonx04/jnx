@@ -201,7 +201,7 @@ export default function Cart() {
             </div>
             <button
               onClick={proceedToCheckout}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded"
+              className="bg-black text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-200"
             >
               Tiến hành thanh toán
             </button>

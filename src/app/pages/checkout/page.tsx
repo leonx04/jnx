@@ -376,7 +376,7 @@ export default function Checkout() {
         showToast("Thanh toán qua VNPAY thành công!", 'success')
       }
 
-      showToast("Đặt hàng thànhcông!", 'success')
+      showToast("Đặt hàng thành công!", 'success')
       localStorage.removeItem("selectedProducts")
       setCartItems([]) // Clear the local cart state
 
@@ -491,10 +491,10 @@ export default function Checkout() {
   }, [savedAddresses, provinces, districts, wards, fetchDistricts, fetchWards]);
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 flex flex-col min-h-screen">
       <h1 className="text-3xl font-bold mb-4">Thanh Toán</h1>
-      <div className="grid lg:grid-cols-2 gap-8">
-        <div>
+      <div className="grid lg:grid-cols-2 gap-8 flex-grow">
+        <div className="overflow-y-auto">
           <h2 className="text-xl font-semibold mb-4">Thông Tin Giao Hàng</h2>
           <form onSubmit={handleSubmit}>
             {savedAddresses.length > 0 && (
@@ -620,19 +620,9 @@ export default function Checkout() {
                 ))}
               </RadioGroup>
             </div>
-            <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang xử lý...
-                </>
-              ) : (
-                "Đặt Hàng"
-              )}
-            </Button>
           </form>
         </div>
-        <div>
+        <div className="overflow-y-auto">
           <h2 className="text-xl font-semibold mb-4">Tóm Tắt Đơn Hàng</h2>
           <div className="space-y-4">
             {cartItems.map((item) => (
@@ -652,6 +642,18 @@ export default function Checkout() {
             <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{calculateTotal().toLocaleString("vi-VN")} ₫</span></p>
           </div>
         </div>
+      </div>
+      <div className="mt-4 sticky bottom-0 bg-white p-4 shadow-md">
+        <Button type="submit" className="w-full" disabled={isSubmitting} onClick={handleSubmit}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Đang xử lý...
+            </>
+          ) : (
+            "Đặt Hàng"
+          )}
+        </Button>
       </div>
     </div>
   )
