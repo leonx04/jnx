@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { database } from '../../firebaseConfig';
 import ProductCard from './ProductCard';
+import ProductCardSkeleton from './ProductCardSkeleton';
 
 interface Product {
   id: string;
@@ -19,10 +20,12 @@ interface Product {
 
 export default function BestSellers() {
   const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
+      setIsLoading(true);
       const data = snapshot.val();
       if (data) {
         const productsArray = Object.entries(data)
@@ -34,6 +37,7 @@ export default function BestSellers() {
           .sort((a, b) => a.bestSellerRank - b.bestSellerRank);
         setBestSellers(productsArray);
       }
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -53,9 +57,11 @@ export default function BestSellers() {
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {bestSellers.slice(0, 4).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          {isLoading
+            ? Array(4).fill(0).map((_, index) => <ProductCardSkeleton key={index} />)
+            : bestSellers.slice(0, 4).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
         </div>
       </div>
     </section>
