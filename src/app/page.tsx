@@ -10,6 +10,7 @@ import BestSellers from './components/BestSellers';
 import Carousel from './components/Carousel';
 import CustomerReviews from './components/CustomerReviews';
 import ProductCard from './components/ProductCard';
+import ProductCardSkeleton from './components/ProductCardSkeleton';
 import TennisTips from './components/TennisTips';
 
 interface Product {
@@ -31,10 +32,12 @@ export default function Home() {
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [mostDiscountedProducts, setMostDiscountedProducts] = useState<Product[]>([]);
   const [cheapestProducts, setCheapestProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
+      setIsLoading(true);
       const data = snapshot.val();
       if (data) {
         const productsArray = Object.entries(data).map(([id, product]) => ({
@@ -51,6 +54,7 @@ export default function Home() {
         );
         setCheapestProducts(productsArray.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price)).slice(0, 4));
       }
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -89,9 +93,11 @@ export default function Home() {
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          {isLoading
+            ? Array(4).fill(0).map((_, index) => <ProductCardSkeleton key={index} />)
+            : products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
         </div>
       </div>
     </section>
