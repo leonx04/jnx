@@ -1,21 +1,16 @@
 'use client';
 
-import {
-  faArrowRight,
-  faCalendarPlus,
-  faDollarSign,
-  faHeadset,
-  faMoneyBillWave,
-  faShippingFast,
-  faTag,
-} from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faCalendarPlus, faDollarSign, faHeadset, faMoneyBillWave, faShippingFast, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { onValue, ref } from 'firebase/database';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { database } from '../firebaseConfig';
+import BestSellers from './components/BestSellers';
 import Carousel from './components/Carousel';
+import CustomerReviews from './components/CustomerReviews';
 import ProductCard from './components/ProductCard';
+import TennisTips from './components/TennisTips';
 
 interface Product {
   id: string;
@@ -33,9 +28,6 @@ interface Product {
 }
 
 export default function Home() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // eslint-disable-next-line
-  const [products, setProducts] = useState<Product[]>([]);
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [mostDiscountedProducts, setMostDiscountedProducts] = useState<Product[]>([]);
   const [cheapestProducts, setCheapestProducts] = useState<Product[]>([]);
@@ -50,32 +42,14 @@ export default function Home() {
           ...(product as Omit<Product, 'id'>),
         }));
 
-        // Sort and filter newest products (top 4 most recent by yearReleased)
-        const newest = productsArray
-          .sort((a, b) => b.yearReleased - a.yearReleased)
-          .slice(0, 4);
-        setNewestProducts(newest);
-
-        // Filter and sort most discounted products (top 4 with highest discount percentage)
-        const discountedProducts = productsArray
-          .filter((product) => product.salePrice && product.salePrice < product.price)
-          .map((product) => ({
-            ...product,
-            discountPercentage: Math.round(
-              ((product.price - product.salePrice) / product.price) * 100
-            ),
-          }))
-          .sort((a, b) => b.discountPercentage - a.discountPercentage)
-          .slice(0, 4);
-        setMostDiscountedProducts(discountedProducts);
-
-        // Sort and filter cheapest products
-        const cheapest = productsArray
-          .sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price))
-          .slice(0, 4);
-        setCheapestProducts(cheapest);
-
-        setProducts(productsArray);
+        setNewestProducts(productsArray.sort((a, b) => b.yearReleased - a.yearReleased).slice(0, 4));
+        setMostDiscountedProducts(
+          productsArray
+            .filter((product) => product.salePrice && product.salePrice < product.price)
+            .sort((a, b) => (b.price - b.salePrice) / b.price - (a.price - a.salePrice) / a.price)
+            .slice(0, 4)
+        );
+        setCheapestProducts(productsArray.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price)).slice(0, 4));
       }
     });
 
@@ -85,137 +59,125 @@ export default function Home() {
   const slides = [
     {
       image: 'https://i.pinimg.com/originals/a6/49/05/a64905c8084871f7e772e499892a9e3a.gif',
-      title: 'Chào mừng đến JNX Store',
+      title: 'Chào mừng đến JNX Tennis Store',
       description: 'Trải nghiệm mua sắm tennis chuyên nghiệp',
     },
     {
       image: 'https://i.pinimg.com/originals/55/b2/2f/55b22f63bf49e1aca0e3a4dea4da5ad4.gif',
       title: 'Siêu Khuyến Mãi Mùa Hè',
-      description: 'Giảm giá lên đến 50% các sản phẩm được chọn',
+      description: 'Giảm giá lên đến 50% cho các sản phẩm ',
     },
     {
       image: 'https://i.pinimg.com/originals/71/5a/3d/715a3d6dcdd4225528d79f104e2e0785.gif',
       title: 'Miễn Phí Vận Chuyển',
-      description: 'Cho đơn hàng trên 2,000,000 VND',
+      description: 'Cho đơn hàng trên 2,000,000 đ',
     },
   ];
-
-  const ProductSection = ({
-    title,
-    icon,
-    iconColor,
-    products,
-    linkHref,
-  }: {
-    title: string;
-    // eslint-disable-next-line
-    icon: any;
-    iconColor: string;
-    products: Product[];
-    linkHref: string;
-  }) => (
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line
+  const ProductSection = ({ title, icon, iconColor, products, linkHref }: { title: string; icon: any; iconColor: string; products: Product[]; linkHref: string }) => (
     <section className="my-16">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className={`text-3xl font-bold flex items-center ${iconColor}`}>
-          <FontAwesomeIcon icon={icon} className="mr-4" />
-          {title}
-        </h2>
-        <Link href={linkHref} className="text-blue-600 hover:underline flex items-center">
-          Xem tất cả
-          <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
-        </Link>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+      <div className="container-custom">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className={`text-2xl font-bold flex items-center ${iconColor}`}>
+            <FontAwesomeIcon icon={icon} className="mr-4" />
+            {title}
+          </h2>
+          <Link href={linkHref} className="btn-primary">
+            Xem tất cả
+            <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       </div>
     </section>
   );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line
+  const FeatureCard = ({ icon, title, description }: { icon: any; title: string; description: string }) => (
+    <div className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+      <FontAwesomeIcon icon={icon} className="text-4xl text-black mb-4" />
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-white">
       <Carousel slides={slides} />
 
-      {/* Newest Products Section */}
+      <BestSellers />
+
       <ProductSection
         title="Sản phẩm mới nhất"
         icon={faCalendarPlus}
-        iconColor="text-blue-500"
+        iconColor="text-black"
         products={newestProducts}
         linkHref="/pages/products?sort=newest"
       />
 
-      {/* Most Discounted Products Section */}
-      <section className="my-16 bg-gray-50 py-12 px-8 rounded-lg">
-        <ProductSection
-          title="Sản phẩm khuyến mãi nhiều nhất"
-          icon={faTag}
-          iconColor="text-red-500"
-          products={mostDiscountedProducts}
-          linkHref="/pages/products?sort=discount"
-        />
+      <section className="my-16 bg-gray-100 py-12">
+        <div className="container-custom">
+          <ProductSection
+            title="Sản phẩm khuyến mãi nhiều nhất"
+            icon={faTag}
+            iconColor="text-black"
+            products={mostDiscountedProducts}
+            linkHref="/pages/products?sort=discount"
+          />
+        </div>
       </section>
 
-      {/* Cheapest Products Section */}
       <ProductSection
         title="Sản phẩm giá tốt nhất"
         icon={faDollarSign}
-        iconColor="text-green-500"
+        iconColor="text-black"
         products={cheapestProducts}
         linkHref="/pages/products?sort=price-asc"
       />
 
-      {/* Why Choose Us Section */}
-      <section className="my-16 bg-gray-100 py-12 px-8 rounded-lg">
-        <h2 className="text-3xl font-bold mb-8 text-center">Tại sao chọn chúng tôi?</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex items-center">
-            <FontAwesomeIcon icon={faShippingFast} className="text-4xl text-blue-500 mr-4" />
-            <div>
-              <h3 className="text-xl font-semibold">Giao hàng nhanh chóng</h3>
-              <p>Miễn phí giao hàng cho đơn hàng trên 2 triệu đồng</p>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <FontAwesomeIcon icon={faMoneyBillWave} className="text-4xl text-green-500 mr-4" />
-            <div>
-              <h3 className="text-xl font-semibold">Đảm bảo hoàn tiền</h3>
-              <p>30 ngày đổi trả miễn phí</p>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <FontAwesomeIcon icon={faHeadset} className="text-4xl text-red-500 mr-4" />
-            <div>
-              <h3 className="text-xl font-semibold">Hỗ trợ 24/7</h3>
-              <p>Đội ngũ chăm sóc khách hàng luôn sẵn sàng hỗ trợ</p>
-            </div>
+      <section className="my-16 bg-gray-100 py-12">
+        <div className="container-custom">
+          <h2 className="section-title">Tại sao chọn chúng tôi?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <FeatureCard icon={faShippingFast} title="Giao hàng nhanh chóng" description="Miễn phí giao hàng cho đơn hàng trên 2 triệu đồng" />
+            <FeatureCard icon={faMoneyBillWave} title="Đảm bảo hoàn tiền" description="30 ngày đổi trả miễn phí" />
+            <FeatureCard icon={faHeadset} title="Hỗ trợ 24/7" description="Đội ngũ chăm sóc khách hàng luôn sẵn sàng hỗ trợ" />
           </div>
         </div>
       </section>
 
-      {/* Newsletter Registration Section */}
-      <section className="my-16 bg-blue-50 py-12 px-8 rounded-lg">
-        <h2 className="text-3xl font-bold mb-8 text-center">Đăng Ký Nhận Tin</h2>
-        <p className="text-center mb-6 max-w-2xl mx-auto">
-          Đăng ký để nhận thông tin mới nhất về sản phẩm, khuyến mãi độc quyền và các sự kiện
-          tennis
-        </p>
-        <form className="max-w-xl mx-auto flex flex-col md:flex-row gap-4">
-          <input
-            type="email"
-            placeholder="Nhập địa chỉ email của bạn"
-            className="flex-grow p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            Đăng Ký Ngay
-          </button>
-        </form>
+      <CustomerReviews />
+
+      <TennisTips />
+
+      <section className="my-16 bg-black py-12 text-white">
+        <div className="container-custom">
+          <h2 className="section-title text-white">Đăng Ký Nhận Tin</h2>
+          <p className="text-center mb-6 max-w-2xl mx-auto">
+            Đăng ký để nhận thông tin mới nhất về sản phẩm, khuyến mãi độc quyền và các sự kiện tennis
+          </p>
+          <form className="max-w-xl mx-auto flex flex-col md:flex-row gap-4">
+            <input
+              type="email"
+              placeholder="Nhập địa chỉ email của bạn"
+              className="flex-grow p-3 rounded-lg border border-white bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white"
+              required
+            />
+            <button
+              type="submit"
+              className="bg-white text-black font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-200"
+            >
+              Đăng Ký Ngay
+            </button>
+          </form>
+        </div>
       </section>
     </div>
   );
 }
+

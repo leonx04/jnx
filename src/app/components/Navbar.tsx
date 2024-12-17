@@ -89,7 +89,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      logout();
+      await logout();
       window.location.href = '/pages/login';
     } catch (error) {
       console.error("Logout failed:", error);
@@ -100,7 +100,7 @@ const Navbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const markAsseen = async (notificationId: string) => {
+  const markAsSeen = async (notificationId: string) => {
     try {
       const notificationRef = ref(database, `notifications/${notificationId}`);
       await update(notificationRef, { seen: true });
@@ -109,7 +109,7 @@ const Navbar = () => {
     }
   };
 
-  const markAllAsseen = async () => {
+  const markAllAsSeen = async () => {
     try {
       const notificationsRef = ref(database, 'notifications');
       const snapshot = await get(notificationsRef);
@@ -132,7 +132,7 @@ const Navbar = () => {
     }
   };
 
-  const deleteAllseenNotifications = async () => {
+  const deleteAllSeenNotifications = async () => {
     try {
       const notificationsRef = ref(database, 'notifications');
       const snapshot = await get(notificationsRef);
@@ -156,45 +156,41 @@ const Navbar = () => {
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.seen) {
-      await markAsseen(notification.id);
+      await markAsSeen(notification.id);
     }
     window.location.href = `/pages/account/orders/${notification.orderId}`;
   };
 
   return (
-    <nav className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg sticky top-0 z-50">
+    <nav className="bg-black text-white shadow-lg sticky top-0 z-50">
       {/* Desktop Navigation */}
-      <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 hidden md:block">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
-              <span className="text-white text-2xl font-bold">JNX</span>
-            </Link>
-            <div className="ml-10">
-              <div className="flex items-baseline space-x-4">
-                <NavLink href="/">Trang chủ</NavLink>
-                <NavLink href="/pages/products">Sản phẩm</NavLink>
-                <NavLink href="/pages/about">Giới thiệu</NavLink>
-              </div>
-            </div>
+      <div className="container-custom hidden md:flex items-center justify-between h-16">
+        <div className="flex items-center">
+          <Link href="/" className="flex-shrink-0">
+            <span className="text-white text-2xl font-bold">JNX</span>
+          </Link>
+          <div className="ml-10 flex items-baseline space-x-4">
+            <NavLink href="/">Trang chủ</NavLink>
+            <NavLink href="/pages/products">Sản phẩm</NavLink>
+            <NavLink href="/pages/about">Giới thiệu</NavLink>
           </div>
-          <div className="flex items-center space-x-4">
-            <NavIconLink href="/pages/cart" icon={faShoppingCart} badgeCount={cartItemsCount} />
-            {user && (
-              <NotificationsDropdown
-                notifications={notifications}
-                unseenCount={unseenCount}
-                markAllAsseen={markAllAsseen}
-                deleteAllseenNotifications={deleteAllseenNotifications}
-                handleNotificationClick={handleNotificationClick}
-              />
-            )}
-            {user ? (
-              <UserDropdown user={user} handleLogout={handleLogout} />
-            ) : (
-              <NavLink href="/pages/login">Đăng nhập</NavLink>
-            )}
-          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <NavIconLink href="/pages/cart" icon={faShoppingCart} badgeCount={cartItemsCount} />
+          {user && (
+            <NotificationsDropdown
+              notifications={notifications}
+              unseenCount={unseenCount}
+              markAllAsSeen={markAllAsSeen}
+              deleteAllSeenNotifications={deleteAllSeenNotifications}
+              handleNotificationClick={handleNotificationClick}
+            />
+          )}
+          {user ? (
+            <UserDropdown user={user} handleLogout={handleLogout} />
+          ) : (
+            <NavLink href="/pages/login">Đăng nhập</NavLink>
+          )}
         </div>
       </div>
 
@@ -245,8 +241,8 @@ const Navbar = () => {
         show={showNotifications}
         onClose={() => setShowNotifications(false)}
         notifications={notifications}
-        markAllAsseen={markAllAsseen}
-        deleteAllseenNotifications={deleteAllseenNotifications}
+        markAllAsSeen={markAllAsSeen}
+        deleteAllSeenNotifications={deleteAllSeenNotifications}
         handleNotificationClick={handleNotificationClick}
       />
     </nav>
@@ -254,13 +250,13 @@ const Navbar = () => {
 };
 
 const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
-  <Link href={href} className="text-white hover:bg-blue-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
+  <Link href={href} className="text-white hover:bg-gray-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
     {children}
   </Link>
 );
 
 const NavIconLink = ({ href, icon, badgeCount }: { href: string; icon: IconDefinition; badgeCount: number }) => (
-  <Link href={href} className="text-white hover:bg-blue-700 p-2 rounded-md relative">
+  <Link href={href} className="text-white hover:bg-gray-800 p-2 rounded-md relative">
     <FontAwesomeIcon icon={icon} className="h-5 w-5" />
     {badgeCount > 0 && (
       <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 min-w-[1.25rem] h-5">
@@ -273,14 +269,14 @@ const NavIconLink = ({ href, icon, badgeCount }: { href: string; icon: IconDefin
 const NotificationsDropdown = ({
   notifications,
   unseenCount,
-  markAllAsseen,
-  deleteAllseenNotifications,
+  markAllAsSeen,
+  deleteAllSeenNotifications,
   handleNotificationClick
 }: {
   notifications: Notification[];
   unseenCount: number;
-  markAllAsseen: () => void;
-  deleteAllseenNotifications: () => void;
+  markAllAsSeen: () => void;
+  deleteAllSeenNotifications: () => void;
   handleNotificationClick: (notification: Notification) => void;
 }) => (
   <DropdownMenu.Root>
@@ -296,9 +292,9 @@ const NotificationsDropdown = ({
     </DropdownMenu.Trigger>
     <DropdownMenu.Content align="end" className="w-80 bg-white rounded-md shadow-lg">
       <div className="flex items-center justify-between px-4 py-2">
-        <h2 className="text-sm font-semibold">Thông báo</h2>
+        <h2 className="text-sm font-semibold text-gray-900">Thông báo</h2>
         {notifications.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={markAllAsseen}>
+          <Button variant="ghost" size="sm" onClick={markAllAsSeen} className="text-gray-600 hover:text-gray-900">
             <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
             Đánh dấu tất cả đã đọc
           </Button>
@@ -308,9 +304,9 @@ const NotificationsDropdown = ({
       <ScrollArea className="h-[300px]">
         {notifications.length > 0 ? (
           notifications.map((notification) => (
-            <DropdownMenu.Item key={notification.id} className="p-0">
+            <DropdownMenu.Item key={notification.id} className="p-0 focus:bg-gray-100">
               <div
-                className="flex items-start w-full p-4 space-x-3 hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                className="flex items-start w-full p-4 space-x-3 hover:bg-gray-100 cursor-pointer"
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className={`w-2 h-2 mt-2 rounded-full ${notification.seen ? 'bg-gray-300' : 'bg-blue-500'}`} />
@@ -333,7 +329,7 @@ const NotificationsDropdown = ({
       </ScrollArea>
       {notifications.length > 0 && (
         <div className="p-2 border-t">
-          <Button variant="ghost" size="sm" onClick={deleteAllseenNotifications} className="w-full justify-center">
+          <Button variant="ghost" size="sm" onClick={deleteAllSeenNotifications} className="w-full justify-center text-gray-600 hover:text-gray-900">
             <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
             Xóa thông báo đã đọc
           </Button>
@@ -347,7 +343,7 @@ const NotificationsDropdown = ({
 const UserDropdown = ({ user, handleLogout }: { user: any; handleLogout: () => void }) => (
   <DropdownMenu.Root>
     <DropdownMenu.Trigger asChild>
-      <button className="flex items-center text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">
+      <button className="flex items-center text-white hover:bg-gray-800 px-3 py-2 rounded-md text-sm font-medium">
         <Image
           src={user.imageUrl || "https://placehold.jp/30x30.png"}
           alt={user.name || "User"}
@@ -381,7 +377,7 @@ const UserDropdown = ({ user, handleLogout }: { user: any; handleLogout: () => v
 // eslint-disable-next-line
 const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; onClose: () => void; user: any; handleLogout: () => void }) => (
   <div
-    className={`fixed inset-0 bg-blue-900 z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
+    className={`fixed inset-0 bg-black z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
   >
     <button
@@ -421,7 +417,7 @@ const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; 
                 onClose();
                 handleLogout();
               }}
-              className="w-full text-left px-4 py-3 text-white hover:bg-blue-700 flex items-center"
+              className="w-full text-left px-4 py-3 text-white hover:bg-gray-800 flex items-center"
             >
               <FontAwesomeIcon icon={faSignOutAlt} className="mr-3" />
               Đăng xuất
@@ -449,7 +445,7 @@ const MobileNavItem = ({
   <Link
     href={href}
     onClick={onClick}
-    className="block px-4 py-3 text-white hover:bg-blue-700 flex items-center"
+    className="block px-4 py-3 text-white hover:bg-gray-800 flex items-center"
   >
     <FontAwesomeIcon icon={icon} className="mr-3 w-5" />
     {children}
@@ -460,22 +456,22 @@ const MobileNotifications = ({
   show,
   onClose,
   notifications,
-  markAllAsseen,
-  deleteAllseenNotifications,
+  markAllAsSeen,
+  deleteAllSeenNotifications,
   handleNotificationClick
 }: {
   show: boolean;
   onClose: () => void;
   notifications: Notification[];
-  markAllAsseen: () => void;
-  deleteAllseenNotifications: () => void;
+  markAllAsSeen: () => void;
+  deleteAllSeenNotifications: () => void;
   handleNotificationClick: (notification: Notification) => void;
 }) => (
   <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden ${show ? 'block' : 'hidden'}`}>
     <div className="bg-white w-full h-full flex flex-col">
       <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-lg font-semibold">Thông báo</h2>
-        <button onClick={onClose} className="text-gray-500">
+        <h2 className="text-lg font-semibold text-gray-900">Thông báo</h2>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
           <XMarkIcon className="h-6 w-6" />
         </button>
       </div>
@@ -483,7 +479,7 @@ const MobileNotifications = ({
         {notifications.length > 0 ? (
           <>
             <div className="flex justify-between items-center p-4 border-b">
-              <Button variant="ghost" size="sm" onClick={markAllAsseen}>
+              <Button variant="ghost" size="sm" onClick={markAllAsSeen} className="text-gray-600 hover:text-gray-900">
                 <FontAwesomeIcon icon={faCheck} className="mr-2 h-4 w-4" />
                 Đánh dấu tất cả đã đọc
               </Button>
@@ -511,7 +507,7 @@ const MobileNotifications = ({
       </ScrollArea>
       {notifications.length > 0 && (
         <div className="p-4 border-t">
-          <Button variant="ghost" size="sm" onClick={deleteAllseenNotifications} className="w-full justify-center">
+          <Button variant="ghost" size="sm" onClick={deleteAllSeenNotifications} className="w-full justify-center text-gray-600 hover:text-gray-900">
             <FontAwesomeIcon icon={faTrash} className="mr-2 h-4 w-4" />
             Xóa thông báo đã đọc
           </Button>

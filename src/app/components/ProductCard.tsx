@@ -84,7 +84,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     } else {
       push(cartRef, {
         name: product.name,
-        price: product.salePrice || product.price,
+        price: product.salePrice && product.salePrice < product.price ? product.salePrice : product.price,
         quantity: 1,
         imageUrl: product.imageUrl,
         productId: product.id
@@ -144,6 +144,17 @@ const ProductCard = ({ product }: { product: Product }) => {
           
           <p className="text-sm text-gray-600 mb-2 truncate">{product.brand}</p>
           
+          <div className="mt-2 flex justify-between items-center">
+            <span className={`text-base font-bold ${product.salePrice && product.salePrice < product.price ? 'text-gray-500 line-through' : 'text-black'}`}>
+              {product.price.toLocaleString('vi-VN')} ₫
+            </span>
+            {product.salePrice && product.salePrice < product.price && (
+              <span className="text-base font-bold text-red-600">
+                {product.salePrice.toLocaleString('vi-VN')} ₫
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center mb-2 h-6">
             <div className="flex items-center">
               {[0, 1, 2, 3, 4].map((index) => (
@@ -171,35 +182,25 @@ const ProductCard = ({ product }: { product: Product }) => {
           </div>
         </div>
         
-        <div className="mt-2 flex justify-between items-center">
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-blue-600">
-              {(product.salePrice || product.price).toLocaleString('vi-VN')} ₫
-            </span>
-            {product.salePrice < product.price && (
-              <span className="text-xs text-gray-500 line-through">
-                {product.price.toLocaleString('vi-VN')} ₫
-              </span>
-            )}
-          </div>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={addToCart}
-              className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded text-xs transition-all duration-300 flex items-center ${isAdding ? 'scale-110' : ''}`}
-              disabled={isAdding || product.availableStock === 0}
-            >
-              <FontAwesomeIcon icon={faShoppingCart} className={`mr-1 ${isAdding ? 'animate-bounce' : ''}`} />
+        <div className="flex space-x-2 mt-2">
+          <button
+            onClick={addToCart}
+            className={`bg-black hover:bg-gray-800 text-white font-bold py-2 px-3 rounded text-xs transition-all duration-300 flex items-center justify-center min-w-[70px] ${isAdding ? 'scale-110' : ''}`}
+            disabled={isAdding || product.availableStock === 0}
+          >
+            <FontAwesomeIcon icon={faShoppingCart} className={`mr-1 ${isAdding ? 'animate-bounce' : ''}`} />
+            <span className="whitespace-nowrap overflow-hidden text-ellipsis">
               {isAdding ? 'Đã thêm' : product.availableStock === 0 ? 'Hết hàng' : 'Thêm'}
-            </button>
-            <Link
-              href={`/pages/products/${product.id}`}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded text-xs transition-colors duration-300"
-            >
-              Chi tiết
-            </Link>
-          </div>
+            </span>
+          </button>
+          <Link
+            href={`/pages/products/${product.id}`}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded text-xs transition-colors duration-300 flex items-center justify-center min-w-[70px]"
+          >
+            <span className="whitespace-nowrap overflow-hidden text-ellipsis">Chi tiết</span>
+          </Link>
         </div>
+        
         {product.availableStock <= 5 && product.availableStock > 0 && (
           <div className="mt-2 text-xs text-orange-500 flex items-center">
             <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
