@@ -1,12 +1,13 @@
+import { config } from '@fortawesome/fontawesome-svg-core';
+import '@fortawesome/fontawesome-svg-core/styles.css';
 import type { Metadata } from "next";
 import { Inter } from 'next/font/google';
-import "./globals.css";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import { config } from '@fortawesome/fontawesome-svg-core'
-import '@fortawesome/fontawesome-svg-core/styles.css'
-import { AuthProvider } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import Footer from "./components/Footer";
+import LoadingIndicator from "./components/LoadingIndicator";
+import Navbar from "./components/Navbar";
+import { AuthProvider } from './context/AuthContext';
+import "./globals.css";
 import SocialMetaTags from "./meta/SocialMetaTags";
 
 config.autoAddCss = false
@@ -29,12 +30,24 @@ export default function RootLayout({
       <body className={`${inter.className} flex flex-col min-h-screen overflow-x-hidden`}>
         <AuthProvider>
           <Navbar />
-          <main className="flex-grow max-w-full">{children}</main>
+          <main className="flex-grow max-w-full relative">
+            <LoadingIndicator />
+            {children}
+          </main>
           <Footer />
-          <Toaster position="top-right" />
+          <Toaster 
+            position="top-right" 
+            toastOptions={{
+              className: 'toast-below-navbar',
+              duration: 5000,
+              style: {
+                background: '#333',
+                color: '#fff',
+              },
+            }}
+          />
         </AuthProvider>
       </body>
     </html>
   );
 }
-

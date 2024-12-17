@@ -108,3 +108,24 @@
   animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes loading-bar {
+  0% {
+    width: 0;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 2s ease-in-out infinite;
+}
+
+/* Thêm style mới cho toast */
+.toast-below-navbar {
+  margin-top: 4rem; /* Điều chỉnh giá trị này để phù hợp với chiều cao của navbar */
+}
+
