@@ -116,7 +116,7 @@ export default function Checkout() {
     if (!voucher) return 0
     const subtotal = calculateSubtotal()
     if (subtotal < voucher.minOrderValue) return 0
-    let discount = voucher.discountType === 'percentage'
+    const discount = voucher.discountType === 'percentage'
       ? subtotal * (voucher.discountValue / 100)
       : voucher.discountValue
     return Math.min(discount, voucher.maxDiscountAmount)
