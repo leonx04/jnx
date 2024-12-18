@@ -3,13 +3,15 @@
 import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
 import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
-import { Loader2 } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -58,6 +60,23 @@ interface SavedAddress {
   address: string
 }
 
+interface Voucher {
+  id: string
+  voucherCode: string
+  description: string
+  discountType: 'percentage' | 'fixed'
+  discountValue: number
+  startDate: string
+  endDate: string
+  minOrderValue: number
+  maxDiscountAmount: number
+  usageLimit: number
+  usedCount: number
+  status: 'active' | 'inactive' | 'expired' | 'incoming'
+  isExclusive: boolean
+  userId?: string[]
+}
+
 export default function Checkout() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
@@ -77,7 +96,11 @@ export default function Checkout() {
   ])
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const [selectedSavedAddress, setSelectedSavedAddress] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [vouchers, setVouchers] = useState<Voucher[]>([])
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
+  const [voucherCode, setVoucherCode] = useState("")
+  const [voucherSearchQuery, setVoucherSearchQuery] = useState("")
   const { user } = useAuthContext()
   const router = useRouter()
 
@@ -89,10 +112,22 @@ export default function Checkout() {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   }, [cartItems])
 
+  const calculateDiscount = useCallback((voucher: Voucher | null) => {
+    if (!voucher) return 0
+    const subtotal = calculateSubtotal()
+    if (subtotal < voucher.minOrderValue) return 0
+    let discount = voucher.discountType === 'percentage'
+      ? subtotal * (voucher.discountValue / 100)
+      : voucher.discountValue
+    return Math.min(discount, voucher.maxDiscountAmount)
+  }, [calculateSubtotal])
+
   const calculateTotal = useCallback(() => {
     const subtotal = calculateSubtotal()
-    return subtotal > 2000000 ? subtotal : subtotal + shippingFee
-  }, [calculateSubtotal, shippingFee])
+    const discount = calculateDiscount(selectedVoucher)
+    const total = subtotal - discount + (subtotal > 2000000 ? 0 : shippingFee)
+    return Math.max(total, 0) // Ensure total is not negative
+  }, [calculateSubtotal, calculateDiscount, selectedVoucher, shippingFee])
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     toast[type](message, {
@@ -327,10 +362,17 @@ export default function Checkout() {
         },
         subtotal: calculateSubtotal(),
         shippingFee: calculateSubtotal() > 2000000 ? 0 : shippingFee,
+        discount: calculateDiscount(selectedVoucher),
         total: calculateTotal(),
         status: "pending",
         paymentMethod: paymentMethod,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        voucher: selectedVoucher ? {
+          id: selectedVoucher.id,
+          code: selectedVoucher.voucherCode,
+          discountValue: selectedVoucher.discountValue,
+          discountType: selectedVoucher.discountType
+        } : null
       }
 
       const orderValidationErrors: string[] = []
@@ -367,6 +409,16 @@ export default function Checkout() {
       })
 
       await Promise.all(updateStockPromises)
+
+      if (selectedVoucher) {
+        const voucherRef = ref(database, `vouchers/${selectedVoucher.id}`)
+        await runTransaction(voucherRef, (voucher) => {
+          if (voucher) {
+            voucher.usedCount = (voucher.usedCount || 0) + 1
+          }
+          return voucher
+        })
+      }
 
       if (paymentMethod === "vnpay") {
         // Implement VNPAY payment gateway integration here
@@ -490,157 +542,337 @@ export default function Checkout() {
     }
   }, [savedAddresses, provinces, districts, wards, fetchDistricts, fetchWards]);
 
+  const findBestVoucher = useCallback((vouchers: Voucher[]): Voucher | null => {
+    const subtotal = calculateSubtotal();
+    let bestVoucher: Voucher | null = null;
+    let maxDiscount = 0;
+
+    vouchers.forEach(voucher => {
+      if (voucher.status === 'active' && subtotal >= voucher.minOrderValue) {
+        const discount = calculateDiscount(voucher);
+        if (discount > maxDiscount) {
+          maxDiscount = discount;
+          bestVoucher = voucher;
+        }
+      }
+    });
+
+    return bestVoucher;
+  }, [calculateSubtotal, calculateDiscount]);
+
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      if (user?.id) {
+        const vouchersRef = ref(database, 'vouchers')
+        const snapshot = await get(vouchersRef)
+        if (snapshot.exists()) {
+          const vouchersData = snapshot.val()
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
+          const allVouchers = Object.entries(vouchersData).map(([id, voucher]: [string, any]) => ({
+            ...voucher,
+            id
+          }))
+          const userVouchers = allVouchers.filter(voucher =>
+            (voucher.isExclusive && voucher.userId && voucher.userId.includes(user.id)) ||
+            (!voucher.isExclusive && (voucher.status === 'active' || voucher.status === 'incoming'))
+          )
+          setVouchers(userVouchers)
+
+          // Automatically apply the best voucher
+          const bestVoucher: Voucher | null = findBestVoucher(userVouchers);
+          if (bestVoucher) {
+            setSelectedVoucher(bestVoucher);
+            setVoucherCode(bestVoucher.voucherCode);
+            showToast(`Đã tự động áp dụng voucher ${bestVoucher.voucherCode} để tiết kiệm tối đa`, 'success');
+          }
+        }
+      }
+    }
+    fetchVouchers()
+  }, [user, findBestVoucher, showToast])
+
+  const handleVoucherSelect = (voucher: Voucher) => {
+    if (voucher.status === 'inactive' || voucher.status === 'expired') {
+      showToast("Voucher này không thể sử dụng", 'error')
+      return
+    }
+    if (calculateSubtotal() < voucher.minOrderValue) {
+      showToast(`Đơn hàng chưa đạt giá trị tối thiểu ${formatCurrency(voucher.minOrderValue)} để sử dụng voucher này`, 'error')
+      return
+    }
+    setSelectedVoucher(voucher)
+    setVoucherCode(voucher.voucherCode)
+    showToast(`Đã áp dụng voucher ${voucher.voucherCode}`, 'success')
+  }
+
+  const handleVoucherCodeSubmit = () => {
+    const voucher = vouchers.find(v => v.voucherCode === voucherCode)
+    if (voucher) {
+      handleVoucherSelect(voucher)
+    } else {
+      showToast("Mã voucher không hợp lệ", 'error')
+    }
+  }
+
+  const filteredVouchers = useMemo(() => {
+    return vouchers.filter(voucher =>
+      voucher.voucherCode.toLowerCase().includes(voucherSearchQuery.toLowerCase()) ||
+      voucher.description.toLowerCase().includes(voucherSearchQuery.toLowerCase())
+    )
+  }, [vouchers, voucherSearchQuery])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+  }
+
+  const getVoucherStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Đang hoạt động'
+      case 'inactive':
+        return 'Không hoạt động'
+      case 'expired':
+        return 'Đã hết hạn'
+      case 'incoming':
+        return 'Sắp diễn ra'
+      default:
+        return status
+    }
+  }
+
   return (
     <div className="container mx-auto p-4 flex flex-col min-h-screen">
       <h1 className="text-3xl font-bold mb-4">Thanh Toán</h1>
       <div className="grid lg:grid-cols-2 gap-8 flex-grow">
         <div className="overflow-y-auto">
-          <h2 className="text-xl font-semibold mb-4">Thông Tin Giao Hàng</h2>
-          <form onSubmit={handleSubmit}>
-            {savedAddresses.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">Địa chỉ đã lưu</h3>
-                <div className="max-h-60 overflow-y-auto space-y-2">
-                  {savedAddresses.map((address, index) => (
-                    <SavedAddressCard
-                      key={index}
-                      address={address}
-                      isSelected={selectedSavedAddress === index.toString()}
-                      onSelect={() => handleSavedAddressSelect(index)}
-                    />
-                  ))}
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Thông Tin Giao Hàng</h2>
+            <form onSubmit={handleSubmit}>
+              {savedAddresses.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">Địa chỉ đã lưu</h3>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {savedAddresses.map((address, index) => (
+                      <SavedAddressCard
+                        key={index}
+                        address={address}
+                        isSelected={selectedSavedAddress === index.toString()}
+                        onSelect={() => handleSavedAddressSelect(index)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="fullName">Họ và Tên</Label>
+                  <Input
+                    type="text"
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    placeholder="Nhập họ và tên"
+                    aria-label="Họ và Tên"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phoneNumber">Số Điện Thoại</Label>
+                  <Input
+                    type="tel"
+                    id="phoneNumber"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                    placeholder="Nhập số điện thoại"
+                    aria-label="Số Điện Thoại"
+                  />
                 </div>
               </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="fullName">Họ và Tên</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="province">Tỉnh/Thành Phố</Label>
+                  <Select onValueChange={setSelectedProvince} value={selectedProvince}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn Tỉnh/Thành Phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinces.map((province) => (
+                        <SelectItem key={province.ProvinceID} value={province.ProvinceID.toString()}>
+                          {province.ProvinceName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="district">Quận/Huyện</Label>
+                  <Select onValueChange={setSelectedDistrict} value={selectedDistrict} disabled={!selectedProvince}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn Quận/Huyện" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {districts.map((district) => (
+                        <SelectItem key={district.DistrictID} value={district.DistrictID.toString()}>
+                          {district.DistrictName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="ward">Phường/Xã</Label>
+                  <Select onValueChange={setSelectedWard} value={selectedWard} disabled={!selectedDistrict}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn Phường/Xã" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wards.map((ward) => (
+                        <SelectItem key={ward.WardCode} value={ward.WardCode}>
+                          {ward.WardName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Label htmlFor="address">Địa Chỉ Chi Tiết</Label>
                 <Input
                   type="text"
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
                   required
-                  placeholder="Nhập họ và tên"
-                  aria-label="Họ và Tên"
+                  placeholder="Số nhà, tên đường..."
+                  aria-label="Địa Chỉ Chi Tiết"
                 />
               </div>
-              <div>
-                <Label htmlFor="phoneNumber">Số Điện Thoại</Label>
-                <Input
-                  type="tel"
-                  id="phoneNumber"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                  placeholder="Nhập số điện thoại"
-                  aria-label="Số Điện Thoại"
-                />
+              <div className="mt-4 p-4 bg-gray-100 rounded-md">
+                <h3 className="text-lg font-semibold mb-2">Địa chỉ giao hàng</h3>
+                <p>{fullName}</p>
+                <p>{phoneNumber}</p>
+                <p>{address}</p>
+                <p>{wards.find(w => w.WardCode === selectedWard)?.WardName}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName}</p>
               </div>
+            </form>
+          </section>
+
+          <section className="mb-8">
+            <h3 className="text-lg font-semibold mb-2">Phương thức thanh toán</h3>
+            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+              {paymentMethods.map((method) => (
+                <div key={method.id} className="flex items-center space-x-2 mb-2">
+                  <RadioGroupItem value={method.id} id={method.id} disabled={method.id === "vnpay"} />
+                  <Label htmlFor={method.id}>
+                    <span className="font-medium">{method.name}</span>
+                    <p className="text-sm text-gray-500">
+                      {method.id === "vnpay" ? "Tính năng đang được phát triển" : method.description}
+                    </p>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </section>
+        </div>
+
+        <div className="overflow-y-auto">
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Tóm Tắt Đơn Hàng</h2>
+            <div className="space-y-4">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex items-center">
+                  <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="mr-4" />
+                  <div className="flex-grow">
+                    <p className="font-semibold">{item.name}</p>
+                    <p>Số Lượng: {item.quantity}</p>
+                    <p>Giá: {formatCurrency(item.price)}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <Label htmlFor="province">Tỉnh/Thành Phố</Label>
-                <Select onValueChange={setSelectedProvince} value={selectedProvince}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn Tỉnh/Thành Phố" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinces.map((province) => (
-                      <SelectItem key={province.ProvinceID} value={province.ProvinceID.toString()}>
-                        {province.ProvinceName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="district">Quận/Huyện</Label>
-                <Select onValueChange={setSelectedDistrict} value={selectedDistrict} disabled={!selectedProvince}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn Quận/Huyện" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {districts.map((district) => (
-                      <SelectItem key={district.DistrictID} value={district.DistrictID.toString()}>
-                        {district.DistrictName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="ward">Phường/Xã</Label>
-                <Select onValueChange={setSelectedWard} value={selectedWard} disabled={!selectedDistrict}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn Phường/Xã" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wards.map((ward) => (
-                      <SelectItem key={ward.WardCode} value={ward.WardCode}>
-                        {ward.WardName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="mt-4">
-              <Label htmlFor="address">Địa Chỉ Chi Tiết</Label>
+          </section>
+
+          <section className="mb-8">
+            <h3 className="text-lg font-semibold mb-2">Voucher</h3>
+            <div className="flex mb-4">
               <Input
                 type="text"
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                required
-                placeholder="Số nhà, tên đường..."
-                aria-label="Địa Chỉ Chi Tiết"
+                value={voucherCode}
+                onChange={(e) => setVoucherCode(e.target.value)}
+                placeholder="Nhập mã voucher"
+                className="flex-grow mr-2"
               />
+              <Button onClick={handleVoucherCodeSubmit} className="whitespace-nowrap">
+                Áp dụng
+              </Button>
             </div>
-            <div className="mt-4 p-4 bg-gray-100 rounded-md">
-              <h3 className="text-lg font-semibold mb-2">Địa chỉ giao hàng</h3>
-              <p>{fullName}</p>
-              <p>{phoneNumber}</p>
-              <p>{address}</p>
-              <p>{wards.find(w => w.WardCode === selectedWard)?.WardName}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName}</p>
-            </div>
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Phương thức thanh toán</h3>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                {paymentMethods.map((method) => (
-                  <div key={method.id} className="flex items-center space-x-2 mb-2">
-                    <RadioGroupItem value={method.id} id={method.id} disabled={method.id === "vnpay"} />
-                    <Label htmlFor={method.id}>
-                      <span className="font-medium">{method.name}</span>
-                      <p className="text-sm text-gray-500">
-                        {method.id === "vnpay" ? "Tính năng đang được phát triển" : method.description}
-                      </p>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          </form>
-        </div>
-        <div className="overflow-y-auto">
-          <h2 className="text-xl font-semibold mb-4">Tóm Tắt Đơn Hàng</h2>
-          <div className="space-y-4">
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex items-center">
-                <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="mr-4" />
-                <div className="flex-grow">
-                  <p className="font-semibold">{item.name}</p>
-                  <p>Số Lượng: {item.quantity}</p>
-                  <p>Giá: {item.price.toLocaleString("vi-VN")} ₫</p>
-                </div>
+            <div className="mb-4">
+              <Label htmlFor="voucherSearch">Tìm kiếm voucher</Label>
+              <div className="relative">
+                <Input
+                  id="voucherSearch"
+                  type="text"
+                  value={voucherSearchQuery}
+                  onChange={(e) => setVoucherSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm voucher"
+                  className="pr-10"
+                />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
-            ))}
-          </div>
-          <div className="border-t pt-4 mt-4 space-y-2">
-            <p className="flex justify-between"><span>Tổng Phụ:</span> <span>{calculateSubtotal().toLocaleString("vi-VN")} ₫</span></p>
-            <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{calculateSubtotal() > 2000000 ? "Miễn phí" : shippingFee.toLocaleString("vi-VN") + " ₫"}</span></p>
-            <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{calculateTotal().toLocaleString("vi-VN")} ₫</span></p>
-          </div>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {filteredVouchers.map((voucher) => (
+                <Card
+                  key={voucher.id}
+                  className={`cursor-pointer transition-colors ${selectedVoucher?.id === voucher.id ? 'bg-primary/10' : ''
+                    } ${calculateSubtotal() < voucher.minOrderValue ? 'opacity-50' : ''
+                    }`}
+                  onClick={() => handleVoucherSelect(voucher)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-semibold">{voucher.voucherCode}</h4>
+                        <p className="text-sm text-gray-600">{voucher.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-medium px-2 py-1 rounded-full bg-primary/10 text-primary mb-1">
+                          {getVoucherStatusLabel(voucher.status)}
+                        </span>
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${voucher.isExclusive ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {voucher.isExclusive ? 'Đặc quyền' : 'Công khai'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm">
+                      <p>Giảm: {voucher.discountType === 'percentage' ? `${voucher.discountValue}%` : formatCurrency(voucher.discountValue)}</p>
+                      <p>Đơn tối thiểu: {formatCurrency(voucher.minOrderValue)}</p>
+                      <p>Giảm tối đa: {formatCurrency(voucher.maxDiscountAmount)}</p>
+                    </div>
+                    {calculateSubtotal() < voucher.minOrderValue && (
+                      <p className="mt-2 text-sm text-red-500">Đơn hàng chưa đạt giá trị tối thiểu</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold mb-2">Tổng cộng</h3>
+            <div className="border-t pt-4 mt-4 space-y-2">
+              <p className="flex justify-between"><span>Tổng Phụ:</span> <span>{formatCurrency(calculateSubtotal())}</span></p>
+              <p className="flex justify-between"><span>Phí Vận Chuyển:</span> <span>{calculateSubtotal() > 2000000 ? "Miễn phí" : formatCurrency(shippingFee)}</span></p>
+              {selectedVoucher && (
+                <p className="flex justify-between"><span>Giảm giá:</span> <span>-{formatCurrency(calculateDiscount(selectedVoucher))}</span></p>
+              )}
+              <Separator />
+              <p className="flex justify-between font-semibold text-lg"><span>Tổng Cộng:</span> <span>{formatCurrency(calculateTotal())}</span></p>
+            </div>
+          </section>
         </div>
       </div>
       <div className="mt-4 sticky bottom-0 bg-white p-4 shadow-md">
