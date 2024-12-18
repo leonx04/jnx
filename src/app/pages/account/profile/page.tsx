@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { database } from '@/firebaseConfig'
+import bcrypt from 'bcryptjs'
 import { get, ref } from 'firebase/database'
 import { CalendarIcon, CreditCardIcon, EyeIcon, EyeOffIcon, GiftIcon, KeyIcon, MailIcon, PackageIcon, UserIcon } from 'lucide-react'
 import Image from 'next/image'
@@ -49,6 +50,7 @@ interface Voucher {
 export default function AccountManagement() {
   const { user, updateUserInfo } = useAuthContext()
   const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '' })
+  const [encryptedPassword, setEncryptedPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
@@ -69,8 +71,9 @@ export default function AccountManagement() {
           email: userData.email,
           imageUrl: userData.imageUrl || '',
           id: user.id,
-          password: userData.password || ''
+          password: '' // Initialize with an empty string
         })
+        setEncryptedPassword(userData.password || '')
       }
     }
   }, [user])
@@ -99,7 +102,15 @@ export default function AccountManagement() {
       if (snapshot.exists()) {
         const vouchersData = snapshot.val()
         const userVouchers = Object.entries(vouchersData)
-          .filter(([_, voucher]: [string, any]) => voucher.userId && voucher.userId.includes(user.id))
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
+          .filter(([_, voucher]: [string, any]) =>
+            voucher.userId &&
+            voucher.userId.includes(user.id) &&
+            (voucher.status === 'active' || voucher.status === 'incoming')
+          )
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
           .map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
@@ -169,8 +180,18 @@ export default function AccountManagement() {
         updatedProfile.imageUrl = data.secure_url
       }
 
+      // Check if the password has been changed
+      if (profile.password && profile.password !== '') {
+        const salt = await bcrypt.genSalt(10)
+        updatedProfile.password = await bcrypt.hash(profile.password, salt)
+      } else {
+        // If password hasn't changed, use the existing encrypted password
+        updatedProfile.password = encryptedPassword
+      }
+
       await updateUserInfo(updatedProfile)
       setProfile(updatedProfile)
+      setEncryptedPassword(updatedProfile.password)
       toast.success('Cập nhật thông tin thành công')
       setIsModalOpen(false)
       setPreviewImage(null)
@@ -180,7 +201,7 @@ export default function AccountManagement() {
     } finally {
       setIsLoading(false)
     }
-  }, [profile, previewImage, updateUserInfo])
+  }, [profile, previewImage, updateUserInfo, encryptedPassword])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -194,6 +215,21 @@ export default function AccountManagement() {
       "cancelled": "Đã hủy"
     }
     return statusMap[status.toLowerCase()] || status
+  }
+
+  const getVoucherStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Đang hoạt động'
+      case 'inactive':
+        return 'Không hoạt động'
+      case 'expired':
+        return 'Đã hết hạn'
+      case 'incoming':
+        return 'Sắp diễn ra'
+      default:
+        return status
+    }
   }
 
   const handleVoucherClick = (voucher: Voucher) => {
@@ -300,7 +336,7 @@ export default function AccountManagement() {
                           value={profile.password}
                           onChange={handleInputChange}
                           className="pl-10 pr-10"
-                          required
+                          placeholder="Nhập mật khẩu mới để thay đổi"
                         />
                         <button
                           type="button"
@@ -371,11 +407,10 @@ export default function AccountManagement() {
                   <div key={order.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-semibold">Đơn hàng #{order.id.slice(-6)}</span>
-                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                          order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                        }`}>
                         {getStatusLabel(order.status)}
                       </span>
                     </div>
@@ -444,7 +479,7 @@ export default function AccountManagement() {
                 </div>
                 <div>
                   <p className="font-medium">Trạng thái:</p>
-                  <p>{getStatusLabel(selectedVoucher.status)}</p>
+                  <p>{getVoucherStatusLabel(selectedVoucher.status)}</p>
                 </div>
               </div>
             </div>
