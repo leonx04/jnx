@@ -20,6 +20,13 @@ interface OrderItem {
   imageUrl: string
 }
 
+interface Voucher {
+  id: string
+  code: string
+  discountValue: number
+  discountType: 'percentage' | 'fixed'
+}
+
 interface Order {
   id: string
   userId: string
@@ -34,10 +41,12 @@ interface Order {
   items: OrderItem[]
   subtotal: number
   shippingFee: number
+  discount: number
   total: number
   status: string
   paymentMethod: string
   createdAt: string
+  voucher: Voucher | null
 }
 
 export default function OrderConfirmation() {
@@ -160,6 +169,14 @@ export default function OrderConfirmation() {
             <span className="text-gray-600">Phí Vận Chuyển:</span>
             <span>{latestOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
           </div>
+          {latestOrder.voucher && (
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-gray-600">Giảm giá (Voucher {latestOrder.voucher.code}):</span>
+              <span className="text-green-600">
+                -{latestOrder.discount.toLocaleString("vi-VN")} ₫
+              </span>
+            </div>
+          )}
           <div className="flex justify-between items-center text-lg font-semibold">
             <span>Tổng Cộng:</span>
             <span>{latestOrder.total.toLocaleString("vi-VN")} ₫</span>
