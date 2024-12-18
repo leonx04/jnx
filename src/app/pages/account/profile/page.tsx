@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { database } from '@/firebaseConfig'
 import { get, ref } from 'firebase/database'
-import { EyeIcon, EyeOffIcon, KeyIcon, MailIcon, UserIcon } from 'lucide-react'
+import { CalendarIcon, CreditCardIcon, EyeIcon, EyeOffIcon, GiftIcon, KeyIcon, MailIcon, PackageIcon, UserIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
@@ -31,6 +31,21 @@ interface Order {
   status: string
 }
 
+interface Voucher {
+  id: string
+  voucherCode: string
+  description: string
+  discountType: 'percentage' | 'fixed'
+  discountValue: number
+  startDate: string
+  endDate: string
+  minOrderValue: number
+  maxDiscountAmount: number
+  usageLimit: number
+  usedCount: number
+  status: 'active' | 'inactive' | 'expired' | 'incoming'
+}
+
 export default function AccountManagement() {
   const { user, updateUserInfo } = useAuthContext()
   const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '' })
@@ -39,6 +54,9 @@ export default function AccountManagement() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
+  const [vouchers, setVouchers] = useState<Voucher[]>([])
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
 
   const fetchUserProfile = useCallback(async () => {
     if (user?.id) {
@@ -74,12 +92,30 @@ export default function AccountManagement() {
     }
   }, [user])
 
+  const fetchVouchers = useCallback(async () => {
+    if (user?.id) {
+      const vouchersRef = ref(database, 'vouchers')
+      const snapshot = await get(vouchersRef)
+      if (snapshot.exists()) {
+        const vouchersData = snapshot.val()
+        const userVouchers = Object.entries(vouchersData)
+          .filter(([_, voucher]: [string, any]) => voucher.userId && voucher.userId.includes(user.id))
+          .map(([id, voucher]: [string, any]) => ({
+            ...voucher,
+            id
+          }))
+        setVouchers(userVouchers)
+      }
+    }
+  }, [user])
+
   useEffect(() => {
     if (user) {
       fetchUserProfile()
       fetchOrders()
+      fetchVouchers()
     }
-  }, [user, fetchUserProfile, fetchOrders])
+  }, [user, fetchUserProfile, fetchOrders, fetchVouchers])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -160,17 +196,30 @@ export default function AccountManagement() {
     return statusMap[status.toLowerCase()] || status
   }
 
+  const handleVoucherClick = (voucher: Voucher) => {
+    setSelectedVoucher(voucher)
+    setIsVoucherModalOpen(true)
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+  }
+
   if (!user) {
     return <div className="text-center py-10">Vui lòng đăng nhập để xem trang này.</div>
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-7xl">
       <h1 className="text-3xl font-bold mb-6 text-center">Quản lý tài khoản</h1>
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Account Information Section */}
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Thông tin cá nhân</CardTitle>
+            <CardTitle className="flex items-center">
+              <UserIcon className="mr-2" />
+              Thông tin cá nhân
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center space-y-4">
@@ -271,54 +320,138 @@ export default function AccountManagement() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+
+        {/* Exclusive Vouchers Section */}
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Đơn hàng gần đây</CardTitle>
+            <CardTitle className="flex items-center">
+              <GiftIcon className="mr-2" />
+              Voucher đặc quyền của bạn
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vouchers.length === 0 ? (
+              <p className="text-center text-gray-500">Bạn chưa có voucher đặc quyền nào.</p>
+            ) : (
+              <div className="space-y-4">
+                {vouchers.map((voucher) => (
+                  <div key={voucher.id} className="border rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition duration-200" onClick={() => handleVoucherClick(voucher)}>
+                    <h3 className="font-semibold text-lg">{voucher.voucherCode}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{voucher.description}</p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-medium text-green-600">
+                        {voucher.discountType === 'percentage' ? `Giảm ${voucher.discountValue}%` : `Giảm ${formatCurrency(voucher.discountValue)}`}
+                      </span>
+                      <span className="text-gray-500 flex items-center">
+                        <CalendarIcon className="w-4 h-4 mr-1" />
+                        HSD: {new Date(voucher.endDate).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Order History Section */}
+        <Card className="md:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <PackageIcon className="mr-2" />
+              Lịch sử đơn hàng
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {orders.length === 0 ? (
-              <p>Bạn chưa có đơn hàng nào.</p>
+              <p className="text-center text-gray-500">Bạn chưa có đơn hàng nào.</p>
             ) : (
-              <div className="max-h-[500px] overflow-y-auto pr-2">
-                <ul className="space-y-4">
-                  {orders.map((order) => (
-                    <li key={order.id} className="border-b pb-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold">Đơn hàng #{order.id.slice(-6)}</p>
-                          <p className="text-sm text-gray-600">
-                            Ngày đặt: {new Date(order.createdAt).toLocaleDateString('vi-VN')}
-                          </p>
-                          <p className="text-sm">
-                            Trạng thái: <span className={`font-semibold ${order.status === 'delivered' ? 'text-green-600' :
-                              order.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
-                              }`}>
-                              {getStatusLabel(order.status)}
-                            </span>
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold">
-                            Tổng tiền: {order.total.toLocaleString('vi-VN')} ₫
-                          </p>
-                          <p className="text-sm">
-                            Phí vận chuyển: {order.shippingFee.toLocaleString('vi-VN')} ₫
-                          </p>
-                          <Link href={`/pages/account/orders/${order.id}`}>
-                            <Button variant="outline" size="sm" className="mt-2">
-                              Xem chi tiết
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                {orders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-semibold">Đơn hàng #{order.id.slice(-6)}</span>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {getStatusLabel(order.status)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      <CalendarIcon className="inline-block w-4 h-4 mr-1" />
+                      Ngày đặt: {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                    </p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span>
+                        <CreditCardIcon className="inline-block w-4 h-4 mr-1" />
+                        Tổng tiền: {formatCurrency(order.total)}
+                      </span>
+                      <Link href={`/pages/account/orders/${order.id}`}>
+                        <Button variant="outline" size="sm">
+                          Xem chi tiết
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Chi tiết voucher</DialogTitle>
+          </DialogHeader>
+          {selectedVoucher && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{selectedVoucher.voucherCode}</h3>
+                <p className="text-gray-600">{selectedVoucher.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-medium">Loại giảm giá:</p>
+                  <p>{selectedVoucher.discountType === 'percentage' ? 'Phần trăm' : 'Cố định'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Giá trị giảm:</p>
+                  <p>{selectedVoucher.discountType === 'percentage' ? `${selectedVoucher.discountValue}%` : formatCurrency(selectedVoucher.discountValue)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Ngày bắt đầu:</p>
+                  <p>{new Date(selectedVoucher.startDate).toLocaleDateString('vi-VN')}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Ngày kết thúc:</p>
+                  <p>{new Date(selectedVoucher.endDate).toLocaleDateString('vi-VN')}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Giá trị đơn hàng tối thiểu:</p>
+                  <p>{formatCurrency(selectedVoucher.minOrderValue)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Giảm giá tối đa:</p>
+                  <p>{formatCurrency(selectedVoucher.maxDiscountAmount)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Số lần sử dụng còn lại:</p>
+                  <p>{selectedVoucher.usageLimit - selectedVoucher.usedCount}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Trạng thái:</p>
+                  <p>{getStatusLabel(selectedVoucher.status)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+

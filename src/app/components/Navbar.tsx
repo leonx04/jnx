@@ -23,12 +23,13 @@ interface CartItem {
 }
 
 interface Notification {
-  id: string;
-  orderId: string;
-  message: string;
-  createdAt: string;
-  seen: boolean;
-  userId: string;
+    id: string;
+    orderId?: string;
+    voucherId?: string;
+    message: string;
+    createdAt: string;
+    seen: boolean;
+    userId: string;
 }
 
 const Navbar = () => {
@@ -155,11 +156,17 @@ const Navbar = () => {
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.seen) {
-      await markAsSeen(notification.id);
-    }
-    window.location.href = `/pages/account/orders/${notification.orderId}`;
-  };
+        if (!notification.seen) {
+            await markAsSeen(notification.id);
+        }
+        if (notification.orderId) {
+            window.location.href = `/pages/account/orders/${notification.orderId}`;
+        } else if (notification.voucherId) {
+            // Redirect to a voucher details page or show voucher information
+            // For now, we'll just show a toast message
+            toast(`Voucher details: ${notification.message}`);
+        }
+    };
 
   return (
     <nav className="bg-black text-white shadow-lg sticky top-0 z-50">
