@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { getDatabase, ref, get, set } from 'firebase/database';
 import { app } from '@/firebaseConfig';
+import bcrypt from 'bcryptjs';
+import { get, getDatabase, ref, set } from 'firebase/database';
+import { useEffect, useState } from 'react';
 
 interface User {
   email: string;
@@ -35,14 +36,18 @@ export function useAuth() {
         const users = snapshot.val();
         for (const userId in users) {
           const user = users[userId] as UserWithPassword;
-          if (user.email === email && String(user.password) === password) {
-            console.log('User found:', user);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { password: _, ...userWithoutPassword } = user;
-            const userWithId = { ...userWithoutPassword, id: userId };
-            sessionStorage.setItem('user', JSON.stringify(userWithId));
-            setUser(userWithId);
-            return userWithId;
+          if (user.email === email) {
+            // Compare the provided password with the stored hashed password
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (passwordMatch) {
+              console.log('User found:', user);
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { password: _, ...userWithoutPassword } = user;
+              const userWithId = { ...userWithoutPassword, id: userId };
+              sessionStorage.setItem('user', JSON.stringify(userWithId));
+              setUser(userWithId);
+              return userWithId;
+            }
           }
         }
         console.log('No matching user found');

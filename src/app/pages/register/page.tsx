@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { app } from '@/firebaseConfig';
+import bcrypt from 'bcryptjs';
 import { equalTo, get, getDatabase, orderByChild, push, query, ref, set } from 'firebase/database';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -116,12 +117,17 @@ export default function Register() {
         return;
       }
 
+      // Hash the password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
       // If email doesn't exist, proceed with user creation
       const newUserRef = push(usersRef);
       await set(newUserRef, {
         name,
         email,
-        password, // Note: In a real application, you should hash the password before storing it
+        password: hashedPassword,
+        createdAt: new Date().toISOString()
       });
 
       toast.success('Đăng ký thành công!');
@@ -310,7 +316,7 @@ export default function Register() {
                 <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc sử dụng website hoặc sản phẩm.
               </li>
               <li>
-                <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
+                <strong>Thay đổi điều khoản:</strong> Chúng tôicó quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
               </li>
             </ol>
             <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại hỗ trợ.</p>
@@ -320,4 +326,3 @@ export default function Register() {
     </div>
   );
 }
-
