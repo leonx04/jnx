@@ -104,7 +104,7 @@ export default function Home() {
       description: 'Giảm giá lên đến 50% cho các sản phẩm',
     },
     {
-      image: 'https://i.pinimg.com/originals/71/5a/3d/715a3d6dcdd4225528d79f104e2e0785.gif',
+      image: 'https://i.pinimg.com/originals/b1/18/ce/b118cec88f52f6f2bd1edc1808056c10.gif',
       title: 'Miễn Phí Vận Chuyển',
       description: 'Cho đơn hàng trên 2,000,000 đ',
     },
