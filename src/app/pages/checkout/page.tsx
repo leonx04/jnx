@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
 import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
-import { Loader2, Search } from 'lucide-react'
+import { Check, Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -72,6 +72,7 @@ interface Voucher {
   maxDiscountAmount: number
   usageLimit: number
   usedCount: number
+  quantity: number
   status: 'active' | 'inactive' | 'expired' | 'incoming'
   isExclusive: boolean
   userId?: string[]
@@ -349,6 +350,49 @@ export default function Checkout() {
         return
       }
 
+      // Kiểm tra và cập nhật voucher
+      if (selectedVoucher) {
+        const voucherRef = ref(database, `vouchers/${selectedVoucher.id}`)
+        const voucherSnapshot = await get(voucherRef)
+        const currentVoucher = voucherSnapshot.val() as Voucher
+
+        if (!currentVoucher || currentVoucher.quantity <= 0 || currentVoucher.status !== 'active') {
+          showToast("Voucher không còn hiệu lực hoặc đã hết lượt sử dụng", 'error')
+          setSelectedVoucher(null)
+          setIsSubmitting(false)
+          return
+        }
+
+        // Kiểm tra giới hạn sử dụng của người dùng
+        const userVoucherUsageRef = ref(database, `userVoucherUsage/${user.id}/${selectedVoucher.id}`)
+        const userVoucherUsageSnapshot = await get(userVoucherUsageRef)
+        const userUsageCount = userVoucherUsageSnapshot.val() || 0
+
+        if (userUsageCount >= currentVoucher.usageLimit) {
+          showToast("Bạn đã đạt giới hạn sử dụng voucher này", 'error')
+          setSelectedVoucher(null)
+          setIsSubmitting(false)
+          return
+        }
+
+        // Cập nhật voucher
+        await runTransaction(voucherRef, (voucher) => {
+          if (voucher) {
+            voucher.quantity -= 1
+            voucher.usedCount += 1
+            if (voucher.quantity === 0) {
+              voucher.status = 'expired'
+            }
+          }
+          return voucher
+        })
+
+        // Cập nhật số lần sử dụng voucher của người dùng
+        await runTransaction(userVoucherUsageRef, (usageCount) => {
+          return (usageCount || 0) + 1
+        })
+      }
+
       const order = {
         ...getUserDetails,
         fullName,
@@ -409,16 +453,6 @@ export default function Checkout() {
       })
 
       await Promise.all(updateStockPromises)
-
-      if (selectedVoucher) {
-        const voucherRef = ref(database, `vouchers/${selectedVoucher.id}`)
-        await runTransaction(voucherRef, (voucher) => {
-          if (voucher) {
-            voucher.usedCount = (voucher.usedCount || 0) + 1
-          }
-          return voucher
-        })
-      }
 
       if (paymentMethod === "vnpay") {
         // Implement VNPAY payment gateway integration here
@@ -548,7 +582,7 @@ export default function Checkout() {
     let maxDiscount = 0;
 
     vouchers.forEach(voucher => {
-      if (voucher.status === 'active' && subtotal >= voucher.minOrderValue) {
+      if (voucher.status === 'active' && subtotal >= voucher.minOrderValue && voucher.quantity > 0) {
         const discount = calculateDiscount(voucher);
         if (discount > maxDiscount) {
           maxDiscount = discount;
@@ -592,7 +626,7 @@ export default function Checkout() {
     fetchVouchers()
   }, [user, findBestVoucher, showToast])
 
-  const handleVoucherSelect = (voucher: Voucher) => {
+  const handleVoucherSelect = async (voucher: Voucher) => {
     if (voucher.status === 'inactive' || voucher.status === 'expired') {
       showToast("Voucher này không thể sử dụng", 'error')
       return
@@ -601,9 +635,30 @@ export default function Checkout() {
       showToast(`Đơn hàng chưa đạt giá trị tối thiểu ${formatCurrency(voucher.minOrderValue)} để sử dụng voucher này`, 'error')
       return
     }
-    setSelectedVoucher(voucher)
-    setVoucherCode(voucher.voucherCode)
-    showToast(`Đã áp dụng voucher ${voucher.voucherCode}`, 'success')
+
+    // Kiểm tra số lượng và giới hạn sử dụng
+    const voucherRef = ref(database, `vouchers/${voucher.id}`)
+    const voucherSnapshot = await get(voucherRef)
+    const currentVoucher = voucherSnapshot.val() as Voucher
+
+    if (!currentVoucher || currentVoucher.quantity <= 0) {
+      showToast("Voucher đã hết lượt sử dụng", 'error')
+      return
+    }
+
+    // Kiểm tra giới hạn sử dụng của người dùng
+    const userVoucherUsageRef = ref(database, `userVoucherUsage/${user?.id}/${voucher.id}`)
+    const userVoucherUsageSnapshot = await get(userVoucherUsageRef)
+    const userUsageCount = userVoucherUsageSnapshot.val() || 0
+
+    if (userUsageCount >= currentVoucher.usageLimit) {
+      showToast("Bạn đã đạt giới hạn sử dụng voucher này", 'error')
+      return
+    }
+
+    setSelectedVoucher(currentVoucher)
+    setVoucherCode(currentVoucher.voucherCode)
+    showToast(`Đã áp dụng voucher ${currentVoucher.voucherCode}`, 'success')
   }
 
   const handleVoucherCodeSubmit = () => {
@@ -826,7 +881,7 @@ export default function Checkout() {
               {filteredVouchers.map((voucher) => (
                 <Card
                   key={voucher.id}
-                  className={`cursor-pointer transition-colors ${selectedVoucher?.id === voucher.id ? 'bg-primary/10' : ''
+                  className={`cursor-pointer transition-colors ${selectedVoucher?.id === voucher.id ? 'bg-primary/10 border-primary' : ''
                     } ${calculateSubtotal() < voucher.minOrderValue ? 'opacity-50' : ''
                     }`}
                   onClick={() => handleVoucherSelect(voucher)}
@@ -841,16 +896,22 @@ export default function Checkout() {
                         <span className="text-sm font-medium px-2 py-1 rounded-full bg-primary/10 text-primary mb-1">
                           {getVoucherStatusLabel(voucher.status)}
                         </span>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${voucher.isExclusive ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                          }`}>
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          voucher.isExclusive ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                        }`}>
                           {voucher.isExclusive ? 'Đặc quyền' : 'Công khai'}
                         </span>
+                        {selectedVoucher?.id === voucher.id && (
+                          <Check className="text-primary mt-2" size={20} />
+                        )}
                       </div>
                     </div>
                     <div className="mt-2 text-sm">
                       <p>Giảm: {voucher.discountType === 'percentage' ? `${voucher.discountValue}%` : formatCurrency(voucher.discountValue)}</p>
                       <p>Đơn tối thiểu: {formatCurrency(voucher.minOrderValue)}</p>
                       <p>Giảm tối đa: {formatCurrency(voucher.maxDiscountAmount)}</p>
+                      <p>Số lượng còn lại: {voucher.quantity}</p>
+                      <p>Giới hạn sử dụng: {voucher.usageLimit} lần/người</p>
                     </div>
                     {calculateSubtotal() < voucher.minOrderValue && (
                       <p className="mt-2 text-sm text-red-500">Đơn hàng chưa đạt giá trị tối thiểu</p>
