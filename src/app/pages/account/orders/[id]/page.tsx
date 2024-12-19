@@ -4,7 +4,7 @@ import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
 import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { get, push, ref, serverTimestamp, update } from "firebase/database"
-import { ArrowLeft, CheckCircle, Clock, Package, Truck, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, Package, Tag, Truck, XCircle } from 'lucide-react'
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
@@ -48,6 +48,14 @@ interface Order {
   status: string
   paymentMethod: string
   createdAt: string
+  voucher?: {
+    id: string
+    code: string
+    discountType: 'percentage' | 'fixed'
+    discountValue: number | string
+    maxDiscountAmount?: number
+  }
+  discount?: number
 }
 
 interface Review {
@@ -279,6 +287,43 @@ export default function OrderDetail() {
     }
   }
 
+  const calculateDiscountAmount = () => {
+    if (!order || !order.voucher) return 0;
+
+    const { discountType, discountValue } = order.voucher;
+    const subtotal = order.subtotal;
+
+    if (discountType === 'percentage') {
+      const percentageDiscount = subtotal * (Number(discountValue) / 100);
+      return Math.min(percentageDiscount, order.voucher.maxDiscountAmount || percentageDiscount);
+    } else {
+      return Number(discountValue);
+    }
+  }
+
+  const renderVoucherDetails = () => {
+    if (!order?.voucher) return null;
+
+    const discountAmount = calculateDiscountAmount();
+    const discountTypeLabel = order.voucher.discountType === 'percentage'
+      ? `Giảm ${order.voucher.discountValue}%`
+      : `Giảm ${order.voucher.discountValue.toLocaleString('vi-VN')} ₫`;
+
+    return (
+      <div className="flex items-center space-x-2 mt-2 bg-blue-50 p-2 rounded-md">
+        <Tag className="w-5 h-5 text-blue-600" />
+        <div>
+          <p className="font-medium text-blue-800">
+            Mã giảm giá: {order.voucher.code}
+          </p>
+          <p className="text-sm text-blue-700">
+            {discountTypeLabel} - Giảm {discountAmount.toLocaleString('vi-VN')} ₫
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const handleBulkReview = async () => {
     if (!order || !user) return;
 
@@ -385,8 +430,15 @@ export default function OrderDetail() {
         <CardContent>
           <p><strong>Ngày đặt hàng:</strong> {new Date(order.createdAt).toLocaleString("vi-VN")}</p>
           <p><strong>Phương thức thanh toán:</strong> {getPaymentMethodLabel(order.paymentMethod)}</p>
-          <p><strong>Tổng tiền:</strong> {order.total.toLocaleString("vi-VN")} ₫</p>
+          <p><strong>Tổng tiền:</strong> {order.subtotal.toLocaleString("vi-VN")} ₫</p>
           <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString("vi-VN")} ₫</p>
+
+          {renderVoucherDetails()}
+
+          <div className="mt-4 font-bold text-lg">
+            <strong>Tổng thanh toán:</strong> {order.total.toLocaleString("vi-VN")} ₫
+          </div>
+
           {order.status === 'shipped' && (
             <Button onClick={handleConfirmDelivery} className="mt-4">
               Xác nhận đã nhận hàng
