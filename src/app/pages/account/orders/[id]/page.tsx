@@ -52,7 +52,7 @@ interface Order {
     id: string
     code: string
     discountType: 'percentage' | 'fixed'
-    discountValue: number | string
+    discountValue: number
     maxDiscountAmount?: number
   }
   discount?: number
@@ -287,37 +287,26 @@ export default function OrderDetail() {
     }
   }
 
-  const calculateDiscountAmount = () => {
-    if (!order || !order.voucher) return 0;
-
-    const { discountType, discountValue } = order.voucher;
-    const subtotal = order.subtotal;
-
-    if (discountType === 'percentage') {
-      const percentageDiscount = subtotal * (Number(discountValue) / 100);
-      return Math.min(percentageDiscount, order.voucher.maxDiscountAmount || percentageDiscount);
-    } else {
-      return Number(discountValue);
-    }
-  }
-
   const renderVoucherDetails = () => {
     if (!order?.voucher) return null;
 
-    const discountAmount = calculateDiscountAmount();
+    const discountAmount = order.discount || 0;
     const discountTypeLabel = order.voucher.discountType === 'percentage'
-      ? `Giảm ${order.voucher.discountValue}%`
-      : `Giảm ${order.voucher.discountValue.toLocaleString('vi-VN')} ₫`;
+      ? `${order.voucher.discountValue}%`
+      : `${order.voucher.discountValue.toLocaleString('vi-VN')} ₫`;
 
     return (
       <div className="flex items-center space-x-2 mt-2 bg-blue-50 p-2 rounded-md">
         <Tag className="w-5 h-5 text-blue-600" />
         <div>
           <p className="font-medium text-blue-800">
-            Mã giảm giá: {order.voucher.code}
+            Mã giảm giá: <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">{order.voucher.code}</span>
           </p>
           <p className="text-sm text-blue-700">
-            {discountTypeLabel} - Giảm {discountAmount.toLocaleString('vi-VN')} ₫
+            Giảm giá: {discountTypeLabel}
+          </p>
+          <p className="text-sm text-blue-700">
+            Số tiền giảm: {discountAmount.toLocaleString('vi-VN')} ₫
           </p>
         </div>
       </div>
@@ -383,7 +372,7 @@ export default function OrderDetail() {
           <CardContent className="p-6">
             <Skeleton className="h-4 w-3/4 mb-4" />
             <Skeleton className="h-4 w-1/2 mb-2" />
-            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-4 w-w-1/4" />
           </CardContent>
         </Card>
       </div>
@@ -430,7 +419,7 @@ export default function OrderDetail() {
         <CardContent>
           <p><strong>Ngày đặt hàng:</strong> {new Date(order.createdAt).toLocaleString("vi-VN")}</p>
           <p><strong>Phương thức thanh toán:</strong> {getPaymentMethodLabel(order.paymentMethod)}</p>
-          <p><strong>Tổng tiền:</strong> {order.subtotal.toLocaleString("vi-VN")} ₫</p>
+          <p><strong>Tổng tiền hàng:</strong> {order.subtotal.toLocaleString("vi-VN")} ₫</p>
           <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString("vi-VN")} ₫</p>
 
           {renderVoucherDetails()}
@@ -438,6 +427,9 @@ export default function OrderDetail() {
           <div className="mt-4 font-bold text-lg">
             <strong>Tổng thanh toán:</strong> {order.total.toLocaleString("vi-VN")} ₫
           </div>
+          {order.discount && (
+            <p className="text-sm text-gray-500">(Đã bao gồm giảm giá {order.discount.toLocaleString("vi-VN")} ₫)</p>
+          )}
 
           {order.status === 'shipped' && (
             <Button onClick={handleConfirmDelivery} className="mt-4">
