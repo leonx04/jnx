@@ -94,7 +94,7 @@ export default function Home() {
 
   const slides = [
     {
-      image: 'https://i.pinimg.com/originals/a6/49/05/a64905c8084871f7e772e499892a9e3a.gif',
+      image: 'https://i.pinimg.com/originals/eb/82/0f/eb820f7a295b36c0cf25882ea599f3b0.gif',
       title: 'Chào mừng đến JNX Tennis Store',
       description: 'Trải nghiệm mua sắm tennis chuyên nghiệp',
     },
