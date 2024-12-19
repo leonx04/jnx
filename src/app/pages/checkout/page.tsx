@@ -627,39 +627,59 @@ export default function Checkout() {
   }, [user, findBestVoucher, showToast])
 
   const handleVoucherSelect = async (voucher: Voucher) => {
-    if (voucher.status === 'inactive' || voucher.status === 'expired') {
-      showToast("Voucher này không thể sử dụng", 'error')
-      return
+    const now = new Date();
+    const startDate = new Date(voucher.startDate);
+    const endDate = new Date(voucher.endDate);
+
+    if (now < startDate) {
+      showToast("Voucher này chưa đến thời gian sử dụng", 'error');
+      return;
     }
+
+    if (now > endDate) {
+      showToast("Voucher này đã hết hạn", 'error');
+      return;
+    }
+
+    if (voucher.status !== 'active') {
+      showToast("Voucher này không thể sử dụng", 'error');
+      return;
+    }
+
     if (calculateSubtotal() < voucher.minOrderValue) {
-      showToast(`Đơn hàng chưa đạt giá trị tối thiểu ${formatCurrency(voucher.minOrderValue)} để sử dụng voucher này`, 'error')
-      return
+      showToast(`Đơn hàng chưa đạt giá trị tối thiểu ${formatCurrency(voucher.minOrderValue)} để sử dụng voucher này`, 'error');
+      return;
     }
 
     // Kiểm tra số lượng và giới hạn sử dụng
-    const voucherRef = ref(database, `vouchers/${voucher.id}`)
-    const voucherSnapshot = await get(voucherRef)
-    const currentVoucher = voucherSnapshot.val() as Voucher
+    const voucherRef = ref(database, `vouchers/${voucher.id}`);
+    const voucherSnapshot = await get(voucherRef);
+    const currentVoucher = voucherSnapshot.val() as Voucher;
 
     if (!currentVoucher || currentVoucher.quantity <= 0) {
-      showToast("Voucher đã hết lượt sử dụng", 'error')
-      return
+      showToast("Voucher đã hết lượt sử dụng", 'error');
+      return;
     }
 
     // Kiểm tra giới hạn sử dụng của người dùng
-    const userVoucherUsageRef = ref(database, `userVoucherUsage/${user?.id}/${voucher.id}`)
-    const userVoucherUsageSnapshot = await get(userVoucherUsageRef)
-    const userUsageCount = userVoucherUsageSnapshot.val() || 0
+    if (user?.id) {
+      const userVoucherUsageRef = ref(database, `userVoucherUsage/${user.id}/${voucher.id}`);
+      const userVoucherUsageSnapshot = await get(userVoucherUsageRef);
+      const userUsageCount = userVoucherUsageSnapshot.val() || 0;
 
-    if (userUsageCount >= currentVoucher.usageLimit) {
-      showToast("Bạn đã đạt giới hạn sử dụng voucher này", 'error')
-      return
+      if (userUsageCount >= currentVoucher.usageLimit) {
+        showToast("Bạn đã đạt giới hạn sử dụng voucher này", 'error');
+        return;
+      }
+    } else {
+      showToast("Vui lòng đăng nhập để sử dụng voucher", 'error');
+      return;
     }
 
-    setSelectedVoucher(currentVoucher)
-    setVoucherCode(currentVoucher.voucherCode)
-    showToast(`Đã áp dụng voucher ${currentVoucher.voucherCode}`, 'success')
-  }
+    setSelectedVoucher(currentVoucher);
+    setVoucherCode(currentVoucher.voucherCode);
+    showToast(`Đã áp dụng voucher ${currentVoucher.voucherCode}`, 'success');
+  };
 
   const handleVoucherCodeSubmit = () => {
     const voucher = vouchers.find(v => v.voucherCode === voucherCode)
@@ -671,11 +691,18 @@ export default function Checkout() {
   }
 
   const filteredVouchers = useMemo(() => {
-    return vouchers.filter(voucher =>
-      voucher.voucherCode.toLowerCase().includes(voucherSearchQuery.toLowerCase()) ||
-      voucher.description.toLowerCase().includes(voucherSearchQuery.toLowerCase())
-    )
-  }, [vouchers, voucherSearchQuery])
+    const now = new Date();
+    return vouchers.filter(voucher => {
+      const startDate = new Date(voucher.startDate);
+      const endDate = new Date(voucher.endDate);
+      return (
+        (voucher.voucherCode.toLowerCase().includes(voucherSearchQuery.toLowerCase()) ||
+        voucher.description.toLowerCase().includes(voucherSearchQuery.toLowerCase())) &&
+        startDate <= now &&
+        endDate > now
+      );
+    });
+  }, [vouchers, voucherSearchQuery]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
@@ -697,7 +724,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="container mx-auto p-4 flex flex-col min-h-screen">
+    <div className="container mx-auto p-4 flex flex-col min-h-screen max-w-7xl">
       <h1 className="text-3xl font-bold mb-4">Thanh Toán</h1>
       <div className="grid lg:grid-cols-2 gap-8 flex-grow">
         <div className="overflow-y-auto">
@@ -881,19 +908,20 @@ export default function Checkout() {
               {filteredVouchers.map((voucher) => (
                 <Card
                   key={voucher.id}
-                  className={`cursor-pointer transition-colors ${selectedVoucher?.id === voucher.id ? 'bg-primary/10 border-primary' : ''
-                    } ${calculateSubtotal() < voucher.minOrderValue ? 'opacity-50' : ''
-                    }`}
+                  className={`cursor-pointer transition-colors ${
+                    selectedVoucher?.id === voucher.id ? 'bg-primary/10 border-primary' : ''
+                  } ${calculateSubtotal() < voucher.minOrderValue ? 'opacity-50' : ''
+                  }`}
                   onClick={() => handleVoucherSelect(voucher)}
                 >
                   <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start">
+                      <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold">{voucher.voucherCode}</h4>
                         <p className="text-sm text-gray-600">{voucher.description}</p>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm font-medium px-2 py-1 rounded-full bg-primary/10 text-primary mb-1">
+                      <div className="flex flex-row sm:flex-col items-start sm:items-end">
+                        <span className="text-sm font-medium px-2 py-1 rounded-full bg-primary/10 text-primary mb-1 mr-2 sm:mr-0">
                           {getVoucherStatusLabel(voucher.status)}
                         </span>
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${
@@ -901,20 +929,19 @@ export default function Checkout() {
                         }`}>
                           {voucher.isExclusive ? 'Đặc quyền' : 'Công khai'}
                         </span>
-                        {selectedVoucher?.id === voucher.id && (
-                          <Check className="text-primary mt-2" size={20} />
-                        )}
                       </div>
                     </div>
                     <div className="mt-2 text-sm">
                       <p>Giảm: {voucher.discountType === 'percentage' ? `${voucher.discountValue}%` : formatCurrency(voucher.discountValue)}</p>
-                      <p>Đơn tối thiểu: {formatCurrency(voucher.minOrderValue)}</p>
-                      <p>Giảm tối đa: {formatCurrency(voucher.maxDiscountAmount)}</p>
-                      <p>Số lượng còn lại: {voucher.quantity}</p>
+                      <p>Đơn tối thiểu: {formatCurrency(voucher.minOrderValue)} - Giảm tối đa: {formatCurrency(voucher.maxDiscountAmount)}</p>
                       <p>Giới hạn sử dụng: {voucher.usageLimit} lần/người</p>
+                      <p>Bắt đầu: {new Date(voucher.startDate).toLocaleDateString()} - Hết hạn: {new Date(voucher.endDate).toLocaleDateString()}</p>
                     </div>
                     {calculateSubtotal() < voucher.minOrderValue && (
                       <p className="mt-2 text-sm text-red-500">Đơn hàng chưa đạt giá trị tối thiểu</p>
+                    )}
+                    {selectedVoucher?.id === voucher.id && (
+                      <Check className="text-primary mt-2 absolute top-2 right-2" size={20} />
                     )}
                   </CardContent>
                 </Card>
