@@ -609,7 +609,7 @@ export default function Checkout() {
           }))
           const userVouchers = allVouchers.filter(voucher =>
             (voucher.isExclusive && voucher.userId && voucher.userId.includes(user.id)) ||
-            (!voucher.isExclusive && (voucher.status === 'active' || voucher.status === 'incoming'))
+            (!voucher.isExclusive && (voucher.status === 'active'))
           )
           setVouchers(userVouchers)
 
