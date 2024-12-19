@@ -71,6 +71,19 @@
   }
 }
 
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
 .star-rating {
   position: relative;
   display: inline-block;
@@ -124,8 +137,7 @@
   animation: loading-bar 2s ease-in-out infinite;
 }
 
-/* Thêm style mới cho toast */
 .toast-below-navbar {
-  margin-top: 1.7rem; /* Điều chỉnh giá trị này để phù hợp với chiều cao của navbar */
+  margin-top: 1.7rem;
 }
 

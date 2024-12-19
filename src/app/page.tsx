@@ -2,7 +2,7 @@
 
 import { faArrowRight, faCalendarPlus, faDollarSign, faHeadset, faMoneyBillWave, faShippingFast, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { onValue, ref } from 'firebase/database';
+import { get, onValue, ref } from 'firebase/database';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { database } from '../firebaseConfig';
@@ -28,11 +28,19 @@ interface Product {
   yearReleased: number;
 }
 
+interface Voucher {
+  voucherCode: string;
+  discountValue: number;
+  discountType: 'percentage' | 'fixed';
+  isExclusive: boolean;
+}
+
 export default function Home() {
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [mostDiscountedProducts, setMostDiscountedProducts] = useState<Product[]>([]);
   const [cheapestProducts, setCheapestProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
@@ -60,6 +68,30 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      const vouchersRef = ref(database, 'vouchers');
+      const snapshot = await get(vouchersRef);
+      if (snapshot.exists()) {
+        const vouchersData = snapshot.val();
+        const publicVouchers = Object.values(vouchersData)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
+          .filter((voucher: any) => !voucher.isExclusive)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
+          .map((voucher: any) => ({
+            voucherCode: voucher.voucherCode,
+            discountValue: voucher.discountValue,
+            discountType: voucher.discountType,
+            isExclusive: voucher.isExclusive,
+          }));
+        setVouchers(publicVouchers);
+      }
+    };
+    fetchVouchers();
+  }, []);
+
   const slides = [
     {
       image: 'https://i.pinimg.com/originals/a6/49/05/a64905c8084871f7e772e499892a9e3a.gif',
@@ -69,7 +101,7 @@ export default function Home() {
     {
       image: 'https://i.pinimg.com/originals/55/b2/2f/55b22f63bf49e1aca0e3a4dea4da5ad4.gif',
       title: 'Siêu Khuyến Mãi Mùa Hè',
-      description: 'Giảm giá lên đến 50% cho các sản phẩm ',
+      description: 'Giảm giá lên đến 50% cho các sản phẩm',
     },
     {
       image: 'https://i.pinimg.com/originals/71/5a/3d/715a3d6dcdd4225528d79f104e2e0785.gif',
@@ -96,8 +128,8 @@ export default function Home() {
           {isLoading
             ? Array(4).fill(0).map((_, index) => <ProductCardSkeleton key={index} />)
             : products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              <ProductCard key={product.id} product={product} />
+            ))}
         </div>
       </div>
     </section>
@@ -114,8 +146,27 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Carousel slides={slides} />
 
+      <Carousel slides={slides} />
+      {vouchers.length > 0 && (
+        <div className="bg-black text-white py-2 overflow-hidden relative">
+          <div
+            className="whitespace-nowrap inline-block animate-marquee"
+            style={{
+              animation: 'marquee 20s linear infinite',
+            }}
+          >
+            {vouchers.concat(vouchers).map((voucher, index) => (
+              <span key={index} className="inline-block mx-4">
+                Mã: {voucher.voucherCode} - Giảm{' '}
+                {voucher.discountType === 'percentage'
+                  ? `${voucher.discountValue}%`
+                  : `${voucher.discountValue.toLocaleString()}đ`}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <BestSellers />
 
       <ProductSection
@@ -186,4 +237,3 @@ export default function Home() {
     </div>
   );
 }
-
