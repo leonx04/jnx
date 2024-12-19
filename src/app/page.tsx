@@ -94,12 +94,12 @@ export default function Home() {
 
   const slides = [
     {
-      image: 'https://i.pinimg.com/originals/eb/82/0f/eb820f7a295b36c0cf25882ea599f3b0.gif',
+      image: 'https://i.pinimg.com/originals/45/c1/fc/45c1fcf4aaae94a8ab0015e186070d22.gif',
       title: 'Chào mừng đến JNX Tennis Store',
       description: 'Trải nghiệm mua sắm tennis chuyên nghiệp',
     },
     {
-      image: 'https://i.pinimg.com/originals/55/b2/2f/55b22f63bf49e1aca0e3a4dea4da5ad4.gif',
+      image: 'https://i.pinimg.com/originals/d4/29/3a/d4293acedaafb6a8447a9e57e079e1b3.gif',
       title: 'Siêu Khuyến Mãi Mùa Hè',
       description: 'Giảm giá lên đến 50% cho các sản phẩm',
     },
