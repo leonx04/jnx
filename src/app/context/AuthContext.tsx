@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { isTokenValid, useAuth } from '../hooks/useAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -24,9 +24,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(auth.user);
 
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
+      const parsedToken = JSON.parse(storedToken);
+      if (isTokenValid(parsedToken)) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
     }
   }, []);
 
@@ -44,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserInfo = async (updatedUser: User) => {
     await auth.updateUser(updatedUser);
     setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   return (

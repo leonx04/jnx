@@ -14,13 +14,33 @@ interface UserWithPassword extends User {
   password: string;
 }
 
+const TOKEN_EXPIRY_TIME = 15 * 60 * 1000; // 15 phút tính bằng milliseconds
+
+const generateToken = () => {
+  return {
+    value: Math.random().toString(36).substr(2),
+    expiry: Date.now() + TOKEN_EXPIRY_TIME
+  };
+};
+
+export const isTokenValid = (token: { value: string; expiry: number }) => {
+  return token.expiry > Date.now();
+};
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
+      const parsedToken = JSON.parse(storedToken);
+      if (isTokenValid(parsedToken)) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
     }
   }, []);
 
@@ -44,7 +64,9 @@ export function useAuth() {
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const { password: _, ...userWithoutPassword } = user;
               const userWithId = { ...userWithoutPassword, id: userId };
-              sessionStorage.setItem('user', JSON.stringify(userWithId));
+              const token = generateToken();
+              localStorage.setItem('token', JSON.stringify(token));
+              localStorage.setItem('user', JSON.stringify(userWithId));
               setUser(userWithId);
               return userWithId;
             }
@@ -62,7 +84,8 @@ export function useAuth() {
   };
 
   const logout = () => {
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
@@ -72,10 +95,9 @@ export function useAuth() {
       const userRef = ref(db, `user/${user.id}`);
       await set(userRef, updatedUser);
       setUser(updatedUser);
-      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
   return { user, login, logout, updateUser };
 }
-
