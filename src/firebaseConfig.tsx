@@ -2,17 +2,18 @@ import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAC9B0uaUUzRikg2uQEt98LjHvMTG2VFSY",
-  authDomain: "jnx-store.firebaseapp.com",
-  projectId: "jnx-store",
-  storageBucket: "jnx-store.firebasestorage.app",
-  messagingSenderId: "908066479930",
-  appId: "1:908066479930:web:f68afe79b617ae370fba03",
-  measurementId: "G-D7N0HG7J3S",
-  databaseURL: "https://jnx-store-default-rtdb.firebaseio.com" // Thêm dòng này
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 export { app, database };
+
