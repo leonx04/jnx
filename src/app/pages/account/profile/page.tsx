@@ -21,6 +21,7 @@ interface UserProfile {
   imageUrl: string
   id?: string
   password?: string
+  createdAt?: string
 }
 
 interface Order {
@@ -48,7 +49,7 @@ interface Voucher {
 }
 
 export default function AccountManagement() {
-  const { user, updateUserInfo } = useAuthContext()
+  const { user, updateUserInfo } = useAuthContext() as { user: UserProfile, updateUserInfo: (profile: UserProfile) => Promise<void> }
   const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '' })
   const [encryptedPassword, setEncryptedPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -71,7 +72,8 @@ export default function AccountManagement() {
           email: userData.email,
           imageUrl: userData.imageUrl || '',
           id: user.id,
-          password: '' // Initialize with an empty string
+          password: '', // Initialize with an empty string
+          createdAt: userData.createdAt // Added createdAt
         })
         setEncryptedPassword(userData.password || '')
       }
@@ -158,7 +160,7 @@ export default function AccountManagement() {
         throw new Error('Tên không được để trống')
       }
 
-      const updatedProfile: UserProfile = { ...profile }
+      const updatedProfile: UserProfile = { ...profile, createdAt: user?.createdAt }
 
       if (previewImage) {
         const response = await fetch('/api/upload-image', {
@@ -189,7 +191,7 @@ export default function AccountManagement() {
         updatedProfile.password = encryptedPassword
       }
 
-      await updateUserInfo(updatedProfile)
+      await updateUserInfo({ ...updatedProfile, createdAt: user?.createdAt })
       setProfile(updatedProfile)
       setEncryptedPassword(updatedProfile.password)
       toast.success('Cập nhật thông tin thành công')
@@ -201,7 +203,7 @@ export default function AccountManagement() {
     } finally {
       setIsLoading(false)
     }
-  }, [profile, previewImage, updateUserInfo, encryptedPassword])
+  }, [profile, previewImage, updateUserInfo, encryptedPassword, user])
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -408,8 +410,8 @@ export default function AccountManagement() {
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-semibold">Đơn hàng #{order.id.slice(-6)}</span>
                       <span className={`text-sm font-medium px-2 py-1 rounded-full ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
+                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
                         }`}>
                         {getStatusLabel(order.status)}
                       </span>
