@@ -10,6 +10,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { ShoppingCart } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface CartItem {
@@ -123,7 +124,10 @@ export default function Cart() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-4">Giỏ hàng của bạn</h1>
       {cartItems.length === 0 ? (
-        <p>Giỏ hàng của bạn đang trống.</p>
+        <div className="flex flex-col items-center justify-center py-12">
+          <ShoppingCart size={64} className="text-gray-400 mb-4" />
+          <p className="text-xl text-gray-600">Giỏ hàng của bạn đang trống.</p>
+        </div>
       ) : (
         <>
           <div className="flex justify-between items-center mb-4">
@@ -201,8 +205,9 @@ export default function Cart() {
             </div>
             <button
               onClick={proceedToCheckout}
-              className="bg-black text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-200"
+              className="bg-black text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-800 flex items-center justify-center"
             >
+              <ShoppingCart size={20} className="mr-2" />
               Tiến hành thanh toán
             </button>
           </div>
