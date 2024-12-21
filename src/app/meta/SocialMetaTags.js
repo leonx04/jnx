@@ -3,7 +3,7 @@ import Head from 'next/head';
 const SocialMetaTags = ({
   title = 'JNX Tennis Store - High-Quality Tennis Rackets',
   description = ' JNX Tennis Store is a service that provides high-quality tennis rackets and equipment for all levels of play. We offer a wide range of professional and beginner rackets to suit your needs.',
-  image = 'src/app/favicon.ico',
+  image = 'https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico?token=GHSAT0AAAAAAC3KPI2UUCQUU3BHGCWK57L4Z3GPUIAhttps://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico',
   url = 'https://jnx-store.netlify.app',
   type = 'JNX Tennis Store'
 }) => {
