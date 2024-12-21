@@ -14,8 +14,7 @@ interface UserWithPassword extends User {
   password: string;
 }
 
-const TOKEN_EXPIRY_TIME = 15 * 60 * 1000; // 15 phút tính bằng milliseconds
-
+const TOKEN_EXPIRY_TIME = 60 * 60 * 1000; // 1 tiếng tính bằng milliseconds
 const generateToken = () => {
   return {
     value: Math.random().toString(36).substr(2),
