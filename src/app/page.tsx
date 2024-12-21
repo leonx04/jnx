@@ -2,7 +2,7 @@
 
 import { faArrowRight, faCalendarPlus, faDollarSign, faHeadset, faMoneyBillWave, faShippingFast, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { get, onValue, ref } from 'firebase/database';
+import { onValue, ref } from 'firebase/database';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { database } from '../firebaseConfig';
@@ -28,19 +28,12 @@ interface Product {
   yearReleased: number;
 }
 
-interface Voucher {
-  voucherCode: string;
-  discountValue: number;
-  discountType: 'percentage' | 'fixed';
-  isExclusive: boolean;
-}
 
 export default function Home() {
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [mostDiscountedProducts, setMostDiscountedProducts] = useState<Product[]>([]);
   const [cheapestProducts, setCheapestProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
 
   useEffect(() => {
     const productsRef = ref(database, 'products');
@@ -68,29 +61,6 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const fetchVouchers = async () => {
-      const vouchersRef = ref(database, 'vouchers');
-      const snapshot = await get(vouchersRef);
-      if (snapshot.exists()) {
-        const vouchersData = snapshot.val();
-        const publicVouchers = Object.values(vouchersData)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
-          .filter((voucher: any) => !voucher.isExclusive)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
-          .map((voucher: any) => ({
-            voucherCode: voucher.voucherCode,
-            discountValue: voucher.discountValue,
-            discountType: voucher.discountType,
-            isExclusive: voucher.isExclusive,
-          }));
-        setVouchers(publicVouchers);
-      }
-    };
-    fetchVouchers();
-  }, []);
 
   const slides = [
     {
@@ -148,25 +118,7 @@ export default function Home() {
     <div className="min-h-screen bg-white">
 
       <Carousel slides={slides} />
-      {vouchers.length > 0 && (
-        <div className="bg-black text-white py-2 overflow-hidden relative">
-          <div
-            className="whitespace-nowrap inline-block animate-marquee"
-            style={{
-              animation: 'marquee 20s linear infinite',
-            }}
-          >
-            {vouchers.concat(vouchers).map((voucher, index) => (
-              <span key={index} className="inline-block mx-4">
-                Mã: {voucher.voucherCode} - Giảm{' '}
-                {voucher.discountType === 'percentage'
-                  ? `${voucher.discountValue}%`
-                  : `${voucher.discountValue.toLocaleString()}đ`}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+
       <BestSellers />
 
       <ProductSection
@@ -237,3 +189,4 @@ export default function Home() {
     </div>
   );
 }
+
