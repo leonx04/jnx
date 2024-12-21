@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import { AuthProvider } from './context/AuthContext';
 import "./globals.css";
 import SocialMetaTags from "./meta/SocialMetaTags";
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 config.autoAddCss = false
 
@@ -46,8 +47,10 @@ export default function RootLayout({
               },
             }}
           />
+          <GoogleAnalytics gaId="G-D7N0HG7J3S" />
         </AuthProvider>
       </body>
     </html>
   );
 }
+
