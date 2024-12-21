@@ -72,8 +72,8 @@ export default function AccountManagement() {
           email: userData.email,
           imageUrl: userData.imageUrl || '',
           id: user.id,
-          password: '', // Initialize with an empty string
-          createdAt: userData.createdAt // Added createdAt
+          password: '',
+          createdAt: userData.createdAt
         })
         setEncryptedPassword(userData.password || '')
       }
@@ -109,7 +109,10 @@ export default function AccountManagement() {
           .filter(([_, voucher]: [string, any]) =>
             voucher.userId &&
             voucher.userId.includes(user.id) &&
-            (voucher.status === 'active' || voucher.status === 'incoming')
+            voucher.status === 'active' &&
+            new Date(voucher.startDate) <= new Date() &&
+            new Date(voucher.endDate) >= new Date() &&
+            (voucher.usageLimit - voucher.usedCount) > 0
           )
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           // eslint-disable-next-line
@@ -182,12 +185,10 @@ export default function AccountManagement() {
         updatedProfile.imageUrl = data.secure_url
       }
 
-      // Check if the password has been changed
       if (profile.password && profile.password !== '') {
         const salt = await bcrypt.genSalt(10)
         updatedProfile.password = await bcrypt.hash(profile.password, salt)
       } else {
-        // If password hasn't changed, use the existing encrypted password
         updatedProfile.password = encryptedPassword
       }
 
@@ -384,6 +385,9 @@ export default function AccountManagement() {
                         <CalendarIcon className="w-4 h-4 mr-1" />
                         HSD: {new Date(voucher.endDate).toLocaleDateString('vi-VN')}
                       </span>
+                    </div>
+                    <div className="text-sm text-blue-600 mt-2">
+                      Số lần sử dụng còn lại: {voucher.usageLimit - voucher.usedCount}
                     </div>
                   </div>
                 ))}
