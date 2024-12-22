@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
-import { get, onValue, ref, set } from "firebase/database"
+import { get, onValue, ref, set, push } from "firebase/database"
 import { Check, Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -319,15 +319,16 @@ export default function Checkout() {
   }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee])
 
   const createNotification = async (orderId: string, message: string) => {
-    const notificationsRef = ref(database, 'notifications')
+    const notificationsRef = ref(database, 'notifications');
+    const newNotificationRef = push(notificationsRef);
     const newNotification = {
       orderId,
       message,
       createdAt: new Date().toISOString(),
       seen: false,
-    }
-    await set(notificationsRef, newNotification)
-  }
+    };
+    await set(newNotificationRef, newNotification);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -423,8 +424,9 @@ export default function Checkout() {
       const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
       await set(orderRef, order)
 
-      // Create notification for the new order
-      await createNotification(orderRef.key as string, `Đơn hàng mới #${(orderRef.key as string).slice(-6)} từ ${order.userName}`)
+      const orderId = orderRef.key as string;
+      await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
+
 
       // Clear the cart
       const cartRef = ref(database, `carts/${user.id}`);
