@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
-import { equalTo, get, onValue, orderByChild, push, query, ref, runTransaction, set } from "firebase/database"
+import { get, onValue, ref, set } from "firebase/database"
 import { Check, Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -326,7 +326,7 @@ export default function Checkout() {
       createdAt: new Date().toISOString(),
       seen: false,
     }
-    await push(notificationsRef, newNotification)
+    await set(notificationsRef, newNotification)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -344,12 +344,6 @@ export default function Checkout() {
     }
 
     try {
-      const isStockAvailable = await checkProductStock(cartItems)
-      if (!isStockAvailable) {
-        setIsSubmitting(false);
-        return
-      }
-
       // Kiểm tra và cập nhật voucher
       if (selectedVoucher) {
         const voucherRef = ref(database, `vouchers/${selectedVoucher.id}`)
@@ -376,21 +370,15 @@ export default function Checkout() {
         }
 
         // Cập nhật voucher
-        await runTransaction(voucherRef, (voucher) => {
-          if (voucher) {
-            voucher.quantity -= 1
-            voucher.usedCount += 1
-            if (voucher.quantity === 0) {
-              voucher.status = 'expired'
-            }
-          }
-          return voucher
+        await set(voucherRef, {
+          ...currentVoucher,
+          quantity: currentVoucher.quantity - 1,
+          usedCount: currentVoucher.usedCount + 1,
+          status: currentVoucher.quantity === 1 ? 'expired' : currentVoucher.status
         })
 
         // Cập nhật số lần sử dụng voucher của người dùng
-        await runTransaction(userVoucherUsageRef, (usageCount) => {
-          return (usageCount || 0) + 1
-        })
+        await set(userVoucherUsageRef, userUsageCount + 1)
       }
 
       const order = {
@@ -442,18 +430,6 @@ export default function Checkout() {
       const cartRef = ref(database, `carts/${user.id}`);
       await set(cartRef, null);
 
-      const updateStockPromises = cartItems.map(async (item) => {
-        const productRef = ref(database, `products/${item.productId}`)
-        await runTransaction(productRef, (product) => {
-          if (product && product.availableStock !== undefined) {
-            product.availableStock -= item.quantity
-          }
-          return product
-        })
-      })
-
-      await Promise.all(updateStockPromises)
-
       if (paymentMethod === "vnpay") {
         // Implement VNPAY payment gateway integration here
         console.log("Redirecting to VNPAY payment gateway...")
@@ -475,38 +451,6 @@ export default function Checkout() {
       showToast("Đã có lỗi xảy ra. Vui lòng thử lại.", 'error')
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-  const checkProductStock = async (items: CartItem[]) => {
-    try {
-      const stockCheckPromises = items.map(async (item) => {
-        const productsRef = ref(database, "products")
-        const productQuery = query(productsRef, orderByChild("id"), equalTo(item.productId))
-        const snapshot = await get(productQuery)
-
-        if (snapshot.exists()) {
-          const productData = Object.values(snapshot.val())[0] as { availableStock: number, name: string }
-          const availableStock = productData.availableStock
-
-          if (availableStock >= item.quantity) {
-            return true
-          } else {
-            showToast(`Sản phẩm "${productData.name}" không đủ số lượng. Chỉ còn ${availableStock} sản phẩm`, 'error')
-            return false
-          }
-        } else {
-          showToast(`Không tìm thấy sản phẩm: ${item.name}`, 'error')
-          return false
-        }
-      })
-
-      const stockResults = await Promise.all(stockCheckPromises)
-      return stockResults.every(result => result)
-    } catch (error) {
-      console.error("Lỗi kiểm tra tồn kho:", error)
-      showToast("Không thể kiểm tra tồn kho. Vui lòng thử lại.", 'error')
-      return false
     }
   }
 

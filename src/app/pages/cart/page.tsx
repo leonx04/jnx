@@ -81,13 +81,13 @@ export default function Cart() {
   }
 
   const toggleSelectItem = (itemId: string) => {
-    setSelectedItems(prev => 
+    setSelectedItems(prev =>
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     )
   }
 
   const toggleSelectAll = () => {
-    setSelectedItems(prev => 
+    setSelectedItems(prev =>
       prev.length === cartItems.length ? [] : cartItems.map(item => item.id)
     )
   }
@@ -145,7 +145,7 @@ export default function Cart() {
                 onClick={removeSelectedItems}
                 className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
               >
-               <FontAwesomeIcon icon={faTrash} /> Xóa đã chọn
+                <FontAwesomeIcon icon={faTrash} /> Xóa đã chọn
               </button>
             )}
           </div>
