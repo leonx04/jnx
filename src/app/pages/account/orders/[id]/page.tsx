@@ -353,6 +353,7 @@ export default function OrderDetail() {
     await fetchReviews();
     setShowBulkReviewDialog(false);
 
+    // Tạo một thông báo duy nhất sau khi tất cả sản phẩm đã được đánh giá
     await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
     await updateOrderStatusHistory('reviewed');
     await fetchOrder();
