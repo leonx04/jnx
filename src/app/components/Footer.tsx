@@ -66,7 +66,7 @@ const Footer = () => {
             <p className="mt-4 text-base text-gray-300">
               Nhận thông tin về sản phẩm mới, khuyến mãi và mẹo chơi tennis hàng tuần.
             </p>
-            <form className="mt-4 sm:flex sm:max-w-md" netlify>
+            <form className="mt-4 sm:flex sm:max-w-md" >
               <label htmlFor="email-address" className="sr-only">
                 Địa chỉ email
               </label>
