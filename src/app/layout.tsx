@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import Footer from "./components/Footer";
 import LoadingIndicator from "./components/LoadingIndicator";
 import Navbar from "./components/Navbar";
+import TawkChat from '@/app/utils/TawkChat';
 import VoucherDisplay from "./components/VoucherDisplay";
 import { AuthProvider } from './context/AuthContext';
 import "./globals.css";
@@ -68,6 +69,7 @@ export default function RootLayout({
             }}
           />
           <GoogleAnalytics gaId="G-D7N0HG7J3S" />
+          <TawkChat />
         </AuthProvider>
       </body>
     </html>
