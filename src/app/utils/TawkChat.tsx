@@ -5,7 +5,11 @@ import { useEffect } from 'react'
 export default function TawkChat() {
     useEffect(() => {
         // Initialize Tawk.to script
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         var Tawk_API = (window.Tawk_API = window.Tawk_API || {})
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         var Tawk_LoadStart = new Date()
 
         const s1 = document.createElement('script')
