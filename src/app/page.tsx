@@ -170,7 +170,7 @@ export default function Home() {
           <p className="text-center mb-6 max-w-2xl mx-auto">
             Đăng ký để nhận thông tin mới nhất về sản phẩm, khuyến mãi độc quyền và các sự kiện tennis
           </p>
-          <form className="max-w-xl mx-auto flex flex-col md:flex-row gap-4">
+          <form className="max-w-xl mx-auto flex flex-col md:flex-row gap-4" netlify>
             <input
               type="email"
               placeholder="Nhập địa chỉ email của bạn"
