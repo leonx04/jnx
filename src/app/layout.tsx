@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   keywords: ['tennis rackets', 'tennis equipment', 'professional rackets', 'beginner rackets'],
   authors: [{ name: 'JNX Tennis Store' }],
   icons: {
-    icon: '/favicon.ico',
+    icon: 'https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico',
   },
 };
 
