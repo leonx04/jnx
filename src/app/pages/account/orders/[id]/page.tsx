@@ -428,9 +428,9 @@ export default function OrderDetail() {
           <div className="mt-4 font-bold text-lg">
             <strong>Tổng thanh toán:</strong> {order.total.toLocaleString("vi-VN")} ₫
           </div>
-          {order.discount && (
+          {order.discount ? (
             <p className="text-sm text-gray-500">(Đã bao gồm giảm giá {order.discount.toLocaleString("vi-VN")} ₫)</p>
-          )}
+          ) : null}
 
           {order.status === 'shipped' && (
             <Button onClick={handleConfirmDelivery} className="mt-4">

@@ -1,7 +1,7 @@
 'use client';
 
+import { onValue, ref } from 'firebase/database';
 import { useEffect, useState } from 'react';
-import { get, ref } from 'firebase/database';
 import { database } from '../../firebaseConfig';
 
 interface Voucher {
@@ -9,39 +9,48 @@ interface Voucher {
     discountValue: number;
     discountType: 'percentage' | 'fixed';
     isExclusive: boolean;
+    status: string;
+    startDate: string;
+    endDate: string;
 }
 
 export default function VoucherDisplay() {
     const [vouchers, setVouchers] = useState<Voucher[]>([]);
 
     useEffect(() => {
-        const fetchVouchers = async () => {
-            const vouchersRef = ref(database, 'vouchers');
-            const snapshot = await get(vouchersRef);
+        const vouchersRef = ref(database, 'vouchers');
+        const unsubscribe = onValue(vouchersRef, (snapshot) => {
             if (snapshot.exists()) {
                 const vouchersData = snapshot.val();
-                const publicVouchers = Object.values(vouchersData)
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    // eslint-disable-next-line
-                    .filter((voucher: any) => !voucher.isExclusive)
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    // eslint-disable-next-line
-                    .map((voucher: any) => ({
+                const currentDate = new Date();
+                const activeVouchers = (Object.values(vouchersData) as Voucher[])
+                    .filter((voucher) =>
+                        !voucher.isExclusive &&
+                        voucher.status === 'active' &&
+                        new Date(voucher.startDate) <= currentDate &&
+                        new Date(voucher.endDate) >= currentDate
+                    )
+                    .map((voucher) => ({
                         voucherCode: voucher.voucherCode,
                         discountValue: voucher.discountValue,
                         discountType: voucher.discountType,
                         isExclusive: voucher.isExclusive,
+                        status: voucher.status,
+                        startDate: voucher.startDate,
+                        endDate: voucher.endDate,
                     }));
-                setVouchers(publicVouchers);
+                setVouchers(activeVouchers);
             }
-        };
-        fetchVouchers();
+        });
+
+        // Cleanup function to unsubscribe from the listener when the component unmounts
+        return () => unsubscribe();
     }, []);
 
     if (vouchers.length === 0) return null;
 
     return (
-        <div className="bg-black text-white py-2 overflow-hidden relative ">
+        <div className="bg-black text-white py-2 overflow-hidden relative">
             <div
                 className="whitespace-nowrap inline-block animate-marquee"
                 style={{
