@@ -63,7 +63,7 @@ export default function VoucherDisplay() {
             <div
                 className="whitespace-nowrap inline-block animate-marquee"
                 style={{
-                    animation: 'marquee 20s linear infinite',
+                    animation: 'marquee 40s linear infinite',
                 }}
             >
                 {vouchers.concat(vouchers).map((voucher, index) => (
