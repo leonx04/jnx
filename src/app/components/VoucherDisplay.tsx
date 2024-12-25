@@ -49,6 +49,15 @@ export default function VoucherDisplay() {
 
     if (vouchers.length === 0) return null;
 
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
     return (
         <div className="bg-black text-white py-2 overflow-hidden relative">
             <div
@@ -59,14 +68,15 @@ export default function VoucherDisplay() {
             >
                 {vouchers.concat(vouchers).map((voucher, index) => (
                     <span key={index} className="inline-block mx-4">
-                        Mã: {voucher.voucherCode} - Giảm{' '}
-                        {voucher.discountType === 'percentage'
-                            ? `${voucher.discountValue}%`
-                            : `${voucher.discountValue.toLocaleString()}đ`}
+                        <span key={index} className="inline-block mx-4">
+                            Thẻ giảm giá: {voucher.voucherCode} - Giảm{' '}
+                            {voucher.discountType === 'percentage'
+                                ? `${voucher.discountValue}%`
+                                : formatCurrency(voucher.discountValue)}
+                        </span>
                     </span>
                 ))}
             </div>
         </div>
     );
 }
-
