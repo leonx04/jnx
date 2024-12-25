@@ -33,6 +33,7 @@ import { useAuthContext } from '@/app/context/AuthContext'
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { database } from '@/firebaseConfig'
+import RelatedProducts from '@/app/components/RelatedProducts'
 
 interface Product {
   id: string;
@@ -433,6 +434,13 @@ export default function ProductDetails() {
           </Card>
         </TabsContent>
       </Tabs>
+      {product && (
+        <RelatedProducts
+          currentProductId={product.id}
+          currentProductBrand={product.brand || ''}
+          currentProductCategory={product.category || ''}
+        />
+      )}
     </div>
   )
 }
