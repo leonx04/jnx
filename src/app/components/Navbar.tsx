@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faRightToBracket, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faBlog, faRightToBracket, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -177,7 +177,8 @@ const Navbar = () => {
           <div className="ml-10 flex items-baseline space-x-4">
             <NavLink href="/">Trang chủ</NavLink>
             <NavLink href="/pages/products">Sản phẩm</NavLink>
-            <NavLink href="/pages/about">Giới thiệu</NavLink>
+            <NavLink href="/pages/blogs">Blogs</NavLink>
+            <NavLink href="/pages/about">Về chúng tôi</NavLink>
           </div>
         </div>
         <div className="flex items-center space-x-4">
@@ -411,6 +412,7 @@ const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; 
       <nav className="space-y-2">
         <MobileNavItem href="/" icon={faHome} onClick={onClose}>Trang chủ</MobileNavItem>
         <MobileNavItem href="/pages/products" icon={faBox} onClick={onClose}>Sản phẩm</MobileNavItem>
+        <MobileNavItem href="/pages/blogs" icon={faBlog} onClick={onClose}>Blogs</MobileNavItem>
         <MobileNavItem href="/pages/about" icon={faInfoCircle} onClick={onClose}>Giới thiệu</MobileNavItem>
 
         {user ? (
