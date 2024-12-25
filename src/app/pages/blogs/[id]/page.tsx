@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { database } from '@/firebaseConfig'
-import { Editor } from '@tinymce/tinymce-react'
 import { onValue, ref } from 'firebase/database'
 import { CalendarIcon, UserIcon } from 'lucide-react'
 import Image from 'next/image'
@@ -67,20 +66,21 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                 &larr; Quay lại danh sách bài viết
             </Button>
             <Card className="overflow-hidden">
-                <div className="md:flex">
-                    <div className="md:w-1/3">
-                        <div className="relative h-64 md:h-full">
+                <div className="md:flex md:items-start">
+                    <div className="md:w-1/3 p-4">
+                        <div className="relative w-full pt-[75%]">
                             <Image
                                 src={blogPost.imageUrl || '/placeholder.svg'}
                                 alt={blogPost.title}
                                 layout="fill"
-                                objectFit="cover"
+                                objectFit="contain"
+                                className="absolute top-0 left-0 w-full h-full"
                             />
                         </div>
                     </div>
                     <div className="md:w-2/3">
                         <CardHeader>
-                            <CardTitle className="text-3xl mb-2">{blogPost.title}</CardTitle>
+                            <CardTitle className="text-2xl md:text-3xl mb-2">{blogPost.title}</CardTitle>
                             <CardDescription className="flex items-center space-x-4 text-sm text-gray-500">
                                 <span className="flex items-center">
                                     <UserIcon className="mr-1 h-4 w-4" />
@@ -92,25 +92,12 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                                 </span>
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="prose max-w-none">
-                                <Editor
-                                    apiKey="cmj5p60uvixd7y0x0iti6mxger3oixjocnciurpugwt6oezv"
-                                    initialValue={blogPost.content}
-                                    init={{
-                                        height: 500,
-                                        menubar: false,
-                                        plugins: [],
-                                        toolbar: false,
-                                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif; font-size: 16px; line-height: 1.6; }',
-                                        disabled: true
-                                    }}
-                                />
-                            </div>
-                        </CardContent>
                     </div>
                 </div>
-                <CardFooter className="bg-gray-50 mt-6">
+                <CardContent className="prose max-w-none px-4 py-6">
+                    <div dangerouslySetInnerHTML={{ __html: blogPost.content }} />
+                </CardContent>
+                <CardFooter className="bg-gray-50">
                     <Button onClick={() => router.push('/pages/blogs')} className="w-full">
                         Quay lại danh sách bài viết
                     </Button>
