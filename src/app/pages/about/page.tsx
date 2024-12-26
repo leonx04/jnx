@@ -19,7 +19,7 @@ export default function About() {
         </div>
         <div className="relative h-[400px] w-full max-w-[400px] mx-auto">
           <Image
-            src="https://scontent.fhan17-1.fna.fbcdn.net/v/t39.30808-6/471300448_986822023488080_7111729637380421990_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=P4npL3jSWGQQ7kNvgEvlUfJ&_nc_oc=AdgQECd9WWURtcIipQfoK1uNQr1RylKPiqpNUFwxSsIwcNtLZBLEqhRHF0hZeAtyFBA&_nc_zt=23&_nc_ht=scontent.fhan17-1.fna&_nc_gid=AQO-Zwp16Nzr_U2Y8hanAM5&oh=00_AYD94Csm4v8fS7VhgErsYdglt1oMKFda45uG7bQ-8NnMWA&oe=676C2FC9"
+            src="https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico"
             alt="JNX Tennis Store"
             layout="fill"
             objectFit="contain"
