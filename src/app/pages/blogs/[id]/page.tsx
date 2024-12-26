@@ -3,11 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { database } from '@/firebaseConfig'
-import { onValue, ref } from 'firebase/database'
-import { CalendarIcon, UserIcon } from 'lucide-react'
+import { onValue, ref, update } from 'firebase/database'
+import { CalendarIcon, UserIcon, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
+import { CommentSection } from '@/app/components/CommentSection'
+import { LikeDislikeButtons } from '@/app/components/LikeDislikeButtons'
+import { Separator } from "@/components/ui/separator"
 
 interface BlogPost {
     id: string
@@ -16,6 +19,9 @@ interface BlogPost {
     imageUrl: string
     author: string
     createdAt: string
+    likeCount: number
+    dislikeCount: number
+    commentCount: number
 }
 
 export default function BlogDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -39,6 +45,20 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
 
         return () => unsubscribe()
     }, [id])
+
+    const handleLikeDislike = async (action: 'like' | 'dislike') => {
+        if (!blogPost) return
+
+        const updates: Partial<BlogPost> = {}
+        if (action === 'like') {
+            updates.likeCount = (blogPost.likeCount || 0) + 1
+        } else {
+            updates.dislikeCount = (blogPost.dislikeCount || 0) + 1
+        }
+
+        const blogPostRef = ref(database, `blogPosts/${id}`)
+        await update(blogPostRef, updates)
+    }
 
     if (loading) {
         return (
@@ -65,7 +85,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
             <Button onClick={() => router.push('/pages/blogs')} className="mb-4">
                 &larr; Quay lại danh sách bài viết
             </Button>
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden shadow-lg">
                 <div className="md:flex md:items-start">
                     <div className="md:w-1/3 p-4">
                         <div className="relative w-full pt-[75%]">
@@ -73,8 +93,8 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                                 src={blogPost.imageUrl || '/placeholder.svg'}
                                 alt={blogPost.title}
                                 layout="fill"
-                                objectFit="contain"
-                                className="absolute top-0 left-0 w-full h-full"
+                                objectFit="cover"
+                                className="absolute top-0 left-0 w-full h-full rounded-lg"
                             />
                         </div>
                     </div>
@@ -97,10 +117,21 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                 <CardContent className="prose max-w-none px-4 py-6">
                     <div dangerouslySetInnerHTML={{ __html: blogPost.content }} />
                 </CardContent>
-                <CardFooter className="bg-gray-50">
-                    <Button onClick={() => router.push('/pages/blogs')} className="w-full">
-                        Quay lại danh sách bài viết
-                    </Button>
+                <Separator className="my-4" />
+                <CardFooter className="flex flex-col items-start space-y-4 bg-gray-50 p-4">
+                    <div className="flex items-center justify-between w-full">
+                        <LikeDislikeButtons
+                            likeCount={blogPost.likeCount}
+                            dislikeCount={blogPost.dislikeCount}
+                            onLike={() => handleLikeDislike('like')}
+                            onDislike={() => handleLikeDislike('dislike')}
+                        />
+                        <div className="flex items-center space-x-2">
+                            <MessageCircle className="h-5 w-5 text-gray-500" />
+                            <span className="text-sm text-gray-500">{blogPost.commentCount || 0} bình luận</span>
+                        </div>
+                    </div>
+                    <CommentSection blogPostId={id} />
                 </CardFooter>
             </Card>
         </div>
