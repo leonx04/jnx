@@ -1,5 +1,7 @@
 "use client"
 
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
 import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -85,6 +87,10 @@ export default function OrderDetail() {
   const params = useParams()
   const router = useRouter()
   const orderId = params.id as string
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState<string | undefined>(undefined);
+  const [otherReason, setOtherReason] = useState("");
+
 
   const fetchOrder = useCallback(async () => {
     if (!user?.id) {
@@ -287,6 +293,24 @@ export default function OrderDetail() {
     }
   }
 
+  const handleCancelOrder = async () => {
+    if (!user?.id || !order) return;
+
+    try {
+      const orderRef = ref(database, `orders/${user.id}/${order.id}`);
+      await update(orderRef, { status: 'cancelled', cancelReason, otherReason });
+      setOrder({ ...order, status: 'cancelled' });
+      toast.success('Đơn hàng đã được hủy thành công');
+      await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng hủy`);
+      await updateOrderStatusHistory('cancelled', cancelReason || otherReason || 'Khách hàng hủy đơn');
+      await fetchOrder();
+      setShowCancelDialog(false);
+    } catch (error) {
+      console.error('Lỗi khi hủy đơn hàng:', error);
+      toast.error('Không thể hủy đơn hàng. Vui lòng thử lại sau.');
+    }
+  }
+
   const renderVoucherDetails = () => {
     if (!order?.voucher) return null;
 
@@ -437,6 +461,11 @@ export default function OrderDetail() {
               Xác nhận đã nhận hàng
             </Button>
           )}
+          {order.status === 'pending' && (
+            <Button onClick={() => setShowCancelDialog(true)} className="mt-4 bg-red-500 hover:bg-red-600 text-white">
+              Hủy đơn hàng
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -565,6 +594,48 @@ export default function OrderDetail() {
               <Button onClick={() => setShowBulkReviewDialog(false)}>Hủy</Button>
               <Button onClick={handleBulkReview}>Đánh giá tất cả</Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hủy đơn hàng</DialogTitle>
+            <DialogDescription>
+              Vui lòng chọn lý do hủy đơn hàng
+            </DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={cancelReason} onValueChange={setCancelReason}>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="changed_mind" id="changed_mind" />
+              <Label htmlFor="changed_mind">Tôi đổi ý, không muốn mua nữa</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="found_better_deal" id="found_better_deal" />
+              <Label htmlFor="found_better_deal">Tìm thấy sản phẩm tốt hơn ở nơi khác</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="financial_reasons" id="financial_reasons" />
+              <Label htmlFor="financial_reasons">Lý do tài chính</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="other" id="other" />
+              <Label htmlFor="other">Lý do khác</Label>
+            </div>
+          </RadioGroup>
+          {cancelReason === "other" && (
+            <Textarea
+              value={otherReason}
+              onChange={(e) => setOtherReason(e.target.value)}
+              placeholder="Nhập lý do hủy đơn hàng"
+              className="mt-2"
+            />
+          )}
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button onClick={() => setShowCancelDialog(false)} variant="outline">Hủy</Button>
+            <Button onClick={handleCancelOrder} disabled={!cancelReason || (cancelReason === "other" && !otherReason)}>
+              Xác nhận hủy đơn
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
