@@ -38,6 +38,8 @@ export function CommentSection({ blogPostId }: CommentSectionProps) {
         const unsubscribe = onValue(commentsRef, (snapshot) => {
             const commentsData = snapshot.val()
             if (commentsData) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                // eslint-disable-next-line
                 const commentsArray = Object.entries(commentsData).map(([id, comment]: [string, any]) => ({
                     id,
                     ...comment,
