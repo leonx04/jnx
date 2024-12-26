@@ -1,17 +1,17 @@
 'use client'
 
+import { CommentSection } from '@/app/components/CommentSection'
+import { LikeDislikeButtons } from '@/app/components/LikeDislikeButtons'
+import { useAuthContext } from '@/app/context/AuthContext'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { database } from '@/firebaseConfig'
-import { onValue, ref, update, get, runTransaction } from 'firebase/database'
-import { CalendarIcon, UserIcon, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react'
+import { onValue, ref, runTransaction } from 'firebase/database'
+import { CalendarIcon, MessageCircle, UserIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
-import { CommentSection } from '@/app/components/CommentSection'
-import { LikeDislikeButtons } from '@/app/components/LikeDislikeButtons'
-import { Separator } from "@/components/ui/separator"
-import { useAuthContext } from '@/app/context/AuthContext'
 import { toast } from 'react-hot-toast'
 
 interface BlogPost {

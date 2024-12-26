@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { database } from '@/firebaseConfig'
-import { onValue, push, ref, serverTimestamp } from 'firebase/database'
+import { useAuthContext } from '@/app/context/AuthContext'
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuthContext } from '@/app/context/AuthContext'
-import { toast } from 'react-hot-toast'
+import { database } from '@/firebaseConfig'
+import { child, onValue, push, ref, runTransaction, serverTimestamp } from 'firebase/database'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'react-hot-toast'
 
 interface Comment {
     id: string
@@ -62,15 +62,34 @@ export function CommentSection({ blogPostId }: CommentSectionProps) {
 
         if (!newComment.trim()) return
 
-        const commentsRef = ref(database, `blogPosts/${blogPostId}/comments`)
-        await push(commentsRef, {
-            content: newComment,
-            author: user.name || 'Anonymous',
-            authorId: user.id,
-            createdAt: serverTimestamp(),
-        })
+        const blogPostRef = ref(database, `blogPosts/${blogPostId}`)
 
-        setNewComment('')
+        try {
+            await runTransaction(blogPostRef, (post) => {
+                if (post) {
+                    if (!post.comments) {
+                        post.comments = {}
+                    }
+                    const newCommentKey = push(child(blogPostRef, 'comments')).key
+                    if (newCommentKey) {
+                        post.comments[newCommentKey] = {
+                            content: newComment,
+                            author: user.name || 'Anonymous',
+                            authorId: user.id,
+                            createdAt: serverTimestamp(),
+                        }
+                    }
+                    post.commentCount = (post.commentCount || 0) + 1
+                }
+                return post
+            })
+
+            setNewComment('')
+            toast.success('Bình luận đã được thêm')
+        } catch (error) {
+            console.error('Error adding comment:', error)
+            toast.error('Có lỗi xảy ra khi thêm bình luận')
+        }
     }
 
     return (
