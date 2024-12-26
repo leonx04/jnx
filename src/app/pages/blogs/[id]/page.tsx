@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { database } from '@/firebaseConfig'
-import { onValue, ref, update } from 'firebase/database'
+import { onValue, ref, update, get, runTransaction } from 'firebase/database'
 import { CalendarIcon, UserIcon, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -11,6 +11,8 @@ import { use, useEffect, useState } from 'react'
 import { CommentSection } from '@/app/components/CommentSection'
 import { LikeDislikeButtons } from '@/app/components/LikeDislikeButtons'
 import { Separator } from "@/components/ui/separator"
+import { useAuthContext } from '@/app/context/AuthContext'
+import { toast } from 'react-hot-toast'
 
 interface BlogPost {
     id: string
@@ -19,9 +21,11 @@ interface BlogPost {
     imageUrl: string
     author: string
     createdAt: string
-    likeCount: number
-    dislikeCount: number
-    commentCount: number
+    likeCount?: number
+    dislikeCount?: number
+    commentCount?: number
+    likes?: { [userId: string]: boolean }
+    dislikes?: { [userId: string]: boolean }
 }
 
 export default function BlogDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +33,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
     const [blogPost, setBlogPost] = useState<BlogPost | null>(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
+    const { user } = useAuthContext()
 
     useEffect(() => {
         const blogPostRef = ref(database, `blogPosts/${id}`)
@@ -47,17 +52,45 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
     }, [id])
 
     const handleLikeDislike = async (action: 'like' | 'dislike') => {
-        if (!blogPost) return
-
-        const updates: Partial<BlogPost> = {}
-        if (action === 'like') {
-            updates.likeCount = (blogPost.likeCount || 0) + 1
-        } else {
-            updates.dislikeCount = (blogPost.dislikeCount || 0) + 1
+        if (!user) {
+            toast.error('Vui lòng đăng nhập để thực hiện hành động này')
+            router.push('/pages/login')
+            return
         }
 
+        if (!blogPost) return
+
         const blogPostRef = ref(database, `blogPosts/${id}`)
-        await update(blogPostRef, updates)
+
+        await runTransaction(blogPostRef, (currentPost) => {
+            if (!currentPost) {
+                return null
+            }
+
+            const oppositeAction = action === 'like' ? 'dislike' : 'like'
+
+            // Ensure the action fields exist
+            if (!currentPost[`${action}s`]) currentPost[`${action}s`] = {}
+            if (!currentPost[`${oppositeAction}s`]) currentPost[`${oppositeAction}s`] = {}
+
+            if (user?.id && currentPost[`${action}s`]?.[user.id]) {
+                // User is un-liking or un-disliking
+                currentPost[`${action}Count`] = ((currentPost[`${action}Count`] || 0) - 1) || 0
+                currentPost[`${action}s`][user.id] = null
+            } else if (user?.id) {
+                // User is liking or disliking
+                currentPost[`${action}Count`] = (currentPost[`${action}Count`] || 0) + 1
+                currentPost[`${action}s`][user.id] = true
+
+                // Remove opposite action if exists
+                if (currentPost[`${oppositeAction}s`]?.[user.id]) {
+                    currentPost[`${oppositeAction}Count`] = ((currentPost[`${oppositeAction}Count`] || 0) - 1) || 0
+                    currentPost[`${oppositeAction}s`][user.id] = null
+                }
+            }
+
+            return currentPost
+        })
     }
 
     if (loading) {
@@ -121,10 +154,12 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                 <CardFooter className="flex flex-col items-start space-y-4 bg-gray-50 p-4">
                     <div className="flex items-center justify-between w-full">
                         <LikeDislikeButtons
-                            likeCount={blogPost.likeCount}
-                            dislikeCount={blogPost.dislikeCount}
+                            likeCount={blogPost.likeCount || 0}
+                            dislikeCount={blogPost.dislikeCount || 0}
                             onLike={() => handleLikeDislike('like')}
                             onDislike={() => handleLikeDislike('dislike')}
+                            userLiked={user && user.id ? blogPost.likes?.[user.id] || false : false}
+                            userDisliked={user && user.id ? blogPost.dislikes?.[user.id] || false : false}
                         />
                         <div className="flex items-center space-x-2">
                             <MessageCircle className="h-5 w-5 text-gray-500" />
