@@ -9,6 +9,7 @@ import { database } from '../firebaseConfig';
 import BestSellers from './components/BestSellers';
 import Carousel from './components/Carousel';
 import CustomerReviews from './components/CustomerReviews';
+import FeaturedBlogs from './components/FeaturedBlogs';
 import ProductCard from './components/ProductCard';
 import ProductCardSkeleton from './components/ProductCardSkeleton';
 import TennisTips from './components/TennisTips';
@@ -164,6 +165,8 @@ export default function Home() {
 
       <TennisTips />
 
+      <FeaturedBlogs />
+
       <section className="my-16 bg-black py-12 text-white">
         <div className="container-custom">
           <h2 className="section-title text-white">Đăng Ký Nhận Tin</h2>
@@ -189,4 +192,3 @@ export default function Home() {
     </div>
   );
 }
-
