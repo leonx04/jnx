@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
 import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { get, push, ref, serverTimestamp, update } from "firebase/database"
+import { get, push, ref, runTransaction, serverTimestamp, update } from "firebase/database"
 import { ArrowLeft, CheckCircle, Clock, Package, Tag, Truck, XCircle } from 'lucide-react'
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
@@ -58,7 +58,7 @@ interface Order {
     maxDiscountAmount?: number
   }
   discount?: number
-  cancelReason?: string;
+  cancelReason?: string
 }
 
 interface Review {
@@ -88,10 +88,9 @@ export default function OrderDetail() {
   const params = useParams()
   const router = useRouter()
   const orderId = params.id as string
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelReason, setCancelReason] = useState<string | undefined>(undefined);
-  const [otherReason, setOtherReason] = useState("");
-
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [cancelReason, setCancelReason] = useState<string | undefined>(undefined)
+  const [otherReason, setOtherReason] = useState("")
 
   const fetchOrder = useCallback(async () => {
     if (!user?.id) {
@@ -135,7 +134,7 @@ export default function OrderDetail() {
   }, [user, orderId])
 
   const fetchReviews = useCallback(async () => {
-    if (!order || !order.items || !Array.isArray(order.items)) return;
+    if (!order || !order.items || !Array.isArray(order.items)) return
 
     const reviewPromises = order.items.map(async (item) => {
       const reviewRef = ref(database, `reviews/${item.productId}`)
@@ -230,67 +229,67 @@ export default function OrderDetail() {
   }
 
   const createNotification = async (message: string) => {
-    const notificationsRef = ref(database, 'notifications');
+    const notificationsRef = ref(database, 'notifications')
     await push(notificationsRef, {
       orderId: order?.id,
       message,
       createdAt: serverTimestamp(),
       seen: false
-    });
-  };
+    })
+  }
 
   const updateOrderStatusHistory = async (newStatus: string, reason?: string) => {
-    const historyRef = ref(database, `orderStatusHistory/${orderId}/${Date.now()}`);
+    const historyRef = ref(database, `orderStatusHistory/${orderId}/${Date.now()}`)
     await update(historyRef, {
       status: newStatus,
       timestamp: serverTimestamp(),
       updatedBy: user?.id || 'Khách hàng',
       reason: reason || ''
-    });
-  };
+    })
+  }
 
   const handleReviewSubmitted = async (productId: string) => {
-    await fetchReviews();
+    await fetchReviews()
 
-    const updatedOrder = { ...order! };
+    const updatedOrder = { ...order! }
     updatedOrder.items = updatedOrder.items.map(item =>
       item.productId === productId ? { ...item, reviewed: true } : item
-    );
+    )
 
-    const allReviewed = updatedOrder.items.every(item => item.reviewed);
+    const allReviewed = updatedOrder.items.every(item => item.reviewed)
     if (allReviewed) {
-      updatedOrder.status = 'reviewed';
-      const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
-      await update(orderRef, { status: 'reviewed', items: updatedOrder.items });
-      await createNotification(`Đơn hàng #${order?.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
-      await updateOrderStatusHistory('reviewed');
+      updatedOrder.status = 'reviewed'
+      const orderRef = ref(database, `orders/${user?.id}/${order?.id}`)
+      await update(orderRef, { status: 'reviewed', items: updatedOrder.items })
+      await createNotification(`Đơn hàng #${order?.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`)
+      await updateOrderStatusHistory('reviewed')
     } else {
-      const orderRef = ref(database, `orders/${user?.id}/${order?.id}`);
-      await update(orderRef, { items: updatedOrder.items });
+      const orderRef = ref(database, `orders/${user?.id}/${order?.id}`)
+      await update(orderRef, { items: updatedOrder.items })
     }
 
-    setOrder(updatedOrder);
-    await fetchOrder();
+    setOrder(updatedOrder)
+    await fetchOrder()
 
     if (allReviewed) {
-      toast.success('Tất cả sản phẩm đã được đánh giá. Cảm ơn bạn!');
+      toast.success('Tất cả sản phẩm đã được đánh giá. Cảm ơn bạn!')
     }
   }
 
   const handleConfirmDelivery = async () => {
-    if (!user?.id || !order) return;
+    if (!user?.id || !order) return
 
     try {
-      const orderRef = ref(database, `orders/${user.id}/${order.id}`);
-      await update(orderRef, { status: 'delivered' });
-      setOrder({ ...order, status: 'delivered' });
-      toast.success('Đã xác nhận nhận hàng thành công');
-      await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng xác nhận nhận hàng`);
-      await updateOrderStatusHistory('delivered');
-      await fetchOrder();
+      const orderRef = ref(database, `orders/${user.id}/${order.id}`)
+      await update(orderRef, { status: 'delivered' })
+      setOrder({ ...order, status: 'delivered' })
+      toast.success('Đã xác nhận nhận hàng thành công')
+      await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng xác nhận nhận hàng`)
+      await updateOrderStatusHistory('delivered')
+      await fetchOrder()
     } catch (error) {
-      console.error('Lỗi khi xác nhận nhận hàng:', error);
-      toast.error('Không thể xác nhận nhận hàng. Vui lòng thử lại sau.');
+      console.error('Lỗi khi xác nhận nhận hàng:', error)
+      toast.error('Không thể xác nhận nhận hàng. Vui lòng thử lại sau.')
     }
   }
 
@@ -304,7 +303,61 @@ export default function OrderDetail() {
 
     try {
       const orderRef = ref(database, `orders/${user.id}/${order.id}`);
-      await update(orderRef, { status: 'cancelled', cancelReason: finalReason });
+
+      // Start a transaction to update both the order and the voucher
+      await runTransaction(ref(database), (currentData) => {
+        if (!currentData) {
+          throw new Error("Không thể truy cập dữ liệu. Vui lòng thử lại sau.");
+        }
+
+        // Ensure the orders object exists
+        if (!currentData.orders) {
+          currentData.orders = {};
+        }
+        if (user?.id && !currentData.orders[user.id]) {
+          currentData.orders[user.id] = {};
+        }
+        if (user?.id && !currentData.orders[user.id][order.id]) {
+          currentData.orders[user.id][order.id] = {};
+        }
+
+        // Update order status
+        if (user?.id && order?.id) {
+          currentData.orders[user.id][order.id].status = 'cancelled';
+        }
+        if (user?.id && order?.id) {
+          currentData.orders[user.id][order.id].cancelReason = finalReason || '';
+        }
+
+        // Update voucher usedCount if the order used a voucher
+        if (order.voucher) {
+          const voucherId = order.voucher.id;
+          if (!currentData.vouchers) {
+            currentData.vouchers = {};
+          }
+          if (!currentData.vouchers[voucherId]) {
+            currentData.vouchers[voucherId] = {};
+          }
+          currentData.vouchers[voucherId].usedCount = Math.max((currentData.vouchers[voucherId].usedCount || 0) - 1, 0);
+
+          // Update user voucher usage
+          if (!currentData.userVoucherUsage) {
+            currentData.userVoucherUsage = {};
+          }
+          if (user?.id && !currentData.userVoucherUsage[user.id]) {
+            currentData.userVoucherUsage[user.id] = {};
+          }
+          if (user?.id && !currentData.userVoucherUsage[user.id][voucherId]) {
+            currentData.userVoucherUsage[user.id][voucherId] = 0;
+          }
+          if (user?.id) {
+            currentData.userVoucherUsage[user.id][voucherId] = Math.max((currentData.userVoucherUsage[user.id][voucherId] || 0) - 1, 0);
+          }
+        }
+
+        return currentData;
+      });
+
       setOrder({ ...order, status: 'cancelled', cancelReason: finalReason || '' });
       toast.success('Đơn hàng đã được hủy thành công');
       await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng hủy`);
@@ -318,12 +371,12 @@ export default function OrderDetail() {
   }
 
   const renderVoucherDetails = () => {
-    if (!order?.voucher) return null;
+    if (!order?.voucher) return null
 
-    const discountAmount = order.discount || 0;
+    const discountAmount = order.discount || 0
     const discountTypeLabel = order.voucher.discountType === 'percentage'
       ? `${order.voucher.discountValue}%`
-      : `${order.voucher.discountValue.toLocaleString('vi-VN')} ₫`;
+      : `${order.voucher.discountValue.toLocaleString('vi-VN')} ₫`
 
     return (
       <div className="flex items-center space-x-2 mt-2 bg-blue-50 p-2 rounded-md">
@@ -383,7 +436,6 @@ export default function OrderDetail() {
     await fetchReviews();
     setShowBulkReviewDialog(false);
 
-    // Tạo một thông báo duy nhất sau khi tất cả sản phẩm đã được đánh giá
     await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng đánh giá đầy đủ`);
     await updateOrderStatusHistory('reviewed');
     await fetchOrder();
