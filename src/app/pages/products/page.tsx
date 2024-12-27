@@ -61,9 +61,9 @@ export default function ProductsPage() {
       .filter(product =>
         product.name.toLowerCase().includes(filter.toLowerCase()) &&
         (brandFilter.length === 0 || brandFilter.includes(product.brand)) &&
-        (saleFilter === 'all' || 
-         (saleFilter === 'sale' && product.salePrice < product.price) ||
-         (saleFilter === 'regular' && product.salePrice >= product.price))
+        (saleFilter === 'all' ||
+          (saleFilter === 'sale' && product.salePrice < product.price) ||
+          (saleFilter === 'regular' && product.salePrice >= product.price))
       )
       .sort((a, b) => {
         switch (sortOption) {
@@ -93,7 +93,7 @@ export default function ProductsPage() {
   }, [filteredAndSortedProducts, currentPage])
 
   const handleBrandFilterChange = useCallback((brand: string) => {
-    setBrandFilter(prev => 
+    setBrandFilter(prev =>
       prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
     )
     setCurrentPage(1)

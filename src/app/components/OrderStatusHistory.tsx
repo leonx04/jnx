@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Package, Star, Truck, XCircle } from 'lucide-react'
+import { CheckCircle, Clock, Package, Star, Truck, XCircle, Container } from 'lucide-react'
 import React from 'react'
 
 interface OrderHistory {
@@ -21,8 +21,9 @@ const getStatusIcon = (status: string) => {
     case "processing":
       return <Package className="w-6 h-6" />
     case "shipping":
-    case "shipped":
       return <Truck className="w-6 h-6" />
+    case "shipped":
+      return <Container className="w-6 h-6" />
     case "delivered":
       return <CheckCircle className="w-6 h-6" />
     case "reviewed":
@@ -66,6 +67,16 @@ const getStatusLabel = (status: string) => {
   return statusMap[status.toLowerCase()] || status
 }
 
+const getCancellationReasonLabel = (reason: string) => {
+  const reasonMap: { [key: string]: string } = {
+    "changed_mind": "Tôi đổi ý, không muốn mua nữa",
+    "found_better_deal": "Tìm thấy sản phẩm tốt hơn ở nơi khác",
+    "financial_reasons": "Lý do tài chính",
+    "other": "Lý do khác"
+  }
+  return reasonMap[reason] || reason
+}
+
 const OrderStatusHistory: React.FC<OrderStatusHistoryProps> = ({ orderHistory }) => {
   return (
     <div className="relative">
@@ -83,7 +94,11 @@ const OrderStatusHistory: React.FC<OrderStatusHistoryProps> = ({ orderHistory })
             <div className="bg-white p-4 rounded-lg shadow-md">
               <h3 className="font-semibold text-lg mb-1">{getStatusLabel(history.status)}</h3>
               <p className="text-sm text-gray-600 mb-1">{new Date(history.timestamp).toLocaleString("vi-VN")}</p>
-              {history.reason && <p className="text-sm text-gray-600">Lý do: {history.reason}</p>}
+              {history.status.toLowerCase() === 'cancelled' && history.reason && (
+                <p className="text-sm text-gray-600 mt-2">
+                  <span className="font-semibold">Lý do hủy đơn:</span> {getCancellationReasonLabel(history.reason)}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -93,3 +108,4 @@ const OrderStatusHistory: React.FC<OrderStatusHistoryProps> = ({ orderHistory })
 }
 
 export default OrderStatusHistory
+

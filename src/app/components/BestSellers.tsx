@@ -60,8 +60,8 @@ export default function BestSellers() {
           {isLoading
             ? Array(4).fill(0).map((_, index) => <ProductCardSkeleton key={index} />)
             : bestSellers.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              <ProductCard key={product.id} product={product} />
+            ))}
         </div>
       </div>
     </section>

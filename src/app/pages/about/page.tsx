@@ -11,7 +11,8 @@ export default function About() {
         <div>
           <h2 className="text-3xl font-semibold mb-4">Câu Chuyện Của Chúng Tôi</h2>
           <p className="text-lg mb-4">
-            Được thành lập vào năm 2024, JNX Tennis Store luôn đam mê mang đến những thiết bị tennis tốt nhất cho người chơi ở mọi cấp độ. Hành trình của chúng tôi bắt đầu với một ý tưởng đơn giản: cung cấp dụng cụ tennis chất lượng cao kèm theo dịch vụ khách hàng xuất sắc.
+            Được thành lập vào năm 2024, JNX Tennis Store được phát triển và xây dựng bởi Nguyễn Xuân Dũng
+            với mục tiêu luôn đam mê mang đến những thiết bị tennis tốt nhất cho người chơi ở mọi cấp độ. Hành trình của chúng tôi bắt đầu với một ý tưởng đơn giản: cung cấp dụng cụ tennis chất lượng cao kèm theo dịch vụ khách hàng xuất sắc.
           </p>
           <p className="text-lg mb-4">
             Qua nhiều năm, chúng tôi đã phát triển từ một cửa hàng nhỏ địa phương thành một nhà bán lẻ trực tuyến đáng tin cậy, phục vụ những người yêu thích tennis trên khắp cả nước. Cam kết về chất lượng và sự hài lòng của khách hàng vẫn luôn là cốt lõi trong mọi hoạt động của chúng tôi.

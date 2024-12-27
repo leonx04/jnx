@@ -103,7 +103,7 @@ export default function OrderConfirmation() {
         <CardHeader className="text-center">
           <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
           <CardTitle className="text-3xl font-bold text-green-600">
-            Đặt Hàng Thành Công!
+            Đặt Hàng Thành Công !
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center">
@@ -114,7 +114,7 @@ export default function OrderConfirmation() {
           </p>
         </CardContent>
       </Card>
-      
+
       <div className="grid md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
@@ -139,9 +139,9 @@ export default function OrderConfirmation() {
               {latestOrder.items.map((item) => (
                 <li key={item.id} className="flex items-center space-x-4">
                   <div className="relative w-16 h-16 flex-shrink-0">
-                    <Image 
-                      src={item.imageUrl} 
-                      alt={item.name} 
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.name}
                       fill
                       sizes="64px"
                       className="object-cover rounded"
@@ -184,8 +184,8 @@ export default function OrderConfirmation() {
           <div className="mt-4 pt-4 border-t">
             <p className="text-gray-600">
               <strong>Phương thức thanh toán:</strong> {
-                latestOrder.paymentMethod === "cod" 
-                  ? "Thanh toán khi nhận hàng (COD)" 
+                latestOrder.paymentMethod === "cod"
+                  ? "Thanh toán khi nhận hàng (COD)"
                   : latestOrder.paymentMethod === "vnpay"
                     ? "Thanh toán qua VNPAY"
                     : latestOrder.paymentMethod

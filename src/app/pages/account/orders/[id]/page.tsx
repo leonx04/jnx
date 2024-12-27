@@ -58,6 +58,7 @@ interface Order {
     maxDiscountAmount?: number
   }
   discount?: number
+  cancelReason?: string;
 }
 
 interface Review {
@@ -296,13 +297,18 @@ export default function OrderDetail() {
   const handleCancelOrder = async () => {
     if (!user?.id || !order) return;
 
+    let finalReason = cancelReason;
+    if (cancelReason === "other") {
+      finalReason = otherReason || "Lý do khác";
+    }
+
     try {
       const orderRef = ref(database, `orders/${user.id}/${order.id}`);
-      await update(orderRef, { status: 'cancelled', cancelReason, otherReason });
-      setOrder({ ...order, status: 'cancelled' });
+      await update(orderRef, { status: 'cancelled', cancelReason: finalReason });
+      setOrder({ ...order, status: 'cancelled', cancelReason: finalReason || '' });
       toast.success('Đơn hàng đã được hủy thành công');
       await createNotification(`Đơn hàng #${order.id.slice(-6)} đã được khách hàng hủy`);
-      await updateOrderStatusHistory('cancelled', cancelReason || otherReason || 'Khách hàng hủy đơn');
+      await updateOrderStatusHistory('cancelled', finalReason || undefined);
       await fetchOrder();
       setShowCancelDialog(false);
     } catch (error) {

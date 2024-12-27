@@ -67,9 +67,9 @@ const ProductCard = ({ product }: { product: Product }) => {
     const cartRef = ref(database, `carts/${user.id}`);
     const snapshot = await get(cartRef);
     const existingCart = snapshot.val() as Record<string, CartItem> || {};
-    
+
     const existingItem = Object.entries(existingCart).find(([_, item]) => item.productId === product.id);
-    
+
     if (existingItem) {
       const [key, item] = existingItem;
       if (item.quantity >= product.availableStock) {
@@ -90,7 +90,7 @@ const ProductCard = ({ product }: { product: Product }) => {
         productId: product.id
       });
     }
-    
+
     toast.success('Đã thêm sản phẩm vào giỏ hàng');
     setTimeout(() => setIsAdding(false), 500);
   };
@@ -122,7 +122,7 @@ const ProductCard = ({ product }: { product: Product }) => {
     <div className="relative bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-full transition-transform duration-300 hover:scale-105">
       {discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs z-10">
-          -{ discountPercentage }%
+          -{discountPercentage}%
         </div>
       )}
 
@@ -135,15 +135,15 @@ const ProductCard = ({ product }: { product: Product }) => {
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
       </div>
-      
+
       <div className="p-4 flex flex-col flex-grow">
         <div className="flex-grow">
           <h3 className="h-12 overflow-hidden line-clamp-2 mb-2 font-semibold text-base leading-tight">
             {product.name}
           </h3>
-          
+
           <p className="text-sm text-gray-600 mb-2 truncate">{product.brand}</p>
-          
+
           <div className="mt-2 flex justify-between items-center">
             <span className={`text-base font-bold ${product.salePrice && product.salePrice < product.price ? 'text-gray-500 line-through' : 'text-black'}`}>
               {product.price.toLocaleString('vi-VN')} ₫
@@ -159,12 +159,12 @@ const ProductCard = ({ product }: { product: Product }) => {
             <div className="flex items-center">
               {[0, 1, 2, 3, 4].map((index) => (
                 <div key={index} className="relative w-4 h-4 mx-0.5">
-                  <FontAwesomeIcon 
-                    icon={faStar} 
-                    className="absolute text-gray-300" 
+                  <FontAwesomeIcon
+                    icon={faStar}
+                    className="absolute text-gray-300"
                   />
                   {averageRating !== null && averageRating > index && (
-                    <div 
+                    <div
                       className="absolute overflow-hidden text-yellow-500"
                       style={{
                         width: `${averageRating >= index + 1 ? '100%' : `${(averageRating - index) * 100}%`}`
@@ -181,7 +181,7 @@ const ProductCard = ({ product }: { product: Product }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="flex space-x-2 mt-2">
           <button
             onClick={addToCart}
@@ -200,7 +200,7 @@ const ProductCard = ({ product }: { product: Product }) => {
             <span className="whitespace-nowrap overflow-hidden text-ellipsis">Chi tiết</span>
           </Link>
         </div>
-        
+
         {product.availableStock <= 5 && product.availableStock > 0 && (
           <div className="mt-2 text-xs text-orange-500 flex items-center">
             <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />

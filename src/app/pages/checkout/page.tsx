@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
-import { get, onValue, ref, set, push } from "firebase/database"
+import { get, onValue, push, ref, set } from "firebase/database"
 import { Check, Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -105,9 +105,9 @@ export default function Checkout() {
   const { user } = useAuthContext()
   const router = useRouter()
 
-  const token = "46e7eac0-6486-11ef-b3c4-52669f455b4f"
-  const shopId = 5289630
-  const serviceId = 53321
+  const token = process.env.NEXT_PUBLIC_GHN_TOKEN || ""
+  const shopId = parseInt(process.env.NEXT_PUBLIC_GHN_SHOP_ID || "0", 10)
+  const serviceId = parseInt(process.env.NEXT_PUBLIC_GHN_SERVICE_ID || "0", 10)
 
   const calculateSubtotal = useCallback(() => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)

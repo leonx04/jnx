@@ -56,7 +56,7 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
       const orderSnapshot = await get(orderProductRef)
       if (orderSnapshot.exists()) {
         const items: OrderItem[] = orderSnapshot.val()
-        const updatedItems = items.map((item) => 
+        const updatedItems = items.map((item) =>
           item.productId === productId ? { ...item, reviewed: true } : item
         )
         await set(orderProductRef, updatedItems)
@@ -65,12 +65,12 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
       // Update the product's rating and review count
       const productRef = ref(database, `products/${productId}`)
       const productSnapshot = await get(productRef)
-      
+
       if (productSnapshot.exists()) {
         const productData = productSnapshot.val()
         const currentRating = productData.rating || 0
         const currentReviewCount = productData.reviewCount || 0
-        
+
         const newReviewCount = currentReviewCount + 1
         const newRating = ((currentRating * currentReviewCount) + rating) / newReviewCount
 
@@ -78,7 +78,7 @@ export default function ProductReview({ productId, orderId, onReviewSubmitted }:
           rating: newRating,
           reviewCount: newReviewCount
         })
-      } 
+      }
 
       toast.success('Đánh giá của bạn đã được gửi thành công')
       setRating(0)
