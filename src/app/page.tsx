@@ -93,7 +93,6 @@ export default function Home() {
     },
   ];
 
-  // Component hiển thị section sản phẩm
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // eslint-disable-next-line
   const ProductSection = ({ title, icon, iconColor, products, linkHref }: { title: string; icon: any; iconColor: string; products: Product[]; linkHref: string }) => (
@@ -120,7 +119,6 @@ export default function Home() {
     </section>
   );
 
-  // Component hiển thị feature card
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // eslint-disable-next-line
   const FeatureCard = ({ icon, title, description }: { icon: any; title: string; description: string }) => (
