@@ -54,6 +54,8 @@ export function useAuth() {
           if (user.email === email) {
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (passwordMatch) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              // eslint-disable-next-line
               const { password: _, ...userWithoutPassword } = user;
               const userWithId = { ...userWithoutPassword, id: userId };
               const token = generateToken();
