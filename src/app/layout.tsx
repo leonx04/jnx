@@ -15,6 +15,7 @@ import VoucherDisplay from "./components/VoucherDisplay";
 import { AuthProvider } from './context/AuthContext';
 import "./globals.css";
 import SocialMetaTags from "./meta/SocialMetaTags";
+import { Analytics } from "@vercel/analytics/react"
 
 // Cấu hình Font Awesome
 config.autoAddCss = false
@@ -75,6 +76,7 @@ export default function RootLayout({
               },
             }}
           />
+          <Analytics/>
           <GoogleAnalytics gaId="G-D7N0HG7J3S" />
           <TawkChat />
         </AuthProvider>
