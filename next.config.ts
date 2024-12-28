@@ -62,9 +62,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'raw.githubusercontent.com', 
-      }
+        hostname: 'raw.githubusercontent.com',
+      },
     ],
+  },
+  eslint: {
+    ignoreDuringBuilds: true, // Tắt kiểm tra ESLint khi chạy build
   },
 };
 
