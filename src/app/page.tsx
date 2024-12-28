@@ -1,5 +1,9 @@
+// File: page.tsx
+// Mô tả: Trang chủ của ứng dụng
+
 'use client';
 
+// Import các dependencies và components cần thiết
 import { faArrowRight, faCalendarPlus, faDollarSign, faHeadset, faMoneyBillWave, faShippingFast, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { onValue, ref } from 'firebase/database';
@@ -14,6 +18,7 @@ import ProductCard from './components/ProductCard';
 import ProductCardSkeleton from './components/ProductCardSkeleton';
 import TennisTips from './components/TennisTips';
 
+// Định nghĩa interface cho sản phẩm
 interface Product {
   id: string;
   name: string;
@@ -29,13 +34,15 @@ interface Product {
   yearReleased: number;
 }
 
-
+// Component chính
 export default function Home() {
+  // Khởi tạo state
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [mostDiscountedProducts, setMostDiscountedProducts] = useState<Product[]>([]);
   const [cheapestProducts, setCheapestProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Sử dụng useEffect để fetch dữ liệu sản phẩm
   useEffect(() => {
     const productsRef = ref(database, 'products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
@@ -47,13 +54,18 @@ export default function Home() {
           ...(product as Omit<Product, 'id'>),
         }));
 
+        // Lọc và sắp xếp sản phẩm mới nhất
         setNewestProducts(productsArray.sort((a, b) => b.yearReleased - a.yearReleased).slice(0, 4));
+
+        // Lọc và sắp xếp sản phẩm giảm giá nhiều nhất
         setMostDiscountedProducts(
           productsArray
             .filter((product) => product.salePrice && product.salePrice < product.price)
             .sort((a, b) => (b.price - b.salePrice) / b.price - (a.price - a.salePrice) / a.price)
             .slice(0, 4)
         );
+
+        // Lọc và sắp xếp sản phẩm giá rẻ nhất
         setCheapestProducts(productsArray.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price)).slice(0, 4));
       }
       setIsLoading(false);
@@ -62,7 +74,7 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-
+  // Dữ liệu cho carousel
   const slides = [
     {
       image: 'https://i.pinimg.com/originals/45/c1/fc/45c1fcf4aaae94a8ab0015e186070d22.gif',
@@ -80,6 +92,8 @@ export default function Home() {
       description: 'Cho đơn hàng trên 2,000,000 đ',
     },
   ];
+
+  // Component hiển thị section sản phẩm
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // eslint-disable-next-line
   const ProductSection = ({ title, icon, iconColor, products, linkHref }: { title: string; icon: any; iconColor: string; products: Product[]; linkHref: string }) => (
@@ -105,6 +119,8 @@ export default function Home() {
       </div>
     </section>
   );
+
+  // Component hiển thị feature card
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // eslint-disable-next-line
   const FeatureCard = ({ icon, title, description }: { icon: any; title: string; description: string }) => (
@@ -115,13 +131,16 @@ export default function Home() {
     </div>
   );
 
+  // Render component chính
   return (
     <div className="min-h-screen bg-white">
-
+      {/* Carousel */}
       <Carousel slides={slides} />
 
+      {/* Best Sellers */}
       <BestSellers />
 
+      {/* Sản phẩm mới nhất */}
       <ProductSection
         title="Sản phẩm mới nhất"
         icon={faCalendarPlus}
@@ -130,6 +149,7 @@ export default function Home() {
         linkHref="/pages/products?sort=newest"
       />
 
+      {/* Sản phẩm khuyến mãi nhiều nhất */}
       <section className="my-16 bg-gray-100 py-12">
         <div className="container-custom">
           <ProductSection
@@ -142,6 +162,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Sản phẩm giá tốt nhất */}
       <ProductSection
         title="Sản phẩm giá tốt nhất"
         icon={faDollarSign}
@@ -150,6 +171,7 @@ export default function Home() {
         linkHref="/pages/products?sort=price-asc"
       />
 
+      {/* Tại sao chọn chúng tôi */}
       <section className="my-16 bg-gray-100 py-12">
         <div className="container-custom">
           <h2 className="section-title">Tại sao chọn chúng tôi?</h2>
@@ -161,12 +183,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Đánh giá của khách hàng */}
       <CustomerReviews />
 
+      {/* Mẹo chơi tennis */}
       <TennisTips />
 
+      {/* Bài viết nổi bật */}
       <FeaturedBlogs />
 
+      {/* Đăng ký nhận tin */}
       <section className="my-16 bg-black py-12 text-white">
         <div className="container-custom">
           <h2 className="section-title text-white">Đăng Ký Nhận Tin</h2>

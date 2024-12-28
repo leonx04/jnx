@@ -1,5 +1,9 @@
+// File: order-history.tsx
+// Mô tả: Component hiển thị lịch sử đơn hàng của người dùng
+
 "use client"
 
+// Import các dependencies và components cần thiết
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +15,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
 
+// Định nghĩa các interface cho dữ liệu
 interface OrderItem {
   id: string
   name: string
@@ -40,11 +45,14 @@ interface Order {
   createdAt: string
 }
 
+// Component chính
 export default function OrderHistory() {
+  // Khởi tạo state và context
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuthContext()
 
+  // Sử dụng useEffect để fetch dữ liệu đơn hàng khi component mount
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user?.id) {
@@ -80,6 +88,7 @@ export default function OrderHistory() {
     fetchOrders()
   }, [user])
 
+  // Hàm helper để lấy nhãn trạng thái đơn hàng
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
       "pending": "Đã đặt hàng",
@@ -94,6 +103,7 @@ export default function OrderHistory() {
     return statusMap[status.toLowerCase()] || status
   }
 
+  // Hàm helper để lấy màu cho trạng thái đơn hàng
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "delivered":
@@ -105,6 +115,7 @@ export default function OrderHistory() {
     }
   }
 
+  // Hàm helper để lấy nhãn phương thức thanh toán
   const getPaymentMethodLabel = (method: string) => {
     switch (method) {
       case "cod":
@@ -116,6 +127,7 @@ export default function OrderHistory() {
     }
   }
 
+  // Hiển thị thông báo nếu người dùng chưa đăng nhập
   if (!user) {
     return (
       <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
@@ -124,10 +136,12 @@ export default function OrderHistory() {
     )
   }
 
+  // Render component
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Lịch Sử Đơn Hàng</h1>
       {isLoading ? (
+        // Hiển thị skeleton loading khi đang tải dữ liệu
         <div className="space-y-4">
           {[...Array(3)].map((_, index) => (
             <Card key={index}>
@@ -140,12 +154,14 @@ export default function OrderHistory() {
           ))}
         </div>
       ) : orders.length === 0 ? (
+        // Hiển thị thông báo nếu không có đơn hàng
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-gray-600 text-lg">Bạn chưa có đơn hàng nào.</p>
           </CardContent>
         </Card>
       ) : (
+        // Hiển thị danh sách đơn hàng
         <div className="space-y-6">
           {orders.map((order) => (
             <Card key={order.id}>
@@ -219,4 +235,3 @@ export default function OrderHistory() {
     </div>
   )
 }
-

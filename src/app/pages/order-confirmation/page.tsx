@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 
+// Định nghĩa các interface cho cấu trúc dữ liệu
 interface OrderItem {
   id: string
   name: string
@@ -49,13 +50,17 @@ interface Order {
   voucher: Voucher | null
 }
 
+// Component chính cho trang xác nhận đơn hàng
 export default function OrderConfirmation() {
+  // Khởi tạo state và lấy context
   const [latestOrder, setLatestOrder] = useState<Order | null>(null)
   const { user } = useAuthContext()
   const router = useRouter()
 
+  // Effect hook để tải đơn hàng mới nhất
   useEffect(() => {
     const fetchLatestOrder = async () => {
+      // Kiểm tra xem người dùng đã đăng nhập chưa
       try {
         if (!user?.id) {
           toast.error("Vui lòng đăng nhập")
@@ -63,11 +68,13 @@ export default function OrderConfirmation() {
           return
         }
 
+        // Tải đơn hàng mới nhất từ Firebase Realtime Database
         const ordersRef = ref(database, `orders/${user.id}`)
 
         const snapshot = await get(ordersRef)
         const orders = snapshot.val()
 
+        // Xử lý dữ liệu đơn hàng và cập nhật state
         if (!orders) {
           toast.error("Không tìm thấy đơn hàng")
           router.push("/")
@@ -89,6 +96,7 @@ export default function OrderConfirmation() {
     fetchLatestOrder()
   }, [user, router])
 
+  // Hiển thị thông báo đang tải nếu chưa có dữ liệu đơn hàng
   if (!latestOrder) {
     return (
       <div className="container mx-auto p-4 text-center">
@@ -97,8 +105,10 @@ export default function OrderConfirmation() {
     )
   }
 
+  // Render giao diện xác nhận đơn hàng
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Card thông báo đặt hàng thành công */}
       <Card className="mb-8">
         <CardHeader className="text-center">
           <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
@@ -115,7 +125,9 @@ export default function OrderConfirmation() {
         </CardContent>
       </Card>
 
+      {/* Grid hiển thị thông tin giao hàng và chi tiết đơn hàng */}
       <div className="grid md:grid-cols-2 gap-8">
+        {/* Card thông tin giao hàng */}
         <Card>
           <CardHeader>
             <CardTitle>Thông Tin Giao Hàng</CardTitle>
@@ -130,6 +142,7 @@ export default function OrderConfirmation() {
           </CardContent>
         </Card>
 
+        {/* Card chi tiết đơn hàng */}
         <Card>
           <CardHeader>
             <CardTitle>Chi Tiết Đơn Hàng</CardTitle>
@@ -159,6 +172,7 @@ export default function OrderConfirmation() {
         </Card>
       </div>
 
+      {/* Card tổng kết đơn hàng */}
       <Card className="mt-8">
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-4">
@@ -195,6 +209,7 @@ export default function OrderConfirmation() {
         </CardContent>
       </Card>
 
+      {/* Các nút điều hướng */}
       <div className="flex justify-center space-x-4 mt-8">
         <Button asChild>
           <Link href="/pages/products">

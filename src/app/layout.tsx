@@ -1,3 +1,6 @@
+// File: layout.tsx
+// Mô tả: Layout chính của ứng dụng
+
 import { config } from '@fortawesome/fontawesome-svg-core';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import { GoogleAnalytics } from '@next/third-parties/google';
@@ -13,10 +16,13 @@ import { AuthProvider } from './context/AuthContext';
 import "./globals.css";
 import SocialMetaTags from "./meta/SocialMetaTags";
 
+// Cấu hình Font Awesome
 config.autoAddCss = false
 
+// Cấu hình font Inter
 const inter = Inter({ subsets: ["latin"] });
 
+// Metadata cho SEO
 export const metadata: Metadata = {
   title: "JNX Tennis Store",
   description: "JNX Tennis Store is a tennis store that sells high-quality tennis equipment and accessories for all levels of play.",
@@ -40,6 +46,7 @@ export const metadata: Metadata = {
   },
 };
 
+// Component layout chính
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -75,4 +82,3 @@ export default function RootLayout({
     </html>
   );
 }
-

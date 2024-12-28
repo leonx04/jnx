@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUser, FaUserPlus } from 'react-icons/fa';
 
+// Định nghĩa interface cho Turnstile CAPTCHA
 interface TurnstileInstance {
   render: (selector: string, options: TurnstileOptions) => string;
   reset: (widgetId: string) => void;
@@ -25,6 +26,7 @@ interface TurnstileOptions {
   callback: (token: string) => void;
 }
 
+// Mở rộng đối tượng Window để bao gồm Turnstile
 declare global {
   interface Window {
     turnstile: TurnstileInstance;
@@ -33,6 +35,7 @@ declare global {
 }
 
 export default function Register() {
+  // Khai báo các state cho form đăng ký
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,6 +49,7 @@ export default function Register() {
   const [showTerms, setShowTerms] = useState(false);
   const router = useRouter();
 
+  // Hàm để chuyển đổi hiển thị mật khẩu
   const togglePasswordVisibility = (field: 'password' | 'confirmPassword') => {
     if (field === 'password') {
       setShowPassword(!showPassword);
@@ -54,6 +58,7 @@ export default function Register() {
     }
   };
 
+  // Hàm để render CAPTCHA
   const renderCaptcha = useCallback(() => {
     if (window.turnstile) {
       const widgetId = window.turnstile.render('#cloudflare-turnstile', {
@@ -66,6 +71,7 @@ export default function Register() {
     }
   }, []);
 
+  // Effect để tải và khởi tạo CAPTCHA
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback';
@@ -81,22 +87,26 @@ export default function Register() {
     };
   }, [renderCaptcha]);
 
+  // Hàm xử lý khi submit form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Kiểm tra mật khẩu khớp nhau
     if (password !== confirmPassword) {
       toast.error('Mật khẩu không khớp');
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra đồng ý điều khoản
     if (!acceptTerms) {
       toast.error('Bạn phải đồng ý với điều khoản và điều kiện');
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra CAPTCHA
     if (!captchaToken) {
       toast.error('Vui lòng hoàn thành CAPTCHA');
       setIsLoading(false);
@@ -107,7 +117,7 @@ export default function Register() {
       const db = getDatabase(app);
       const usersRef = ref(db, 'user');
 
-      // Check if email already exists
+      // Kiểm tra email đã tồn tại chưa
       const emailQuery = query(usersRef, orderByChild('email'), equalTo(email));
       const emailSnapshot = await get(emailQuery);
 
@@ -117,11 +127,11 @@ export default function Register() {
         return;
       }
 
-      // Hash the password
+      // Mã hóa mật khẩu
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // If email doesn't exist, proceed with user creation
+      // Tạo người dùng mới
       const newUserRef = push(usersRef);
       await set(newUserRef, {
         name,
@@ -143,12 +153,15 @@ export default function Register() {
     }
   };
 
+  // Render component
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md p-8">
         <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">Tạo tài khoản mới</h2>
         <form className="space-y-6" onSubmit={handleSubmit}>
+          {/* Form fields */}
           <div className="space-y-4">
+            {/* Trường nhập tên */}
             <div>
               <Label htmlFor="name">Tên của bạn</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -168,6 +181,7 @@ export default function Register() {
                 />
               </div>
             </div>
+            {/* Trường nhập email */}
             <div>
               <Label htmlFor="email-address">Địa chỉ email</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -187,6 +201,7 @@ export default function Register() {
                 />
               </div>
             </div>
+            {/* Trường nhập mật khẩu */}
             <div>
               <Label htmlFor="password">Mật khẩu</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -215,6 +230,7 @@ export default function Register() {
                 </div>
               </div>
             </div>
+            {/* Trường xác nhận mật khẩu */}
             <div>
               <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -245,6 +261,7 @@ export default function Register() {
             </div>
           </div>
 
+          {/* Checkbox đồng ý điều khoản */}
           <div className="flex items-center">
             <Checkbox
               id="accept-terms"
@@ -263,8 +280,10 @@ export default function Register() {
             </Label>
           </div>
 
+          {/* CAPTCHA */}
           <div id="cloudflare-turnstile" className="mt-4"></div>
 
+          {/* Nút đăng ký */}
           <Button
             type="submit"
             className="w-full flex justify-center items-center"
@@ -274,6 +293,7 @@ export default function Register() {
             {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
           </Button>
         </form>
+        {/* Link đăng nhập */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-600">
             Bạn đã có tài khoản?{' '}
@@ -282,6 +302,7 @@ export default function Register() {
             </Link>
           </p>
         </div>
+        {/* Modal điều khoản và điều kiện */}
         <Modal
           isOpen={showTerms}
           onClose={() => setShowTerms(false)}
@@ -316,7 +337,7 @@ export default function Register() {
                 <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc sử dụng website hoặc sản phẩm.
               </li>
               <li>
-                <strong>Thay đổi điều khoản:</strong> Chúng tôicó quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
+                <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
               </li>
             </ol>
             <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại hỗ trợ.</p>
@@ -326,3 +347,4 @@ export default function Register() {
     </div>
   );
 }
+

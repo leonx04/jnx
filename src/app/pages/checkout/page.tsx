@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
 
+// Định nghĩa các interface cho các đối tượng dữ liệu
 interface CartItem {
   id: string
   name: string
@@ -79,6 +80,7 @@ interface Voucher {
 }
 
 export default function Checkout() {
+  // Khai báo các state và hooks cần thiết
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
@@ -105,14 +107,17 @@ export default function Checkout() {
   const { user } = useAuthContext()
   const router = useRouter()
 
+  // Lấy token và các ID cần thiết từ biến môi trường
   const token = process.env.NEXT_PUBLIC_GHN_TOKEN || ""
   const shopId = parseInt(process.env.NEXT_PUBLIC_GHN_SHOP_ID || "0", 10)
   const serviceId = parseInt(process.env.NEXT_PUBLIC_GHN_SERVICE_ID || "0", 10)
 
+  // Hàm tính tổng giá trị đơn hàng
   const calculateSubtotal = useCallback(() => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   }, [cartItems])
 
+  // Hàm tính giảm giá dựa trên voucher
   const calculateDiscount = useCallback((voucher: Voucher | null) => {
     if (!voucher) return 0
     const subtotal = calculateSubtotal()
@@ -123,13 +128,15 @@ export default function Checkout() {
     return Math.min(discount, voucher.maxDiscountAmount)
   }, [calculateSubtotal])
 
+  // Hàm tính tổng cộng sau khi áp dụng giảm giá và phí vận chuyển
   const calculateTotal = useCallback(() => {
     const subtotal = calculateSubtotal()
     const discount = calculateDiscount(selectedVoucher)
     const total = subtotal - discount + (subtotal > 2000000 ? 0 : shippingFee)
-    return Math.max(total, 0) // Ensure total is not negative
+    return Math.max(total, 0) // Đảm bảo tổng không âm
   }, [calculateSubtotal, calculateDiscount, selectedVoucher, shippingFee])
 
+  // Hàm hiển thị thông báo toast
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     toast[type](message, {
       duration: 5000,
@@ -137,6 +144,7 @@ export default function Checkout() {
     })
   }, [])
 
+  // Hàm kiểm tra tính hợp lệ của form
   const validateForm = () => {
     const errors: string[] = []
 
@@ -178,6 +186,7 @@ export default function Checkout() {
     return true
   }
 
+  // Lấy thông tin người dùng
   const getUserDetails = useMemo(() => {
     if (!user) return null
     return {
@@ -187,6 +196,7 @@ export default function Checkout() {
     }
   }, [user])
 
+  // Lấy danh sách sản phẩm trong giỏ hàng
   useEffect(() => {
     const selectedProducts = localStorage.getItem("selectedProducts")
     if (selectedProducts) {
@@ -209,6 +219,7 @@ export default function Checkout() {
     }
   }, [user])
 
+  // Lấy danh sách tỉnh/thành phố
   useEffect(() => {
     fetch("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
       headers: { "Token": token }
@@ -221,6 +232,7 @@ export default function Checkout() {
       })
   }, [showToast, token])
 
+  // Hàm lấy danh sách quận/huyện
   const fetchDistricts = useCallback(async (provinceId: string) => {
     try {
       const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provinceId}`, {
@@ -234,6 +246,7 @@ export default function Checkout() {
     }
   }, [showToast, token]);
 
+  // Hàm lấy danh sách phường/xã
   const fetchWards = useCallback(async (districtId: string) => {
     try {
       const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${districtId}`, {
@@ -247,6 +260,7 @@ export default function Checkout() {
     }
   }, [showToast, token]);
 
+  // Cập nhật danh sách quận/huyện khi chọn tỉnh/thành phố
   useEffect(() => {
     if (selectedProvince) {
       fetchDistricts(selectedProvince);
@@ -257,6 +271,7 @@ export default function Checkout() {
     }
   }, [selectedProvince, fetchDistricts]);
 
+  // Cập nhật danh sách phường/xã khi chọn quận/huyện
   useEffect(() => {
     if (selectedDistrict) {
       fetchWards(selectedDistrict);
@@ -266,6 +281,7 @@ export default function Checkout() {
     }
   }, [selectedDistrict, fetchWards]);
 
+  // Hàm tính phí vận chuyển
   const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
 
@@ -312,12 +328,14 @@ export default function Checkout() {
     }
   }, [selectedDistrict, selectedWard, cartItems, token, shopId, serviceId, calculateSubtotal])
 
+  // Tính phí vận chuyển khi thông tin địa chỉ thay đổi
   useEffect(() => {
     if (selectedProvince && selectedDistrict && selectedWard) {
       calculateShippingFee()
     }
   }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee])
 
+  // Hàm tạo thông báo
   const createNotification = async (orderId: string, message: string) => {
     const notificationsRef = ref(database, 'notifications');
     const newNotificationRef = push(notificationsRef);
@@ -330,6 +348,7 @@ export default function Checkout() {
     await set(newNotificationRef, newNotification);
   };
 
+  // Hàm xử lý khi người dùng gửi đơn hàng
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -382,6 +401,7 @@ export default function Checkout() {
         await set(userVoucherUsageRef, userUsageCount + 1)
       }
 
+      // Tạo đối tượng đơn hàng
       const order = {
         ...getUserDetails,
         fullName,
@@ -408,6 +428,7 @@ export default function Checkout() {
         } : null
       }
 
+      // Kiểm tra tính hợp lệ của đơn hàng
       const orderValidationErrors: string[] = []
       if (!order.userId) orderValidationErrors.push("Thiếu thông tin người dùng")
       if (!order.userEmail) orderValidationErrors.push("Thiếu email")
@@ -421,33 +442,31 @@ export default function Checkout() {
         return
       }
 
+      // Lưu đơn hàng vào cơ sở dữ liệu
       const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
       await set(orderRef, order)
 
       const orderId = orderRef.key as string;
       await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
 
-
-      // Clear the cart
+      // Xóa giỏ hàng sau khi đặt hàng thành công
       const cartRef = ref(database, `carts/${user.id}`);
       await set(cartRef, null);
 
       if (paymentMethod === "vnpay") {
-        // Implement VNPAY payment gateway integration here
+        // Xử lý thanh toán qua VNPAY (chưa triển khai)
         console.log("Redirecting to VNPAY payment gateway...")
-        // You would typically redirect to the VNPAY payment page here
-        // For now, we'll just simulate a successful payment
         showToast("Thanh toán qua VNPAY thành công!", 'success')
       }
 
       showToast("Đặt hàng thành công!", 'success')
       localStorage.removeItem("selectedProducts")
-      setCartItems([]) // Clear the local cart state
+      setCartItems([]) // Xóa giỏ hàng local
 
-      // Add a delay before navigation
+      // Chuyển hướng đến trang xác nhận đơn hàng sau 2 giây
       setTimeout(() => {
         router.push("/pages/order-confirmation")
-      }, 2000); // 2 second delay
+      }, 2000);
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
       showToast("Đã có lỗi xảy ra. Vui lòng thử lại.", 'error')
@@ -456,6 +475,7 @@ export default function Checkout() {
     }
   }
 
+  // Lấy danh sách địa chỉ đã lưu của người dùng
   useEffect(() => {
     if (user?.id) {
       const ordersRef = ref(database, `orders/${user.id}`)
@@ -463,8 +483,6 @@ export default function Checkout() {
         if (snapshot.exists()) {
           const orders = snapshot.val()
           const addresses: SavedAddress[] = Object.values(orders)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            // eslint-disable-next-line
             .map((order: any) => ({
               fullName: order.fullName,
               phoneNumber: order.phoneNumber,
@@ -489,6 +507,7 @@ export default function Checkout() {
     }
   }, [user])
 
+  // Xử lý khi người dùng chọn địa chỉ đã lưu
   const handleSavedAddressSelect = useCallback((index: number) => {
     if (index >= 0 && index < savedAddresses.length) {
       const selectedAddress = savedAddresses[index];
@@ -496,19 +515,19 @@ export default function Checkout() {
       setPhoneNumber(selectedAddress.phoneNumber);
       setAddress(selectedAddress.address);
 
-      // Find and update province
+      // Tìm và cập nhật tỉnh/thành phố
       const province = provinces.find(p => p.ProvinceName === selectedAddress.province);
       if (province) {
         setSelectedProvince(province.ProvinceID.toString());
-        // Load districts for the selected province
+        // Tải danh sách quận/huyện cho tỉnh/thành phố đã chọn
         fetchDistricts(province.ProvinceID.toString()).then(() => {
-          // Find and update district
+          // Tìm và cập nhật quận/huyện
           const district = districts.find(d => d.DistrictName === selectedAddress.district);
           if (district) {
             setSelectedDistrict(district.DistrictID.toString());
-            // Load wards for the selected district
+            // Tải danh sách phường/xã cho quận/huyện đã chọn
             fetchWards(district.DistrictID.toString()).then(() => {
-              // Find and update ward
+              // Tìm và cập nhật phường/xã
               const ward = wards.find(w => w.WardName === selectedAddress.ward);
               if (ward) {
                 setSelectedWard(ward.WardCode);
@@ -522,6 +541,7 @@ export default function Checkout() {
     }
   }, [savedAddresses, provinces, districts, wards, fetchDistricts, fetchWards]);
 
+  // Tìm voucher tốt nhất cho đơn hàng
   const findBestVoucher = useCallback((vouchers: Voucher[]): Voucher | null => {
     const subtotal = calculateSubtotal();
     let bestVoucher: Voucher | null = null;
@@ -540,6 +560,7 @@ export default function Checkout() {
     return bestVoucher;
   }, [calculateSubtotal, calculateDiscount]);
 
+  // Lấy danh sách voucher và áp dụng voucher tốt nhất
   useEffect(() => {
     const fetchVouchers = async () => {
       if (user?.id) {
@@ -547,8 +568,6 @@ export default function Checkout() {
         const snapshot = await get(vouchersRef)
         if (snapshot.exists()) {
           const vouchersData = snapshot.val()
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
           const allVouchers = Object.entries(vouchersData).map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
@@ -566,7 +585,7 @@ export default function Checkout() {
           )
           setVouchers(userVouchers)
 
-          // Automatically apply the best voucher
+          // Tự động áp dụng voucher tốt nhất
           const bestVoucher = findBestVoucher(userVouchers);
           if (bestVoucher) {
             setSelectedVoucher(bestVoucher);
@@ -579,6 +598,7 @@ export default function Checkout() {
     fetchVouchers()
   }, [user, findBestVoucher, showToast])
 
+  // Xử lý khi người dùng chọn voucher
   const handleVoucherSelect = async (voucher: Voucher) => {
     const now = new Date();
     const startDate = new Date(voucher.startDate);
@@ -629,6 +649,7 @@ export default function Checkout() {
     showToast(`Đã áp dụng voucher ${currentVoucher.voucherCode}`, 'success');
   };
 
+  // Xử lý khi người dùng nhập mã voucher
   const handleVoucherCodeSubmit = () => {
     const voucher = vouchers.find(v => v.voucherCode === voucherCode)
     if (voucher) {
@@ -638,6 +659,7 @@ export default function Checkout() {
     }
   }
 
+  // Lọc danh sách voucher dựa trên từ khóa tìm kiếm
   const filteredVouchers = useMemo(() => {
     const now = new Date();
     return vouchers.filter(voucher => {
@@ -652,10 +674,12 @@ export default function Checkout() {
     });
   }, [vouchers, voucherSearchQuery]);
 
+  // Hàm định dạng số tiền
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
   }
 
+  // Hàm lấy nhãn trạng thái voucher
   const getVoucherStatusLabel = (status: string) => {
     switch (status) {
       case 'active':

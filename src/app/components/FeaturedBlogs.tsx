@@ -6,6 +6,7 @@ import { database } from '@/firebaseConfig'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { limitToLast, onValue, orderByChild, query, ref } from 'firebase/database'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -21,6 +22,7 @@ interface BlogPost {
 export default function FeaturedBlogs() {
     const [latestBlogs, setLatestBlogs] = useState<BlogPost[]>([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         const blogPostsRef = ref(database, 'blogPosts')
@@ -38,9 +40,15 @@ export default function FeaturedBlogs() {
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     .slice(0, 3)
                 setLatestBlogs(posts)
+                setError(null)
             } else {
                 setLatestBlogs([])
+                setError("No blog posts found")
             }
+            setLoading(false)
+        }, (error) => {
+            console.error("Error fetching blog posts:", error)
+            setError("Failed to load blog posts")
             setLoading(false)
         })
 
@@ -55,7 +63,14 @@ export default function FeaturedBlogs() {
         )
     }
 
-    // If there are fewer than 3 blog posts, create placeholder posts
+    if (error) {
+        return (
+            <div className="text-center text-red-500">
+                <p>{error}</p>
+            </div>
+        )
+    }
+
     const displayBlogs = [...latestBlogs]
     while (displayBlogs.length < 3) {
         displayBlogs.push({
@@ -85,10 +100,12 @@ export default function FeaturedBlogs() {
                         <Card key={post.id} className="flex flex-col">
                             <CardHeader className="p-0">
                                 <div className="relative w-full pt-[56.25%]">
-                                    <img
+                                    <Image
                                         src={post.imageUrl || '/placeholder.svg'}
                                         alt={post.title}
-                                        className="absolute inset-0 w-full h-full object-cover rounded-t-lg"
+                                        layout="fill"
+                                        objectFit="cover"
+                                        className="rounded-t-lg"
                                     />
                                 </div>
                             </CardHeader>
@@ -100,7 +117,9 @@ export default function FeaturedBlogs() {
                             </CardContent>
                             <CardFooter className="p-4 pt-0">
                                 {post.id.startsWith('placeholder') ? (
-                                    <Button className="w-full" disabled>Sắp ra mắt</Button>
+                                    <Button className="w-full" disabled>
+                                        Sắp ra mắt
+                                    </Button>
                                 ) : (
                                     <Link href={`/pages/blogs/${post.id}`} passHref className="w-full">
                                         <Button className="w-full">Đọc thêm</Button>
@@ -114,4 +133,3 @@ export default function FeaturedBlogs() {
         </section>
     )
 }
-

@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 
+// Định nghĩa interface cho cấu trúc dữ liệu của bài viết
 interface BlogPost {
     id: string
     title: string
@@ -28,6 +29,7 @@ interface BlogPost {
     dislikes?: { [userId: string]: boolean }
 }
 
+// Component chính để hiển thị chi tiết bài viết
 export default function BlogDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const [blogPost, setBlogPost] = useState<BlogPost | null>(null)
@@ -35,6 +37,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
     const router = useRouter()
     const { user } = useAuthContext()
 
+    // Sử dụng useEffect để lấy dữ liệu bài viết từ Firebase
     useEffect(() => {
         const blogPostRef = ref(database, `blogPosts/${id}`)
         const unsubscribe = onValue(blogPostRef, (snapshot) => {
@@ -48,9 +51,11 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
             setLoading(false)
         })
 
+        // Hủy đăng ký lắng nghe khi component unmount
         return () => unsubscribe()
     }, [id])
 
+    // Xử lý sự kiện like hoặc dislike
     const handleLikeDislike = async (action: 'like' | 'dislike') => {
         if (!user) {
             toast.error('Vui lòng đăng nhập để thực hiện hành động này')
@@ -62,6 +67,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
 
         const blogPostRef = ref(database, `blogPosts/${id}`)
 
+        // Sử dụng runTransaction để đảm bảo tính nhất quán của dữ liệu
         await runTransaction(blogPostRef, (currentPost) => {
             if (!currentPost) {
                 return null
@@ -69,20 +75,20 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
 
             const oppositeAction = action === 'like' ? 'dislike' : 'like'
 
-            // Ensure the action fields exist
+            // Đảm bảo các trường action tồn tại
             if (!currentPost[`${action}s`]) currentPost[`${action}s`] = {}
             if (!currentPost[`${oppositeAction}s`]) currentPost[`${oppositeAction}s`] = {}
 
             if (user?.id && currentPost[`${action}s`]?.[user.id]) {
-                // User is un-liking or un-disliking
+                // Người dùng đang hủy like hoặc dislike
                 currentPost[`${action}Count`] = ((currentPost[`${action}Count`] || 0) - 1) || 0
                 currentPost[`${action}s`][user.id] = null
             } else if (user?.id) {
-                // User is liking or disliking
+                // Người dùng đang like hoặc dislike
                 currentPost[`${action}Count`] = (currentPost[`${action}Count`] || 0) + 1
                 currentPost[`${action}s`][user.id] = true
 
-                // Remove opposite action if exists
+                // Xóa hành động ngược lại nếu tồn tại
                 if (currentPost[`${oppositeAction}s`]?.[user.id]) {
                     currentPost[`${oppositeAction}Count`] = ((currentPost[`${oppositeAction}Count`] || 0) - 1) || 0
                     currentPost[`${oppositeAction}s`][user.id] = null
@@ -93,6 +99,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         })
     }
 
+    // Hiển thị loading spinner khi đang tải dữ liệu
     if (loading) {
         return (
             <div className="container mx-auto px-4 py-8">
@@ -103,6 +110,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         )
     }
 
+    // Hiển thị thông báo nếu không tìm thấy bài viết
     if (!blogPost) {
         return (
             <div className="container mx-auto px-4 py-8">
@@ -113,6 +121,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         )
     }
 
+    // Render nội dung chính của bài viết
     return (
         <div className="container mx-auto px-4 py-8">
             <Button onClick={() => router.push('/pages/blogs')} className="mb-4">
@@ -172,4 +181,3 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         </div>
     )
 }
-

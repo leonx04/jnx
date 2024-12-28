@@ -1,5 +1,9 @@
+// File: account-management.tsx
+// Mô tả: Component quản lý tài khoản người dùng
+
 'use client'
 
+// Import các dependencies và components cần thiết
 import { useAuthContext } from '@/app/context/AuthContext'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +19,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+// Định nghĩa các interface cho dữ liệu
 interface UserProfile {
   name: string
   email: string
@@ -48,7 +53,9 @@ interface Voucher {
   status: 'active' | 'inactive' | 'expired' | 'incoming'
 }
 
+// Component chính
 export default function AccountManagement() {
+  // Khởi tạo state và context
   const { user, updateUserInfo } = useAuthContext() as { user: UserProfile, updateUserInfo: (profile: UserProfile) => Promise<void> }
   const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '' })
   const [encryptedPassword, setEncryptedPassword] = useState('')
@@ -61,6 +68,7 @@ export default function AccountManagement() {
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
 
+  // Hàm fetch thông tin người dùng
   const fetchUserProfile = useCallback(async () => {
     if (user?.id) {
       const userRef = ref(database, `user/${user.id}`)
@@ -80,6 +88,7 @@ export default function AccountManagement() {
     }
   }, [user])
 
+  // Hàm fetch đơn hàng của người dùng
   const fetchOrders = useCallback(async () => {
     if (user?.id) {
       const ordersRef = ref(database, `orders/${user.id}`)
@@ -97,6 +106,7 @@ export default function AccountManagement() {
     }
   }, [user])
 
+  // Hàm fetch voucher của người dùng
   const fetchVouchers = useCallback(async () => {
     if (user?.id) {
       const vouchersRef = ref(database, 'vouchers')
@@ -125,6 +135,7 @@ export default function AccountManagement() {
     }
   }, [user])
 
+  // Sử dụng useEffect để gọi các hàm fetch khi component mount
   useEffect(() => {
     if (user) {
       fetchUserProfile()
@@ -133,11 +144,13 @@ export default function AccountManagement() {
     }
   }, [user, fetchUserProfile, fetchOrders, fetchVouchers])
 
+  // Xử lý thay đổi input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setProfile(prev => ({ ...prev, [name]: value }))
   }
 
+  // Xử lý thay đổi avatar
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
@@ -151,10 +164,12 @@ export default function AccountManagement() {
     }
   }
 
+  // Chuyển đổi hiển thị mật khẩu
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
 
+  // Xử lý submit form cập nhật thông tin
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -206,6 +221,7 @@ export default function AccountManagement() {
     }
   }, [profile, previewImage, updateUserInfo, encryptedPassword, user])
 
+  // Các hàm helper
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
       "pending": "Đã đặt hàng",
@@ -244,15 +260,17 @@ export default function AccountManagement() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
   }
 
+  // Kiểm tra nếu người dùng chưa đăng nhập
   if (!user) {
     return <div className="text-center py-10">Vui lòng đăng nhập để xem trang này.</div>
   }
 
+  // Render component
   return (
     <div className="container mx-auto p-4 max-w-7xl">
       <h1 className="text-3xl font-bold mb-6 text-center">Quản lý tài khoản</h1>
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Account Information Section */}
+        {/* Phần thông tin cá nhân */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -360,7 +378,7 @@ export default function AccountManagement() {
           </CardContent>
         </Card>
 
-        {/* Exclusive Vouchers Section */}
+        {/* Phần voucher đặc quyền */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -396,7 +414,7 @@ export default function AccountManagement() {
           </CardContent>
         </Card>
 
-        {/* Order History Section */}
+        {/* Phần lịch sử đơn hàng */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -443,6 +461,7 @@ export default function AccountManagement() {
         </Card>
       </div>
 
+      {/* Modal chi tiết voucher */}
       <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -495,4 +514,3 @@ export default function AccountManagement() {
     </div>
   )
 }
-

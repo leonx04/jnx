@@ -107,7 +107,6 @@ export default function OrderDetail() {
         const orderData = snapshot.val()
         setOrder({ id: orderId, ...orderData })
 
-        // Fetch order history
         const historyRef = ref(database, `orderStatusHistory/${orderId}`)
         const historySnapshot = await get(historyRef)
         if (historySnapshot.exists()) {
@@ -304,13 +303,11 @@ export default function OrderDetail() {
     try {
       const orderRef = ref(database, `orders/${user.id}/${order.id}`);
 
-      // Start a transaction to update both the order and the voucher
       await runTransaction(ref(database), (currentData) => {
         if (!currentData) {
           throw new Error("Không thể truy cập dữ liệu. Vui lòng thử lại sau.");
         }
 
-        // Ensure the orders object exists
         if (!currentData.orders) {
           currentData.orders = {};
         }
@@ -321,7 +318,6 @@ export default function OrderDetail() {
           currentData.orders[user.id][order.id] = {};
         }
 
-        // Update order status
         if (user?.id && order?.id) {
           currentData.orders[user.id][order.id].status = 'cancelled';
         }
@@ -329,7 +325,6 @@ export default function OrderDetail() {
           currentData.orders[user.id][order.id].cancelReason = finalReason || '';
         }
 
-        // Update voucher usedCount if the order used a voucher
         if (order.voucher) {
           const voucherId = order.voucher.id;
           if (!currentData.vouchers) {
@@ -340,7 +335,6 @@ export default function OrderDetail() {
           }
           currentData.vouchers[voucherId].usedCount = Math.max((currentData.vouchers[voucherId].usedCount || 0) - 1, 0);
 
-          // Update user voucher usage
           if (!currentData.userVoucherUsage) {
             currentData.userVoucherUsage = {};
           }
