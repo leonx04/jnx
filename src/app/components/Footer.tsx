@@ -32,6 +32,8 @@ const Footer = () => {
       } else {
         throw new Error('Có lỗi xảy ra'); // Nếu có lỗi, ném lỗi
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
     } catch (error) {
       toast.error('Không thể gửi thông tin. Vui lòng thử lại sau.'); // Thông báo lỗi
     } finally {

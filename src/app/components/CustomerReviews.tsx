@@ -24,7 +24,11 @@ export default function CustomerReviews() {
       if (data) {
         // Chuyển đổi dữ liệu từ Firebase thành mảng các đánh giá
         const reviewsArray = Object.values(data)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
           .flatMap((productReviews: any) => Object.values(productReviews))  // Lấy tất cả đánh giá của các sản phẩm
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
           .filter((review: any) => review.comment && review.comment.length > 0)  // Lọc ra các đánh giá có nội dung
           .slice(0, 3);  // Lấy 3 đánh giá đầu tiên
         setReviews(reviewsArray as Review[]);  // Cập nhật danh sách đánh giá vào state

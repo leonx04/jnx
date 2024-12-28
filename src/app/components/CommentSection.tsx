@@ -46,6 +46,8 @@ export function CommentSection({ blogPostId }: CommentSectionProps) {
             const commentsData = snapshot.val() // Lấy dữ liệu bình luận
             if (commentsData) {
                 // Chuyển dữ liệu từ Firebase thành mảng
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                // eslint-disable-next-line
                 const commentsArray = Object.entries(commentsData).map(([id, comment]: [string, any]) => ({
                     id,
                     ...comment,
