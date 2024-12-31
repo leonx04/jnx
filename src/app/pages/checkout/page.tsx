@@ -95,7 +95,7 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<string>("cod")
   const [paymentMethods] = useState<PaymentMethod[]>([
     { id: "cod", name: "Thanh toán khi nhận hàng (COD)", description: "Thanh toán bằng tiền mặt khi nhận hàng" },
-    { id: "vnpay", name: "Thanh toán qua VNPAY", description: "Thanh toán trực tuyến bằng ví điện tử VNPAY" },
+    { id: "online", name: "Thanh toán qua online", description: "Thanh toán trực tuyến bằng ví điện tử online" },
   ])
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const [selectedSavedAddress, setSelectedSavedAddress] = useState<string | null>(null)
@@ -443,14 +443,8 @@ export default function Checkout() {
       }
 
       // Lưu đơn hàng vào cơ sở dữ liệu
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       await set(orderRef, order)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       const orderId = orderRef.key as string;
       await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
 
@@ -458,20 +452,36 @@ export default function Checkout() {
       const cartRef = ref(database, `carts/${user.id}`);
       await set(cartRef, null);
 
-      if (paymentMethod === "vnpay") {
-        // Xử lý thanh toán qua VNPAY (chưa triển khai)
-        console.log("Redirecting to VNPAY payment gateway...")
-        showToast("Thanh toán qua VNPAY thành công!", 'success')
+      if (paymentMethod === "online") {
+        // Xử lý thanh toán qua online
+        const response = await fetch('/api/create-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: calculateTotal(),
+            orderInfo: `Thanh toan don hang #${orderId}`,
+            orderId: orderId,
+          }),
+        })
+
+        const { paymentUrl } = await response.json()
+        if (paymentUrl) {
+          window.location.href = paymentUrl
+        } else {
+          throw new Error('Không thể tạo URL thanh toán')
+        }
+      } else {
+        showToast("Đặt hàng thành công!", 'success')
+        localStorage.removeItem("selectedProducts")
+        setCartItems([]) // Xóa giỏ hàng local
+
+        // Chuyển hướng đến trang xác nhận đơn hàng sau 2 giây
+        setTimeout(() => {
+          router.push("/pages/order-confirmation")
+        }, 2000);
       }
-
-      showToast("Đặt hàng thành công!", 'success')
-      localStorage.removeItem("selectedProducts")
-      setCartItems([]) // Xóa giỏ hàng local
-
-      // Chuyển hướng đến trang xác nhận đơn hàng sau 2 giây
-      setTimeout(() => {
-        router.push("/pages/order-confirmation")
-      }, 2000);
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
       showToast("Đã có lỗi xảy ra. Vui lòng thử lại.", 'error')
@@ -488,8 +498,6 @@ export default function Checkout() {
         if (snapshot.exists()) {
           const orders = snapshot.val()
           const addresses: SavedAddress[] = Object.values(orders)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            // eslint-disable-next-line
             .map((order: any) => ({
               fullName: order.fullName,
               phoneNumber: order.phoneNumber,
@@ -575,8 +583,6 @@ export default function Checkout() {
         const snapshot = await get(vouchersRef)
         if (snapshot.exists()) {
           const vouchersData = snapshot.val()
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
           const allVouchers = Object.entries(vouchersData).map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
@@ -827,11 +833,11 @@ export default function Checkout() {
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
               {paymentMethods.map((method) => (
                 <div key={method.id} className="flex items-center space-x-2 mb-2">
-                  <RadioGroupItem value={method.id} id={method.id} disabled={method.id === "vnpay"} />
+                  <RadioGroupItem value={method.id} id={method.id}  />
                   <Label htmlFor={method.id}>
                     <span className="font-medium">{method.name}</span>
                     <p className="text-sm text-gray-500">
-                      {method.id === "vnpay" ? "Tính năng đang được phát triển" : method.description}
+                      {method.id === "online" ? "Tính năng đang được phát triển" : method.description}
                     </p>
                   </Label>
                 </div>
