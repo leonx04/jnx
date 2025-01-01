@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
-import { get, onValue, push, ref, set } from "firebase/database"
+import { get, onValue, push, ref, set, update } from "firebase/database"
 import { Check, Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -454,23 +454,39 @@ export default function Checkout() {
 
       if (paymentMethod === "online") {
         // Xử lý thanh toán qua online
-        const response = await fetch('/api/create-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: calculateTotal(),
-            orderInfo: `Thanh toan don hang #${orderId}`,
-            orderId: orderId,
-          }),
-        })
+        try {
+          const response = await fetch('/api/create-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              amount: calculateTotal(),
+              orderInfo: `Thanh toan don hang #${orderId}`,
+              orderId: orderId,
+            }),
+          })
 
-        const { paymentUrl } = await response.json()
-        if (paymentUrl) {
-          window.location.href = paymentUrl
-        } else {
-          throw new Error('Không thể tạo URL thanh toán')
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Không thể tạo yêu cầu thanh toán')
+          }
+
+          if (data.paymentUrl) {
+            // Cập nhật trạng thái đơn hàng thành 'pending_payment'
+            await update(orderRef, { status: 'pending_payment' });
+            window.location.href = data.paymentUrl
+          } else {
+            throw new Error('URL thanh toán không hợp lệ')
+          }
+        } catch (error) {
+          console.error('Lỗi thanh toán:', error)
+          showToast(error instanceof Error ? error.message : 'Đã có lỗi xảy ra khi xử lý thanh toán', 'error')
+          // Cập nhật trạng thái đơn hàng thành 'payment_failed'
+          await update(orderRef, { status: 'payment_failed' });
+          setIsSubmitting(false)
+          return
         }
       } else {
         showToast("Đặt hàng thành công!", 'success')
@@ -833,11 +849,11 @@ export default function Checkout() {
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
               {paymentMethods.map((method) => (
                 <div key={method.id} className="flex items-center space-x-2 mb-2">
-                  <RadioGroupItem value={method.id} id={method.id}  />
+                  <RadioGroupItem value={method.id} id={method.id} />
                   <Label htmlFor={method.id}>
                     <span className="font-medium">{method.name}</span>
                     <p className="text-sm text-gray-500">
-                      {method.id === "online" ? "Tính năng đang được phát triển" : method.description}
+                      {method.description}
                     </p>
                   </Label>
                 </div>
