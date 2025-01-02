@@ -20,7 +20,7 @@ export async function POST(req: Request) {
             vnp_TxnRef: orderId,
             vnp_OrderInfo: orderInfo,
             vnp_OrderType: 'other',
-            vnp_ReturnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payment-result`,
+            vnp_ReturnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/pages/order-confirmation`,
         })
 
         if (!paymentUrl) {
