@@ -51,6 +51,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwind-variants": "^0.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "vnpay": "^1.6.1",
     "yup": "^1.5.0"
   },
   "devDependencies": {

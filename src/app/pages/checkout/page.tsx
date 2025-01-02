@@ -1,23 +1,24 @@
-"use client"
+'use client'
 
-import { SavedAddressCard } from "@/app/components/SavedAddressCard"
-import { useAuthContext } from "@/app/context/AuthContext"
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { ProductCode, VnpLocale, dateFormat } from 'vnpay'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { useAuthContext } from "@/app/context/AuthContext"
 import { database } from "@/firebaseConfig"
-import { get, onValue, push, ref, set, update } from "firebase/database"
-import { Check, Loader2, Search } from 'lucide-react'
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { ref, set, get, push, onValue } from "firebase/database"
 import toast from "react-hot-toast"
+import { SavedAddressCard } from "@/app/components/SavedAddressCard"
+import { Check, Loader2, Search } from 'lucide-react'
 
-// Định nghĩa các interface cho các đối tượng dữ liệu
+// Interfaces
 interface CartItem {
   id: string
   name: string
@@ -80,7 +81,6 @@ interface Voucher {
 }
 
 export default function Checkout() {
-  // Khai báo các state và hooks cần thiết
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
@@ -107,17 +107,14 @@ export default function Checkout() {
   const { user } = useAuthContext()
   const router = useRouter()
 
-  // Lấy token và các ID cần thiết từ biến môi trường
   const token = process.env.NEXT_PUBLIC_GHN_TOKEN || ""
   const shopId = parseInt(process.env.NEXT_PUBLIC_GHN_SHOP_ID || "0", 10)
   const serviceId = parseInt(process.env.NEXT_PUBLIC_GHN_SERVICE_ID || "0", 10)
 
-  // Hàm tính tổng giá trị đơn hàng
   const calculateSubtotal = useCallback(() => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   }, [cartItems])
 
-  // Hàm tính giảm giá dựa trên voucher
   const calculateDiscount = useCallback((voucher: Voucher | null) => {
     if (!voucher) return 0
     const subtotal = calculateSubtotal()
@@ -128,15 +125,13 @@ export default function Checkout() {
     return Math.min(discount, voucher.maxDiscountAmount)
   }, [calculateSubtotal])
 
-  // Hàm tính tổng cộng sau khi áp dụng giảm giá và phí vận chuyển
   const calculateTotal = useCallback(() => {
     const subtotal = calculateSubtotal()
     const discount = calculateDiscount(selectedVoucher)
     const total = subtotal - discount + (subtotal > 2000000 ? 0 : shippingFee)
-    return Math.max(total, 0) // Đảm bảo tổng không âm
+    return Math.max(total, 0)
   }, [calculateSubtotal, calculateDiscount, selectedVoucher, shippingFee])
 
-  // Hàm hiển thị thông báo toast
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     toast[type](message, {
       duration: 5000,
@@ -144,39 +139,20 @@ export default function Checkout() {
     })
   }, [])
 
-  // Hàm kiểm tra tính hợp lệ của form
   const validateForm = () => {
     const errors: string[] = []
 
-    if (!fullName.trim()) {
-      errors.push("Vui lòng nhập đầy đủ họ và tên")
-    }
-
+    if (!fullName.trim()) errors.push("Vui lòng nhập đầy đủ họ và tên")
     if (!phoneNumber.trim()) {
       errors.push("Vui lòng nhập số điện thoại")
     } else if (!/^(0[3|5|7|8|9])+([0-9]{8})$/.test(phoneNumber)) {
       errors.push("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam")
     }
-
-    if (!selectedProvince) {
-      errors.push("Vui lòng chọn Tỉnh/Thành phố")
-    }
-
-    if (!selectedDistrict) {
-      errors.push("Vui lòng chọn Quận/Huyện")
-    }
-
-    if (!selectedWard) {
-      errors.push("Vui lòng chọn Phường/Xã")
-    }
-
-    if (!address.trim()) {
-      errors.push("Vui lòng nhập địa chỉ chi tiết")
-    }
-
-    if (cartItems.length === 0) {
-      errors.push("Giỏ hàng của bạn đang trống")
-    }
+    if (!selectedProvince) errors.push("Vui lòng chọn Tỉnh/Thành phố")
+    if (!selectedDistrict) errors.push("Vui lòng chọn Quận/Huyện")
+    if (!selectedWard) errors.push("Vui lòng chọn Phường/Xã")
+    if (!address.trim()) errors.push("Vui lòng nhập địa chỉ chi tiết")
+    if (cartItems.length === 0) errors.push("Giỏ hàng của bạn đang trống")
 
     if (errors.length > 0) {
       errors.forEach(error => showToast(error, 'error'))
@@ -186,7 +162,6 @@ export default function Checkout() {
     return true
   }
 
-  // Lấy thông tin người dùng
   const getUserDetails = useMemo(() => {
     if (!user) return null
     return {
@@ -196,7 +171,6 @@ export default function Checkout() {
     }
   }, [user])
 
-  // Lấy danh sách sản phẩm trong giỏ hàng
   useEffect(() => {
     const selectedProducts = localStorage.getItem("selectedProducts")
     if (selectedProducts) {
@@ -219,7 +193,6 @@ export default function Checkout() {
     }
   }, [user])
 
-  // Lấy danh sách tỉnh/thành phố
   useEffect(() => {
     fetch("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
       headers: { "Token": token }
@@ -232,7 +205,6 @@ export default function Checkout() {
       })
   }, [showToast, token])
 
-  // Hàm lấy danh sách quận/huyện
   const fetchDistricts = useCallback(async (provinceId: string) => {
     try {
       const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provinceId}`, {
@@ -246,7 +218,6 @@ export default function Checkout() {
     }
   }, [showToast, token]);
 
-  // Hàm lấy danh sách phường/xã
   const fetchWards = useCallback(async (districtId: string) => {
     try {
       const response = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${districtId}`, {
@@ -260,7 +231,6 @@ export default function Checkout() {
     }
   }, [showToast, token]);
 
-  // Cập nhật danh sách quận/huyện khi chọn tỉnh/thành phố
   useEffect(() => {
     if (selectedProvince) {
       fetchDistricts(selectedProvince);
@@ -271,7 +241,6 @@ export default function Checkout() {
     }
   }, [selectedProvince, fetchDistricts]);
 
-  // Cập nhật danh sách phường/xã khi chọn quận/huyện
   useEffect(() => {
     if (selectedDistrict) {
       fetchWards(selectedDistrict);
@@ -281,7 +250,6 @@ export default function Checkout() {
     }
   }, [selectedDistrict, fetchWards]);
 
-  // Hàm tính phí vận chuyển
   const calculateShippingFee = useCallback(async () => {
     if (!selectedDistrict || !selectedWard) return
 
@@ -328,14 +296,12 @@ export default function Checkout() {
     }
   }, [selectedDistrict, selectedWard, cartItems, token, shopId, serviceId, calculateSubtotal])
 
-  // Tính phí vận chuyển khi thông tin địa chỉ thay đổi
   useEffect(() => {
     if (selectedProvince && selectedDistrict && selectedWard) {
       calculateShippingFee()
     }
   }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee])
 
-  // Hàm tạo thông báo
   const createNotification = async (orderId: string, message: string) => {
     const notificationsRef = ref(database, 'notifications');
     const newNotificationRef = push(notificationsRef);
@@ -348,7 +314,6 @@ export default function Checkout() {
     await set(newNotificationRef, newNotification);
   };
 
-  // Hàm xử lý khi người dùng gửi đơn hàng
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -364,7 +329,6 @@ export default function Checkout() {
     }
 
     try {
-      // Kiểm tra và cập nhật voucher
       if (selectedVoucher) {
         const voucherRef = ref(database, `vouchers/${selectedVoucher.id}`)
         const voucherSnapshot = await get(voucherRef)
@@ -377,7 +341,6 @@ export default function Checkout() {
           return
         }
 
-        // Kiểm tra giới hạn sử dụng của người dùng
         const userVoucherUsageRef = ref(database, `userVoucherUsage/${user.id}/${selectedVoucher.id}`)
         const userVoucherUsageSnapshot = await get(userVoucherUsageRef)
         const userUsageCount = userVoucherUsageSnapshot.val() || 0
@@ -389,7 +352,6 @@ export default function Checkout() {
           return
         }
 
-        // Cập nhật voucher
         await set(voucherRef, {
           ...currentVoucher,
           quantity: currentVoucher.quantity - 1,
@@ -397,11 +359,9 @@ export default function Checkout() {
           status: currentVoucher.quantity === 1 ? 'expired' : currentVoucher.status
         })
 
-        // Cập nhật số lần sử dụng voucher của người dùng
         await set(userVoucherUsageRef, userUsageCount + 1)
       }
 
-      // Tạo đối tượng đơn hàng
       const order = {
         ...getUserDetails,
         fullName,
@@ -428,7 +388,6 @@ export default function Checkout() {
         } : null
       }
 
-      // Kiểm tra tính hợp lệ của đơn hàng
       const orderValidationErrors: string[] = []
       if (!order.userId) orderValidationErrors.push("Thiếu thông tin người dùng")
       if (!order.userEmail) orderValidationErrors.push("Thiếu email")
@@ -443,53 +402,38 @@ export default function Checkout() {
       }
 
       if (paymentMethod === "online") {
-        try {
-          const response = await fetch('/api/create-payment', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              amount: calculateTotal(),
-              orderInfo: `Thanh toan don hang #${Date.now()}`,
-              orderId: Date.now().toString(), // Sử dụng timestamp làm orderId tạm thời
-            }),
-          })
+        const response = await fetch('/api/create-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: calculateTotal(),
+            orderInfo: `Thanh toan don hang #${Date.now()}`,
+            orderId: Date.now().toString(),
+          }),
+        });
 
-          const data = await response.json()
+        const data = await response.json();
 
-          if (!response.ok) {
-            throw new Error(data.error || 'Không thể tạo yêu cầu thanh toán')
-          }
-
-          if (data.paymentUrl) {
-            // Lưu thông tin đơn hàng tạm thời vào localStorage
-            localStorage.setItem('pendingOrder', JSON.stringify(order))
-            window.location.href = data.paymentUrl
-          } else {
-            throw new Error('URL thanh toán không hợp lệ')
-          }
-        } catch (error) {
-          console.error('Lỗi thanh toán:', error)
-          showToast(error instanceof Error ? error.message : 'Đã có lỗi xảy ra khi xử lý thanh toán', 'error')
-          setIsSubmitting(false)
-          return
+        if (data.paymentUrl) {
+          localStorage.setItem('pendingOrder', JSON.stringify(order));
+          window.location.href = data.paymentUrl;
+        } else {
+          throw new Error('Không thể tạo URL thanh toán');
         }
       } else {
-        // Lưu đơn hàng vào cơ sở dữ liệu
         const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
         await set(orderRef, order)
         const orderId = orderRef.key as string;
         await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
 
-        // Xóa giỏ hàng sau khi đặt hàng thành công
         const cartRef = ref(database, `carts/${user.id}`);
         await set(cartRef, null);
         showToast("Đặt hàng thành công!", 'success')
         localStorage.removeItem("selectedProducts")
-        setCartItems([]) // Xóa giỏ hàng local
+        setCartItems([])
 
-        // Chuyển hướng đến trang xác nhận đơn hàng sau 2 giây
         setTimeout(() => {
           router.push("/pages/order-confirmation")
         }, 2000);
@@ -502,7 +446,6 @@ export default function Checkout() {
     }
   }
 
-  // Lấy danh sách địa chỉ đã lưu của người dùng
   useEffect(() => {
     if (user?.id) {
       const ordersRef = ref(database, `orders/${user.id}`)
@@ -534,7 +477,6 @@ export default function Checkout() {
     }
   }, [user])
 
-  // Xử lý khi người dùng chọn địa chỉ đã lưu
   const handleSavedAddressSelect = useCallback((index: number) => {
     if (index >= 0 && index < savedAddresses.length) {
       const selectedAddress = savedAddresses[index];
@@ -542,19 +484,14 @@ export default function Checkout() {
       setPhoneNumber(selectedAddress.phoneNumber);
       setAddress(selectedAddress.address);
 
-      // Tìm và cập nhật tỉnh/thành phố
       const province = provinces.find(p => p.ProvinceName === selectedAddress.province);
       if (province) {
         setSelectedProvince(province.ProvinceID.toString());
-        // Tải danh sách quận/huyện cho tỉnh/thành phố đã chọn
         fetchDistricts(province.ProvinceID.toString()).then(() => {
-          // Tìm và cập nhật quận/huyện
           const district = districts.find(d => d.DistrictName === selectedAddress.district);
           if (district) {
             setSelectedDistrict(district.DistrictID.toString());
-            // Tải danh sách phường/xã cho quận/huyện đã chọn
             fetchWards(district.DistrictID.toString()).then(() => {
-              // Tìm và cập nhật phường/xã
               const ward = wards.find(w => w.WardName === selectedAddress.ward);
               if (ward) {
                 setSelectedWard(ward.WardCode);
@@ -568,7 +505,6 @@ export default function Checkout() {
     }
   }, [savedAddresses, provinces, districts, wards, fetchDistricts, fetchWards]);
 
-  // Tìm voucher tốt nhất cho đơn hàng
   const findBestVoucher = useCallback((vouchers: Voucher[]): Voucher | null => {
     const subtotal = calculateSubtotal();
     let bestVoucher: Voucher | null = null;
@@ -587,7 +523,6 @@ export default function Checkout() {
     return bestVoucher;
   }, [calculateSubtotal, calculateDiscount]);
 
-  // Lấy danh sách voucher và áp dụng voucher tốt nhất
   useEffect(() => {
     const fetchVouchers = async () => {
       if (user?.id) {
@@ -612,7 +547,6 @@ export default function Checkout() {
           )
           setVouchers(userVouchers)
 
-          // Tự động áp dụng voucher tốt nhất
           const bestVoucher = findBestVoucher(userVouchers);
           if (bestVoucher) {
             setSelectedVoucher(bestVoucher);
@@ -625,7 +559,6 @@ export default function Checkout() {
     fetchVouchers()
   }, [user, findBestVoucher, showToast])
 
-  // Xử lý khi người dùng chọn voucher
   const handleVoucherSelect = async (voucher: Voucher) => {
     const now = new Date();
     const startDate = new Date(voucher.startDate);
@@ -646,7 +579,6 @@ export default function Checkout() {
       return;
     }
 
-    // Kiểm tra số lượng và giới hạn sử dụng
     const voucherRef = ref(database, `vouchers/${voucher.id}`);
     const voucherSnapshot = await get(voucherRef);
     const currentVoucher = voucherSnapshot.val() as Voucher;
@@ -656,7 +588,6 @@ export default function Checkout() {
       return;
     }
 
-    // Kiểm tra giới hạn sử dụng của người dùng
     if (user?.id) {
       const userVoucherUsageRef = ref(database, `userVoucherUsage/${user.id}/${voucher.id}`);
       const userVoucherUsageSnapshot = await get(userVoucherUsageRef);
@@ -676,7 +607,6 @@ export default function Checkout() {
     showToast(`Đã áp dụng voucher ${currentVoucher.voucherCode}`, 'success');
   };
 
-  // Xử lý khi người dùng nhập mã voucher
   const handleVoucherCodeSubmit = () => {
     const voucher = vouchers.find(v => v.voucherCode === voucherCode)
     if (voucher) {
@@ -686,7 +616,6 @@ export default function Checkout() {
     }
   }
 
-  // Lọc danh sách voucher dựa trên từ khóa tìm kiếm
   const filteredVouchers = useMemo(() => {
     const now = new Date();
     return vouchers.filter(voucher => {
@@ -701,12 +630,10 @@ export default function Checkout() {
     });
   }, [vouchers, voucherSearchQuery]);
 
-  // Hàm định dạng số tiền
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
   }
 
-  // Hàm lấy nhãn trạng thái voucher
   const getVoucherStatusLabel = (status: string) => {
     switch (status) {
       case 'active':
