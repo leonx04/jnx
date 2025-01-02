@@ -7,20 +7,30 @@ import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { database } from "@/firebaseConfig"
-import { ref, update } from 'firebase/database'
+import { ref, set, push, remove } from 'firebase/database'
+import { useRouter } from 'next/navigation'
 
 export default function PaymentResult() {
     const searchParams = useSearchParams()
     const [status, setStatus] = useState<'success' | 'error' | 'loading'>('loading')
     const [message, setMessage] = useState('')
+    const router = useRouter()
 
     useEffect(() => {
         const processPaymentResult = async () => {
             const vnp_ResponseCode = searchParams.get('vnp_ResponseCode')
             const vnp_TransactionStatus = searchParams.get('vnp_TransactionStatus')
-            const vnp_TxnRef = searchParams.get('vnp_TxnRef') // Order ID
             const vnp_Amount = searchParams.get('vnp_Amount')
             const vnp_OrderInfo = searchParams.get('vnp_OrderInfo')
+
+            // Retrieve pending order from localStorage
+            const pendingOrderString = localStorage.getItem('pendingOrder')
+            if (!pendingOrderString) {
+                setStatus('error')
+                setMessage('Không tìm thấy thông tin đơn hàng')
+                return
+            }
+            const pendingOrder = JSON.parse(pendingOrderString)
 
             // Map common VNPay error codes to user-friendly messages
             const errorMessages: { [key: string]: string } = {
@@ -48,50 +58,51 @@ export default function PaymentResult() {
                 setStatus('success')
                 setMessage('Thanh toán thành công!')
 
-                // Update order status in Firebase if order ID exists
-                if (vnp_TxnRef) {
-                    try {
-                        const orderRef = ref(database, `orders/${vnp_TxnRef}`)
-                        await update(orderRef, {
-                            status: 'paid',
-                            paymentDetails: {
-                                amount: Number(vnp_Amount) / 100, // Convert from VNPay amount
-                                transactionId: searchParams.get('vnp_TransactionNo'),
-                                paymentTime: searchParams.get('vnp_PayDate'),
-                                orderInfo: vnp_OrderInfo
-                            }
-                        })
-                    } catch (error) {
-                        console.error('Error updating order status:', error)
-                    }
+                try {
+                    // Create a new order in Firebase
+                    const ordersRef = ref(database, `orders/${pendingOrder.userId}`)
+                    const newOrderRef = push(ordersRef)
+                    const orderId = newOrderRef.key
+
+                    await set(newOrderRef, {
+                        ...pendingOrder,
+                        id: orderId,
+                        status: 'paid',
+                        paymentDetails: {
+                            amount: Number(vnp_Amount) / 100,
+                            transactionId: searchParams.get('vnp_TransactionNo'),
+                            paymentTime: searchParams.get('vnp_PayDate'),
+                            orderInfo: vnp_OrderInfo
+                        }
+                    })
+
+                    // Clear the cart
+                    const cartRef = ref(database, `carts/${pendingOrder.userId}`)
+                    await remove(cartRef)
+
+                    // Clear pending order from localStorage
+                    localStorage.removeItem('pendingOrder')
+                } catch (error) {
+                    console.error('Error creating order:', error)
+                    setStatus('error')
+                    setMessage('Thanh toán thành công nhưng không thể tạo đơn hàng. Vui lòng liên hệ hỗ trợ.')
                 }
             } else {
                 setStatus('error')
                 const errorMessage = errorMessages[vnp_ResponseCode || ''] || 'Thanh toán thất bại. Vui lòng thử lại.'
                 setMessage(errorMessage)
 
-                // Update order status to failed if order ID exists
-                if (vnp_TxnRef) {
-                    try {
-                        const orderRef = ref(database, `orders/${vnp_TxnRef}`)
-                        await update(orderRef, {
-                            status: 'payment_failed',
-                            paymentDetails: {
-                                errorCode: vnp_ResponseCode,
-                                errorMessage: errorMessage,
-                                transactionId: searchParams.get('vnp_TransactionNo'),
-                                paymentTime: searchParams.get('vnp_PayDate')
-                            }
-                        })
-                    } catch (error) {
-                        console.error('Error updating order status:', error)
-                    }
-                }
+                // Clear pending order from localStorage
+                localStorage.removeItem('pendingOrder')
             }
         }
 
         processPaymentResult()
     }, [searchParams])
+
+    const handleReturnToCart = () => {
+        router.push('/cart')
+    }
 
     return (
         <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
@@ -122,12 +133,17 @@ export default function PaymentResult() {
                         <Link href="/dashboard">
                             <Button variant="outline">Trang chủ</Button>
                         </Link>
-                        <Link href="/orders">
-                            <Button>Xem đơn hàng</Button>
-                        </Link>
+                        {status === 'error' ? (
+                            <Button onClick={handleReturnToCart}>Quay lại giỏ hàng</Button>
+                        ) : (
+                            <Link href="/orders">
+                                <Button>Xem đơn hàng</Button>
+                            </Link>
+                        )}
                     </div>
                 </CardContent>
             </Card>
         </div>
     )
 }
+

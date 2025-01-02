@@ -442,18 +442,7 @@ export default function Checkout() {
         return
       }
 
-      // Lưu đơn hàng vào cơ sở dữ liệu
-      const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
-      await set(orderRef, order)
-      const orderId = orderRef.key as string;
-      await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
-
-      // Xóa giỏ hàng sau khi đặt hàng thành công
-      const cartRef = ref(database, `carts/${user.id}`);
-      await set(cartRef, null);
-
       if (paymentMethod === "online") {
-        // Xử lý thanh toán qua online
         try {
           const response = await fetch('/api/create-payment', {
             method: 'POST',
@@ -462,8 +451,8 @@ export default function Checkout() {
             },
             body: JSON.stringify({
               amount: calculateTotal(),
-              orderInfo: `Thanh toan don hang #${orderId}`,
-              orderId: orderId,
+              orderInfo: `Thanh toan don hang #${Date.now()}`,
+              orderId: Date.now().toString(), // Sử dụng timestamp làm orderId tạm thời
             }),
           })
 
@@ -474,8 +463,8 @@ export default function Checkout() {
           }
 
           if (data.paymentUrl) {
-            // Cập nhật trạng thái đơn hàng thành 'pending_payment'
-            await update(orderRef, { status: 'pending_payment' });
+            // Lưu thông tin đơn hàng tạm thời vào localStorage
+            localStorage.setItem('pendingOrder', JSON.stringify(order))
             window.location.href = data.paymentUrl
           } else {
             throw new Error('URL thanh toán không hợp lệ')
@@ -483,12 +472,19 @@ export default function Checkout() {
         } catch (error) {
           console.error('Lỗi thanh toán:', error)
           showToast(error instanceof Error ? error.message : 'Đã có lỗi xảy ra khi xử lý thanh toán', 'error')
-          // Cập nhật trạng thái đơn hàng thành 'payment_failed'
-          await update(orderRef, { status: 'payment_failed' });
           setIsSubmitting(false)
           return
         }
       } else {
+        // Lưu đơn hàng vào cơ sở dữ liệu
+        const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
+        await set(orderRef, order)
+        const orderId = orderRef.key as string;
+        await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
+
+        // Xóa giỏ hàng sau khi đặt hàng thành công
+        const cartRef = ref(database, `carts/${user.id}`);
+        await set(cartRef, null);
         showToast("Đặt hàng thành công!", 'success')
         localStorage.removeItem("selectedProducts")
         setCartItems([]) // Xóa giỏ hàng local
