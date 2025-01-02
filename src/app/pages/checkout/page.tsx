@@ -1,21 +1,21 @@
-'use client'
+"use client"
 
-import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import Image from 'next/image'
+import { SavedAddressCard } from "@/app/components/SavedAddressCard"
+import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { useAuthContext } from "@/app/context/AuthContext"
 import { database } from "@/firebaseConfig"
-import { ref, set, get, push, onValue } from "firebase/database"
-import toast from "react-hot-toast"
-import { SavedAddressCard } from "@/app/components/SavedAddressCard"
+import { get, onValue, push, ref, set } from "firebase/database"
 import { Check, Loader2, Search } from 'lucide-react'
+import Image from "next/image"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import toast from "react-hot-toast"
 
 // Interfaces
 interface CartItem {
@@ -318,6 +318,19 @@ function CheckoutContent() {
     await set(newNotificationRef, newNotification);
   };
 
+  // Function to update product quantities
+  const updateProductQuantities = async () => {
+    for (const item of cartItems) {
+      const productRef = ref(database, `products/${item.productId}`);
+      const productSnapshot = await get(productRef);
+      const productData = productSnapshot.val();
+      if (productData) {
+        const newQuantity = productData.quantity - item.quantity;
+        await set(productRef, { ...productData, quantity: newQuantity });
+      }
+    }
+  };
+
   // Updated handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -416,14 +429,15 @@ function CheckoutContent() {
             amount: calculateTotal(),
             orderInfo: `Thanh toan don hang #${Date.now()}`,
             orderId: Date.now().toString(),
+            userId: user.id,
+            order: order,
           }),
         });
 
         const data = await response.json();
 
         if (data.paymentUrl) {
-          const orderRef = ref(database, `orders/${user.id}/${Date.now()}`);
-          await set(orderRef, order);
+          await updateProductQuantities();
           localStorage.setItem('pendingOrder', JSON.stringify(order));
           window.location.href = data.paymentUrl;
         } else {
@@ -434,6 +448,8 @@ function CheckoutContent() {
         await set(orderRef, order)
         const orderId = orderRef.key as string;
         await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
+
+        await updateProductQuantities();
 
         const cartRef = ref(database, `carts/${user.id}`);
         await set(cartRef, null);
@@ -681,6 +697,9 @@ function CheckoutContent() {
         const orderRef = ref(database, `orders/${user.id}/${txnRef}`)
         await set(orderRef, order)
         await createNotification(txnRef, `Đơn hàng mới #${txnRef.slice(-6)} từ ${order.fullName}`)
+
+        const cartRef = ref(database, `carts/${user.id}`);
+        await set(cartRef, null);
 
         localStorage.removeItem('pendingOrder')
         showToast("Thanh toán thành công!", 'success')
