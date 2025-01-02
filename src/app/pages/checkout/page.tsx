@@ -422,6 +422,8 @@ export default function Checkout() {
         const data = await response.json();
 
         if (data.paymentUrl) {
+          const orderRef = ref(database, `orders/${user.id}/${Date.now()}`);
+          await set(orderRef, order);
           localStorage.setItem('pendingOrder', JSON.stringify(order));
           window.location.href = data.paymentUrl;
         } else {
