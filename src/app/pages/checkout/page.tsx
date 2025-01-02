@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import toast from "react-hot-toast"
 import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 import { Check, Loader2, Search } from 'lucide-react'
 
-// Interfaces (unchanged)
+// Interfaces
 interface CartItem {
   id: string
   name: string
@@ -79,8 +79,8 @@ interface Voucher {
   userId?: string[]
 }
 
-export default function Checkout() {
-  // State declarations (unchanged)
+function CheckoutContent() {
+  // State declarations
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
@@ -112,7 +112,7 @@ export default function Checkout() {
   const shopId = parseInt(process.env.NEXT_PUBLIC_GHN_SHOP_ID || "0", 10)
   const serviceId = parseInt(process.env.NEXT_PUBLIC_GHN_SERVICE_ID || "0", 10)
 
-  // Utility functions (unchanged)
+  // Utility functions
   const calculateSubtotal = useCallback(() => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   }, [cartItems])
@@ -173,7 +173,7 @@ export default function Checkout() {
     }
   }, [user])
 
-  // Effect hooks (unchanged)
+  // Effect hooks
   useEffect(() => {
     const selectedProducts = localStorage.getItem("selectedProducts")
     if (selectedProducts) {
@@ -947,6 +947,14 @@ export default function Checkout() {
         </Button>
       </div>
     </div>
+  )
+}
+
+export default function Checkout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CheckoutContent />
+    </Suspense>
   )
 }
 
