@@ -222,8 +222,8 @@ export default function OrderConfirmation() {
               <strong>Phương thức thanh toán:</strong> {
                 latestOrder.paymentMethod === "cod"
                   ? "Thanh toán khi nhận hàng (COD)"
-                  : latestOrder.paymentMethod === "vnpay"
-                    ? "Đã thanh toán qua VNPAY"
+                  : latestOrder.paymentMethod === "online"
+                    ? "Đã thanh toán Online"
                     : latestOrder.paymentMethod
               }
             </p>
