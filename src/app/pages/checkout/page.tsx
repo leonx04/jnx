@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { ProductCode, VnpLocale, dateFormat } from 'vnpay'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,7 +17,7 @@ import toast from "react-hot-toast"
 import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 import { Check, Loader2, Search } from 'lucide-react'
 
-// Interfaces
+// Interfaces (unchanged)
 interface CartItem {
   id: string
   name: string
@@ -81,6 +80,7 @@ interface Voucher {
 }
 
 export default function Checkout() {
+  // State declarations (unchanged)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
@@ -106,11 +106,13 @@ export default function Checkout() {
   const [voucherSearchQuery, setVoucherSearchQuery] = useState("")
   const { user } = useAuthContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const token = process.env.NEXT_PUBLIC_GHN_TOKEN || ""
   const shopId = parseInt(process.env.NEXT_PUBLIC_GHN_SHOP_ID || "0", 10)
   const serviceId = parseInt(process.env.NEXT_PUBLIC_GHN_SERVICE_ID || "0", 10)
 
+  // Utility functions (unchanged)
   const calculateSubtotal = useCallback(() => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   }, [cartItems])
@@ -171,6 +173,7 @@ export default function Checkout() {
     }
   }, [user])
 
+  // Effect hooks (unchanged)
   useEffect(() => {
     const selectedProducts = localStorage.getItem("selectedProducts")
     if (selectedProducts) {
@@ -302,6 +305,7 @@ export default function Checkout() {
     }
   }, [selectedProvince, selectedDistrict, selectedWard, calculateShippingFee])
 
+  // New function to create a notification
   const createNotification = async (orderId: string, message: string) => {
     const notificationsRef = ref(database, 'notifications');
     const newNotificationRef = push(notificationsRef);
@@ -314,6 +318,7 @@ export default function Checkout() {
     await set(newNotificationRef, newNotification);
   };
 
+  // Updated handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -646,6 +651,39 @@ export default function Checkout() {
         return 'Sắp diễn ra'
       default:
         return status
+    }
+  }
+
+  // Handle VNPay response
+  useEffect(() => {
+    const vnp_ResponseCode = searchParams.get('vnp_ResponseCode')
+    const vnp_TxnRef = searchParams.get('vnp_TxnRef')
+
+    if (vnp_ResponseCode && vnp_TxnRef) {
+      handleVNPayResponse(vnp_ResponseCode, vnp_TxnRef)
+    }
+  }, [searchParams])
+
+  const handleVNPayResponse = async (responseCode: string, txnRef: string) => {
+    if (responseCode === '00') {
+      const pendingOrder = localStorage.getItem('pendingOrder')
+      if (pendingOrder && user?.id) {
+        const order = JSON.parse(pendingOrder)
+        order.paymentMethod = 'vnpay'
+        order.status = 'paid'
+
+        const orderRef = ref(database, `orders/${user.id}/${txnRef}`)
+        await set(orderRef, order)
+        await createNotification(txnRef, `Đơn hàng mới #${txnRef.slice(-6)} từ ${order.fullName}`)
+
+        localStorage.removeItem('pendingOrder')
+        showToast("Thanh toán thành công!", 'success')
+        router.push(`/pages/order-confirmation?orderId=${txnRef}`)
+      } else {
+        showToast("Không tìm thấy thông tin đơn hàng", 'error')
+      }
+    } else {
+      showToast("Thanh toán không thành công", 'error')
     }
   }
 

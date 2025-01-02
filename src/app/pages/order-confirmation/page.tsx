@@ -8,7 +8,7 @@ import { get, ref } from "firebase/database"
 import { CheckCircle2 } from 'lucide-react'
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 
@@ -56,6 +56,7 @@ export default function OrderConfirmation() {
   const [latestOrder, setLatestOrder] = useState<Order | null>(null)
   const { user } = useAuthContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Effect hook để tải đơn hàng mới nhất
   useEffect(() => {
@@ -67,6 +68,8 @@ export default function OrderConfirmation() {
           router.push("/pages/login")
           return
         }
+
+        const orderId = searchParams.get('orderId')
 
         // Tải đơn hàng mới nhất từ Firebase Realtime Database
         const ordersRef = ref(database, `orders/${user.id}`)
@@ -81,9 +84,23 @@ export default function OrderConfirmation() {
           return
         }
 
-        const orderKeys = Object.keys(orders)
-        const latestOrderKey = orderKeys[orderKeys.length - 1]
-        const latestOrderData = { ...orders[latestOrderKey], id: latestOrderKey }
+        let latestOrderData: Order
+
+        if (orderId) {
+          // Fetch specific order for VNPay payments
+          latestOrderData = { ...orders[orderId], id: orderId }
+        } else {
+          // Fetch latest order for COD payments
+          const orderKeys = Object.keys(orders)
+          const latestOrderKey = orderKeys[orderKeys.length - 1]
+          latestOrderData = { ...orders[latestOrderKey], id: latestOrderKey }
+        }
+
+        if (!latestOrderData) {
+          toast.error("Không tìm thấy đơn hàng")
+          router.push("/")
+          return
+        }
 
         setLatestOrder(latestOrderData)
       } catch (error) {
@@ -94,7 +111,7 @@ export default function OrderConfirmation() {
     }
 
     fetchLatestOrder()
-  }, [user, router])
+  }, [user, router, searchParams])
 
   // Hiển thị thông báo đang tải nếu chưa có dữ liệu đơn hàng
   if (!latestOrder) {
@@ -201,7 +218,7 @@ export default function OrderConfirmation() {
                 latestOrder.paymentMethod === "cod"
                   ? "Thanh toán khi nhận hàng (COD)"
                   : latestOrder.paymentMethod === "vnpay"
-                    ? "Thanh toán qua VNPAY"
+                    ? "Đã thanh toán qua VNPAY"
                     : latestOrder.paymentMethod
               }
             </p>
