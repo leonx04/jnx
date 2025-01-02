@@ -1,6 +1,5 @@
 "use client"
 
-import { SavedAddressCard } from "@/app/components/SavedAddressCard"
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,12 +9,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { database } from "@/firebaseConfig"
-import { get, onValue, push, ref, set } from "firebase/database"
 import { Check, Loader2, Search } from 'lucide-react'
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import { SavedAddressCard } from "@/app/components/SavedAddressCard"
+import { get, onValue, push, ref, set } from "firebase/database"
 
 // Interfaces
 interface CartItem {
@@ -325,7 +325,9 @@ function CheckoutContent() {
       const productSnapshot = await get(productRef);
       const productData = productSnapshot.val();
       if (productData) {
-        const newQuantity = productData.quantity - item.quantity;
+        const currentQuantity = productData.quantity || 0;
+        const orderedQuantity = item.quantity || 0;
+        const newQuantity = Math.max(0, currentQuantity - orderedQuantity);
         await set(productRef, { ...productData, quantity: newQuantity });
       }
     }
@@ -437,19 +439,32 @@ function CheckoutContent() {
         const data = await response.json();
 
         if (data.paymentUrl) {
-          await updateProductQuantities();
+          try {
+            await updateProductQuantities();
+          } catch (error) {
+            console.error("Error updating product quantities:", error);
+            showToast("Có lỗi xảy ra khi cập nhật số lượng sản phẩm. Vui lòng thử lại.", 'error');
+            setIsSubmitting(false);
+            return;
+          }
           localStorage.setItem('pendingOrder', JSON.stringify(order));
           window.location.href = data.paymentUrl;
         } else {
           throw new Error('Không thể tạo URL thanh toán');
         }
       } else {
+        try {
+          await updateProductQuantities();
+        } catch (error) {
+          console.error("Error updating product quantities:", error);
+          showToast("Có lỗi xảy ra khi cập nhật số lượng sản phẩm. Vui lòng thử lại.", 'error');
+          setIsSubmitting(false);
+          return;
+        }
         const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
         await set(orderRef, order)
         const orderId = orderRef.key as string;
         await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
-
-        await updateProductQuantities();
 
         const cartRef = ref(database, `carts/${user.id}`);
         await set(cartRef, null);
@@ -476,8 +491,6 @@ function CheckoutContent() {
         if (snapshot.exists()) {
           const orders = snapshot.val()
           const addresses: SavedAddress[] = Object.values(orders)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            // eslint-disable-next-line
             .map((order: any) => ({
               fullName: order.fullName,
               phoneNumber: order.phoneNumber,
@@ -555,8 +568,6 @@ function CheckoutContent() {
         const snapshot = await get(vouchersRef)
         if (snapshot.exists()) {
           const vouchersData = snapshot.val()
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
           const allVouchers = Object.entries(vouchersData).map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
