@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 
-// Định nghĩa các interface cho cấu trúc dữ liệu
+// Interfaces (unchanged)
 interface OrderItem {
   id: string
   name: string
@@ -50,19 +50,20 @@ interface Order {
   voucher: Voucher | null
 }
 
-// Component chính cho trang xác nhận đơn hàng
+// Component for the order confirmation page
 export default function OrderConfirmation() {
-  // Khởi tạo state và lấy context
   const [latestOrder, setLatestOrder] = useState<Order | null>(null)
-  const { user } = useAuthContext()
+  const { user, isLoading } = useAuthContext()
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Effect hook để tải đơn hàng mới nhất
   useEffect(() => {
     const fetchLatestOrder = async () => {
-      // Kiểm tra xem người dùng đã đăng nhập chưa
       try {
+        if (isLoading) {
+          return; // Wait for authentication to complete
+        }
+
         if (!user?.id) {
           toast.error("Vui lòng đăng nhập")
           router.push("/pages/login")
@@ -71,13 +72,10 @@ export default function OrderConfirmation() {
 
         const orderId = searchParams.get('orderId')
 
-        // Tải đơn hàng mới nhất từ Firebase Realtime Database
         const ordersRef = ref(database, `orders/${user.id}`)
-
         const snapshot = await get(ordersRef)
         const orders = snapshot.val()
 
-        // Xử lý dữ liệu đơn hàng và cập nhật state
         if (!orders) {
           toast.error("Không tìm thấy đơn hàng")
           router.push("/")
@@ -111,9 +109,16 @@ export default function OrderConfirmation() {
     }
 
     fetchLatestOrder()
-  }, [user, router, searchParams])
+  }, [user, router, searchParams, isLoading])
 
-  // Hiển thị thông báo đang tải nếu chưa có dữ liệu đơn hàng
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4 text-center">
+        <p>Đang tải...</p>
+      </div>
+    )
+  }
+
   if (!latestOrder) {
     return (
       <div className="container mx-auto p-4 text-center">
@@ -122,7 +127,7 @@ export default function OrderConfirmation() {
     )
   }
 
-  // Render giao diện xác nhận đơn hàng
+  // Render order confirmation UI (unchanged)
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Card thông báo đặt hàng thành công */}

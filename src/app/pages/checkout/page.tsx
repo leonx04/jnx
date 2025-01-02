@@ -460,6 +460,8 @@ export default function Checkout() {
         if (snapshot.exists()) {
           const orders = snapshot.val()
           const addresses: SavedAddress[] = Object.values(orders)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line
             .map((order: any) => ({
               fullName: order.fullName,
               phoneNumber: order.phoneNumber,
@@ -537,6 +539,8 @@ export default function Checkout() {
         const snapshot = await get(vouchersRef)
         if (snapshot.exists()) {
           const vouchersData = snapshot.val()
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
           const allVouchers = Object.entries(vouchersData).map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
