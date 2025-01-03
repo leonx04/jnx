@@ -333,6 +333,24 @@ function CheckoutContent() {
     }
   };
 
+  // Function to remove selected products from cart
+  const removeSelectedProductsFromCart = async (userId: string, selectedItems: CartItem[]) => {
+    const cartRef = ref(database, `carts/${userId}`);
+    const snapshot = await get(cartRef);
+    if (snapshot.exists()) {
+      const currentCart = snapshot.val();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line
+      const updatedCart = Object.entries(currentCart).reduce((acc: { [key: string]: any }, [key, item]) => {
+        if (!selectedItems.some(selectedItem => selectedItem.id === key)) {
+          acc[key] = item;
+        }
+        return acc;
+      }, {});
+      await set(cartRef, updatedCart);
+    }
+  };
+
   // Updated handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -441,8 +459,9 @@ function CheckoutContent() {
         if (data.paymentUrl) {
           try {
             await updateProductQuantities();
+            await removeSelectedProductsFromCart(user.id, cartItems);
           } catch (error) {
-            console.error("Error updating product quantities:", error);
+            console.error("Error updating product quantities or removing from cart:", error);
             showToast("Có lỗi xảy ra khi cập nhật số lượng sản phẩm. Vui lòng thử lại.", 'error');
             setIsSubmitting(false);
             return;
@@ -455,26 +474,22 @@ function CheckoutContent() {
       } else {
         try {
           await updateProductQuantities();
+          const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
+          await set(orderRef, order)
+          const orderId = orderRef.key as string;
+          await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
+
+          await removeSelectedProductsFromCart(user.id, cartItems);
+          showToast("Đặt hàng thành công!", 'success')
+          setCartItems(prevItems => prevItems.filter(item => !cartItems.some(selectedItem => selectedItem.id === item.id)));
+
+          setTimeout(() => {
+            router.push("/pages/order-confirmation")
+          }, 2000);
         } catch (error) {
-          console.error("Error updating product quantities:", error);
-          showToast("Có lỗi xảy ra khi cập nhật số lượng sản phẩm. Vui lòng thử lại.", 'error');
-          setIsSubmitting(false);
-          return;
+          console.error("Error processing order:", error);
+          showToast("Có lỗi xảy ra khi xử lý đơn hàng. Vui lòng thử lại.", 'error');
         }
-        const orderRef = ref(database, `orders/${user.id}/${Date.now()}`)
-        await set(orderRef, order)
-        const orderId = orderRef.key as string;
-        await createNotification(orderId, `Đơn hàng mới #${orderId.slice(-6)} từ ${order.fullName}`);
-
-        const cartRef = ref(database, `carts/${user.id}`);
-        await set(cartRef, null);
-        showToast("Đặt hàng thành công!", 'success')
-        localStorage.removeItem("selectedProducts")
-        setCartItems([])
-
-        setTimeout(() => {
-          router.push("/pages/order-confirmation")
-        }, 2000);
       }
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error)
@@ -491,6 +506,8 @@ function CheckoutContent() {
         if (snapshot.exists()) {
           const orders = snapshot.val()
           const addresses: SavedAddress[] = Object.values(orders)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line
             .map((order: any) => ({
               fullName: order.fullName,
               phoneNumber: order.phoneNumber,
@@ -568,6 +585,8 @@ function CheckoutContent() {
         const snapshot = await get(vouchersRef)
         if (snapshot.exists()) {
           const vouchersData = snapshot.val()
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
           const allVouchers = Object.entries(vouchersData).map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
@@ -709,8 +728,7 @@ function CheckoutContent() {
         await set(orderRef, order)
         await createNotification(txnRef, `Đơn hàng mới #${txnRef.slice(-6)} từ ${order.fullName}`)
 
-        const cartRef = ref(database, `carts/${user.id}`);
-        await set(cartRef, null);
+        await removeSelectedProductsFromCart(user.id, order.items)
 
         localStorage.removeItem('pendingOrder')
         showToast("Thanh toán thành công!", 'success')
