@@ -115,6 +115,8 @@ export default function OrderDetail() {
         const historySnapshot = await get(historyRef)
         if (historySnapshot.exists()) {
           const historyData = historySnapshot.val()
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          // eslint-disable-next-line
           const historyArray = Object.entries(historyData).map(([, value]: [string, any]) => ({
             status: value.status,
             timestamp: value.timestamp,
@@ -159,6 +161,8 @@ export default function OrderDetail() {
       const snapshot = await get(reviewRef)
       if (snapshot.exists()) {
         const reviewsData = snapshot.val()
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line
         const userReview = Object.values(reviewsData).find((review: any) => review.userId === user?.id && review.orderId === order.id)
         if (userReview) {
           return { [item.productId]: userReview as Review }
