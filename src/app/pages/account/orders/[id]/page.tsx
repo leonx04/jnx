@@ -1,26 +1,26 @@
 "use client"
 
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
-import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { get, push, ref, runTransaction, serverTimestamp, update } from "firebase/database"
-import { ArrowLeft, CheckCircle, Clock, Package, Tag, Truck, XCircle } from 'lucide-react'
-import Image from "next/image"
-import { useParams, useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
-import { toast } from "react-hot-toast"
-
 import OrderStatusHistory from "@/app/components/OrderStatusHistory"
 import ProductReview from "@/app/components/ProductReview"
+import { RefundRequest } from "@/app/components/RefundRequest"
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { database } from "@/firebaseConfig"
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
+import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { get, push, ref, runTransaction, serverTimestamp, update } from "firebase/database"
+import { ArrowLeft, CheckCircle, Clock, Package, RefreshCw, Tag, Truck, XCircle } from 'lucide-react'
+import Image from "next/image"
+import { useParams, useRouter } from "next/navigation"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "react-hot-toast"
 
 interface OrderItem {
   id: string
@@ -84,13 +84,17 @@ export default function OrderDetail() {
   const [bulkRating, setBulkRating] = useState(0)
   const [bulkComment, setBulkComment] = useState("")
   const [orderHistory, setOrderHistory] = useState<OrderHistory[]>([])
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [cancelReason, setCancelReason] = useState<string | undefined>(undefined)
+  const [otherReason, setOtherReason] = useState("")
+  const [showRefundRequest, setShowRefundRequest] = useState(false)
+  const [hasRefundRequest, setHasRefundRequest] = useState(false)
+  const [refundRequestStatus, setRefundRequestStatus] = useState<string | null>(null)
   const { user } = useAuthContext()
   const params = useParams()
   const router = useRouter()
   const orderId = params.id as string
-  const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [cancelReason, setCancelReason] = useState<string | undefined>(undefined)
-  const [otherReason, setOtherReason] = useState("")
+  const refundFormRef = useRef<HTMLDivElement>(null)
 
   const fetchOrder = useCallback(async () => {
     if (!user?.id) {
@@ -118,6 +122,23 @@ export default function OrderDetail() {
             reason: value.reason
           }))
           setOrderHistory(historyArray.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()))
+        }
+
+        // Fetch refund request status
+        const refundRequestRef = ref(database, `refundRequests`)
+        const refundSnapshot = await get(refundRequestRef)
+        if (refundSnapshot.exists()) {
+          const refundRequests = refundSnapshot.val()
+          const refundRequest = (Object.values(refundRequests) as { orderId: string; status: string }[]).find(
+            (request) => request.orderId === orderId
+          )
+          if (refundRequest) {
+            setHasRefundRequest(true)
+            setRefundRequestStatus(refundRequest.status)
+          } else {
+            setHasRefundRequest(false)
+            setRefundRequestStatus(null)
+          }
         }
       } else {
         toast.error("Không tìm thấy thông tin đơn hàng")
@@ -386,6 +407,45 @@ export default function OrderDetail() {
     )
   }
 
+  const renderRefundRequestStatus = () => {
+    if (!hasRefundRequest || !refundRequestStatus) return null
+
+    let statusText = ''
+    let statusColor = ''
+
+    switch (refundRequestStatus) {
+      case 'pending':
+        statusText = 'Đang chờ xử lý'
+        statusColor = 'text-yellow-600'
+        break
+      case 'approved':
+        statusText = 'Đã chấp nhận'
+        statusColor = 'text-green-600'
+        break
+      case 'rejected':
+        statusText = 'Đã từ chối'
+        statusColor = 'text-red-600'
+        break
+      default:
+        statusText = 'Không xác định'
+        statusColor = 'text-gray-600'
+    }
+
+    return (
+      <div className="flex items-center space-x-2 mt-2 bg-blue-50 p-2 rounded-md">
+        <RefreshCw className="w-5 h-5 text-blue-600" />
+        <div>
+          <p className="font-medium text-blue-800">
+            Trạng thái yêu cầu hoàn tiền
+          </p>
+          <p className={`text-sm ${statusColor}`}>
+            {statusText}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const handleBulkReview = async () => {
     if (!order || !user) return;
 
@@ -437,6 +497,12 @@ export default function OrderDetail() {
     setShowBulkReviewDialog(true);
   }
 
+  const handleRefundRequested = () => {
+    setShowRefundRequest(false)
+    fetchOrder()
+    toast.success('Yêu cầu hoàn tiền đã được gửi thành công')
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -445,7 +511,7 @@ export default function OrderDetail() {
           <CardContent className="p-6">
             <Skeleton className="h-4 w-3/4 mb-4" />
             <Skeleton className="h-4 w-1/2 mb-2" />
-            <Skeleton className="h-4 w-w-1/4" />
+            <Skeleton className="h-4 w-1/4" />
           </CardContent>
         </Card>
       </div>
@@ -479,54 +545,70 @@ export default function OrderDetail() {
 
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Chi Tiết Đơn Hàng #{order.id.slice(-6)}</h1>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            <span>Thông Tin Đơn Hàng</span>
-            <span className={`text-sm font-normal ${getStatusColor(order.status)} flex items-center`}>
-              {getStatusIcon(order.status)}
-              <span className="ml-2">{getStatusLabel(order.status)}</span>
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p><strong>Ngày đặt hàng:</strong> {new Date(order.createdAt).toLocaleString("vi-VN")}</p>
-          <p><strong>Phương thức thanh toán:</strong> {getPaymentMethodLabel(order.paymentMethod)}</p>
-          <p><strong>Tổng tiền hàng:</strong> {order.subtotal.toLocaleString("vi-VN")} ₫</p>
-          <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString("vi-VN")} ₫</p>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex justify-between items-center">
+              <span>Thông Tin Đơn Hàng</span>
+              <span className={`text-sm font-normal ${getStatusColor(order.status)} flex items-center`}>
+                {getStatusIcon(order.status)}
+                <span className="ml-2">{getStatusLabel(order.status)}</span>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p><strong>Ngày đặt hàng:</strong> {new Date(order.createdAt).toLocaleString("vi-VN")}</p>
+            <p><strong>Phương thức thanh toán:</strong> {getPaymentMethodLabel(order.paymentMethod)}</p>
+            <p><strong>Tổng tiền hàng:</strong> {order.subtotal.toLocaleString("vi-VN")} ₫</p>
+            <p><strong>Phí vận chuyển:</strong> {order.shippingFee.toLocaleString("vi-VN")} ₫</p>
 
-          {renderVoucherDetails()}
+            {renderVoucherDetails()}
+            {renderRefundRequestStatus()}
 
-          <div className="mt-4 font-bold text-lg">
-            <strong>Tổng thanh toán:</strong> {order.total.toLocaleString("vi-VN")} ₫
-          </div>
-          {order.discount ? (
-            <p className="text-sm text-gray-500">(Đã bao gồm giảm giá {order.discount.toLocaleString("vi-VN")} ₫)</p>
-          ) : null}
+            <div className="mt-4 font-bold text-lg">
+              <strong>Tổng thanh toán:</strong> {order.total.toLocaleString("vi-VN")} ₫
+            </div>
+            {order.discount ? (
+              <p className="text-sm text-gray-500">(Đã bao gồm giảm giá {order.discount.toLocaleString("vi-VN")} ₫)</p>
+            ) : null}
 
-          {order.status === 'shipped' && (
-            <Button onClick={handleConfirmDelivery} className="mt-4">
-              Xác nhận đã nhận hàng
-            </Button>
-          )}
-          {order.status === 'pending' && (
-            <Button onClick={() => setShowCancelDialog(true)} className="mt-4 bg-red-500 hover:bg-red-600 text-white">
-              Hủy đơn hàng
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+            {(order.status === 'delivered') && !showRefundRequest && !hasRefundRequest && !refundRequestStatus && (
+              <Button
+                onClick={() => {
+                  setShowRefundRequest(true);
+                  setTimeout(() => {
+                    refundFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }}
+                className="mt-4"
+              >
+                Yêu cầu trả hàng hoàn tiền
+              </Button>
+            )}
+            {order.status === 'shipped' && (
+              <Button onClick={handleConfirmDelivery} className="mt-4">
+                Xác nhận đã nhận hàng
+              </Button>
+            )}
+            {order.status === 'pending' && (
+              <Button onClick={() => setShowCancelDialog(true)} className="mt-4 bg-red-500 hover:bg-red-600 text-white">
+                Hủy đơn hàng
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Thông Tin Giao Hàng</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p><strong>Họ tên:</strong> {order.fullName}</p>
-          <p><strong>Số điện thoại:</strong> {order.phoneNumber}</p>
-          <p><strong>Địa chỉ:</strong> {`${order.shippingAddress.address}, ${order.shippingAddress.ward}, ${order.shippingAddress.district}, ${order.shippingAddress.province}`}</p>
-        </CardContent>
-      </Card>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Thông Tin Giao Hàng</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p><strong>Họ tên:</strong> {order.fullName}</p>
+            <p><strong>Số điện thoại:</strong> {order.phoneNumber}</p>
+            <p><strong>Địa chỉ:</strong> {`${order.shippingAddress.address}, ${order.shippingAddress.ward}, ${order.shippingAddress.district}, ${order.shippingAddress.province}`}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="mb-6">
         <CardHeader>
@@ -552,14 +634,16 @@ export default function OrderDetail() {
           <ul className="space-y-8">
             {order.items.map((item) => (
               <li key={item.id} className="border-b pb-6">
-                <div className="flex items-center space-x-4">
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.name}
-                    width={80}
-                    height={80}
-                    className="object-cover rounded-md"
-                  />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                  <div className="w-24 h-24 relative flex-shrink-0">
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.name}
+                      layout="fill"
+                      objectFit="contain"
+                      className="rounded-md"
+                    />
+                  </div>
                   <div className="flex-grow">
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
@@ -601,6 +685,16 @@ export default function OrderDetail() {
         </CardContent>
       </Card>
 
+      {showRefundRequest && (
+        <div ref={refundFormRef} className="mt-8">
+          <RefundRequest
+            orderId={order.id}
+            items={order.items}
+            onRefundRequested={handleRefundRequested}
+          />
+        </div>
+      )}
+
       <Dialog open={showBulkReviewDialog} onOpenChange={setShowBulkReviewDialog}>
         <DialogContent>
           <DialogHeader>
@@ -619,8 +713,7 @@ export default function OrderDetail() {
                     type="button"
                     onClick={() => setBulkRating(star)}
                     className={`text-2xl ${bulkRating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
-                  >
-                    <FontAwesomeIcon icon={bulkRating >= star ? faStarSolid : faStarRegular} />
+                  ><FontAwesomeIcon icon={bulkRating >= star ? faStarSolid : faStarRegular} />
                   </button>
                 ))}
               </div>

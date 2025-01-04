@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { database } from '@/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBell, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faBlog, faRightToBracket, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faBlog, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faRightToBracket, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -32,6 +32,12 @@ interface Notification {
   userId: string;
 }
 
+const avatarStyle = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover' as const,
+};
+
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuthContext();
@@ -48,8 +54,6 @@ const Navbar = () => {
       const data = snapshot.val();
       if (data) {
         const notificationList: Notification[] = Object.entries(data)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
           .map(([key, value]: [string, any]) => ({
             id: key,
             ...value,
@@ -114,8 +118,6 @@ const Navbar = () => {
     try {
       const notificationsRef = ref(database, 'notifications');
       const snapshot = await get(notificationsRef);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      // eslint-disable-next-line
       const updates: { [key: string]: any } = {};
 
       snapshot.forEach((childSnapshot) => {
@@ -344,19 +346,20 @@ const NotificationsDropdown = ({
     </DropdownMenu.Content>
   </DropdownMenu.Root>
 );
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line
+
 const UserDropdown = ({ user, handleLogout }: { user: any; handleLogout: () => void }) => (
   <DropdownMenu.Root>
     <DropdownMenu.Trigger asChild>
       <button className="flex items-center text-white hover:bg-gray-800 px-3 py-2 rounded-md text-sm font-medium">
-        <Image
-          src={user.imageUrl || "https://placehold.jp/30x30.png"}
-          alt={user.name || "User"}
-          width={32}
-          height={32}
-          className="rounded-full mr-2"
-        />
+        <div className="w-8 h-8 rounded-full overflow-hidden mr-2">
+          <Image
+            src={user.imageUrl || "https://placehold.jp/30x30.png"}
+            alt={user.name || "User"}
+            width={32}
+            height={32}
+            style={avatarStyle}
+          />
+        </div>
         <span>{user.name || user.email}</span>
       </button>
     </DropdownMenu.Trigger>
@@ -379,8 +382,7 @@ const UserDropdown = ({ user, handleLogout }: { user: any; handleLogout: () => v
     </DropdownMenu.Content>
   </DropdownMenu.Root>
 );
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line
+
 const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; onClose: () => void; user: any; handleLogout: () => void }) => (
   <div
     className={`fixed inset-0 bg-black z-40 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
@@ -396,13 +398,15 @@ const MobileMenu = ({ isOpen, onClose, user, handleLogout }: { isOpen: boolean; 
     <div className="p-4 pt-16">
       {user ? (
         <div className="flex items-center mb-6 px-4">
-          <Image
-            src={user.imageUrl || "https://placehold.jp/30x30.png"}
-            alt={user.name || "User"}
-            width={48}
-            height={48}
-            className="rounded-full mr-4"
-          />
+          <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
+            <Image
+              src={user.imageUrl || "https://placehold.jp/30x30.png"}
+              alt={user.name || "User"}
+              width={48}
+              height={48}
+              style={avatarStyle}
+            />
+          </div>
           <div>
             <p className="text-white font-semibold">{user.name || user.email}</p>
           </div>

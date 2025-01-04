@@ -51,6 +51,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -60,12 +61,15 @@
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
+
   .section-title {
     @apply text-3xl font-bold mb-8 text-center;
   }
+
   .btn-primary {
     @apply bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 whitespace-nowrap;
   }
+
   .radix-dropdown-content {
     @apply text-gray-900;
   }
@@ -75,6 +79,7 @@
   0% {
     transform: translateX(100%);
   }
+
   100% {
     transform: translateX(-100%);
   }
@@ -109,9 +114,11 @@
   0% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     opacity: 0.6;
   }
@@ -125,9 +132,11 @@
   0% {
     width: 0;
   }
+
   50% {
     width: 70%;
   }
+
   100% {
     width: 100%;
   }
@@ -141,3 +150,22 @@
   margin-top: 1.7rem;
 }
 
+/* New animation for the Progress component */
+@keyframes loading-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-loading-gradient {
+  animation: loading-gradient 3s ease infinite;
+  background-size: 200% 200%;
+}
