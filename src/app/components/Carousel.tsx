@@ -28,7 +28,7 @@ const Carousel: React.FC<CarouselProps> = ({ slides }) => {
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveSlide((prevSlide) => (prevSlide + 1) % slides.length); // Chuyển sang slide kế tiếp
-    }, 5000);
+    }, 3000);
     return () => clearInterval(timer); // Dọn dẹp timer khi component bị unmount
   }, [slides.length]);
 

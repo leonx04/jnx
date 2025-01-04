@@ -64,6 +64,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'raw.githubusercontent.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'asset.cloudinary.com',
+      }
     ],
   },
   eslint: {

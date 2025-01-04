@@ -77,17 +77,17 @@ export default function Home() {
   // Dữ liệu cho carousel
   const slides = [
     {
-      image: 'https://i.pinimg.com/originals/45/c1/fc/45c1fcf4aaae94a8ab0015e186070d22.gif',
+      image: 'https://res.cloudinary.com/dfi8tvwsf/image/upload/v1735960633/127ef50a9e6bc3cbe762cf6d3ae4987e_zzxqev.gif',
       title: 'Chào Mừng Đến JNX Tennis Store',
       description: 'Trải nghiệm mua sắm tennis chuyên nghiệp',
     },
     {
-      image: 'https://i.pinimg.com/originals/d4/29/3a/d4293acedaafb6a8447a9e57e079e1b3.gif',
+      image: 'https://res.cloudinary.com/dfi8tvwsf/image/upload/v1735960915/ca92068e40ef52cadf49ea1d0a98bf6c_ed3zty.gif',
       title: 'Siêu Khuyến Mãi Mùa Đông',
       description: 'Giảm giá lên đến 50% cho các sản phẩm',
     },
     {
-      image: 'https://i.pinimg.com/originals/b1/18/ce/b118cec88f52f6f2bd1edc1808056c10.gif',
+      image: 'https://res.cloudinary.com/dfi8tvwsf/image/upload/v1735960164/b118cec88f52f6f2bd1edc1808056c10_cud1dk.gif',
       title: 'Miễn Phí Vận Chuyển',
       description: 'Cho đơn hàng trên 2,000,000 đ',
     },
