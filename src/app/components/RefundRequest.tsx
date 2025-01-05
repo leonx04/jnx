@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { database } from "@/firebaseConfig"
-import { push, ref, serverTimestamp } from "firebase/database"
+import { get, push, ref, serverTimestamp } from "firebase/database"
 import { AlertCircle, Minus, Plus, Upload, X } from 'lucide-react'
 import Image from "next/image"
 import { useCallback, useRef, useState } from "react"
@@ -125,7 +125,6 @@ export function RefundRequest({ orderId, items, onRefundRequested }: RefundReque
         })
     }, [isSubmitting])
 
-
     const uploadImages = async (images: ImagePreview[]): Promise<string[]> => {
         const uploadedUrls: string[] = []
 
@@ -164,6 +163,13 @@ export function RefundRequest({ orderId, items, onRefundRequested }: RefundReque
         })
     }
 
+    const calculateTotalRefundAmount = (selectedItems: RefundItem[]): number => {
+        return selectedItems.reduce((total, item) => {
+            const orderItem = items.find(i => i.id === item.id)
+            return total + (orderItem ? orderItem.price * item.quantity : 0)
+        }, 0)
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user) {
@@ -196,6 +202,16 @@ export function RefundRequest({ orderId, items, onRefundRequested }: RefundReque
 
             const uploadedUrls = await uploadImages(images)
 
+            // Fetch the full order details
+            const orderRef = ref(database, `orders/${user.id}/${orderId}`)
+            const orderSnapshot = await get(orderRef)
+            if (!orderSnapshot.exists()) {
+                throw new Error("Order not found")
+            }
+            const orderData = orderSnapshot.val()
+
+            const totalRefundAmount = calculateTotalRefundAmount(selectedItems)
+
             const refundRequestRef = ref(database, "refundRequests")
             await push(refundRequestRef, {
                 userId: user.id,
@@ -206,6 +222,26 @@ export function RefundRequest({ orderId, items, onRefundRequested }: RefundReque
                 images: uploadedUrls,
                 status: "pending",
                 createdAt: serverTimestamp(),
+                orderDetails: {
+                    fullName: orderData.fullName,
+                    phoneNumber: orderData.phoneNumber,
+                    shippingAddress: orderData.shippingAddress,
+                    paymentMethod: orderData.paymentMethod,
+                    subtotal: orderData.subtotal,
+                    shippingFee: orderData.shippingFee,
+                    total: orderData.total,
+                    discount: orderData.discount,
+                    voucher: orderData.voucher,
+                    createdAt: orderData.createdAt
+                },
+                refundItems: selectedItems.map(item => {
+                    const orderItem = orderData.items.find((i: any) => i.id === item.id)
+                    return {
+                        ...orderItem,
+                        refundQuantity: item.quantity
+                    }
+                }),
+                totalRefundAmount
             })
 
             await createNotification(`Yêu cầu hoàn tiền mới cho đơn hàng #${orderId.slice(-6)}`)
@@ -412,13 +448,14 @@ export function RefundRequest({ orderId, items, onRefundRequested }: RefundReque
                                 Đang gửi yêu cầu, không thể xóa ảnh trong quá trình này
                             </p>
                         )}
-                        {images.length > 0 && (
-                            <p className="mt-2 text-sm text-red-500 flex items-center">
-                                <AlertCircle size={16} className="mr-2" />
-                                Không thể xóa ảnh sau khi đã tải lên để tránh xung đột dữ liệu
-                            </p>
-                        )}
                     </div>
+
+                    {images.length === 0 && (
+                        <p className="mt-2 text-sm text-red-500 flex items-center">
+                            <AlertCircle size={16} className="mr-2" />
+                            Vui lòng tải lên ít nhất một ảnh để hoàn tất yêu cầu hoàn tiền
+                        </p>
+                    )}
 
                     <Button type="submit" className="w-full" disabled={isSubmitting || images.length === 0}>
                         {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu hoàn tiền"}
