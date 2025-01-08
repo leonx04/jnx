@@ -13,7 +13,7 @@ import { database } from '@/firebaseConfig'
 import { onValue, ref } from "firebase/database"
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Product {
   id: string
@@ -30,7 +30,15 @@ interface Product {
 
 const ITEMS_PER_PAGE = 12
 
-export default function ProductsPage() {
+export default function ProductsPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductsPage />
+    </Suspense>
+  )
+}
+
+function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [filter, setFilter] = useState('')
   const [brandFilter, setBrandFilter] = useState<string[]>([])
@@ -292,4 +300,3 @@ export default function ProductsPage() {
     </div>
   )
 }
-

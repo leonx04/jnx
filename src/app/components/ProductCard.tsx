@@ -158,14 +158,14 @@ const ProductCard = ({ product }: { product: Product }) => {
             </h3>
 
             <div className="flex items-center mb-1.5">
-              <div className="flex items-center">
-                {[0, 1, 2, 3, 4].map((index) => (
-                  <div key={index} className="relative w-3 h-3 mx-0.5">
-                    <FontAwesomeIcon
-                      icon={faStar}
-                      className="absolute text-gray-300"
-                    />
-                    {averageRating !== null && averageRating > index && (
+              {averageRating !== null ? (
+                <div className="flex items-center">
+                  {[0, 1, 2, 3, 4].map((index) => (
+                    <div key={index} className="relative w-3 h-3 mx-0.5">
+                      <FontAwesomeIcon
+                        icon={faStar}
+                        className="absolute text-gray-300"
+                      />
                       <div
                         className="absolute overflow-hidden text-yellow-500"
                         style={{
@@ -174,13 +174,17 @@ const ProductCard = ({ product }: { product: Product }) => {
                       >
                         <FontAwesomeIcon icon={faStar} />
                       </div>
-                    )}
-                  </div>
-                ))}
-                <span className="text-[10px] text-gray-600 ml-1.5">
-                  {averageRating !== null ? `(${averageRating.toFixed(1)}) ${reviewCount}` : 'Chưa có đánh giá'}
+                    </div>
+                  ))}
+                  <span className="text-[10px] text-gray-600 ml-1.5">
+                    ({averageRating.toFixed(1)}) {reviewCount}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[10px] text-gray-600">
+                  Chưa có đánh giá
                 </span>
-              </div>
+              )}
             </div>
 
             <div className="mt-auto mb-1.5">
@@ -229,4 +233,3 @@ const ProductCard = ({ product }: { product: Product }) => {
 };
 
 export default ProductCard;
-

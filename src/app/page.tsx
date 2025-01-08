@@ -87,7 +87,7 @@ export default function Home() {
             <FontAwesomeIcon icon={icon} className="mr-4" />
             {title}
           </h2>
-          <Link href={`/products?sort=${sortParam}`} className="btn-primary">
+          <Link href={`/pages/products?sort=${sortParam}`} className="btn-primary">
             Xem tất cả
             <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
           </Link>
