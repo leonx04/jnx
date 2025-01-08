@@ -1,9 +1,5 @@
-// File: account-management.tsx
-// Mô tả: Component quản lý tài khoản người dùng
-
 'use client'
 
-// Import các dependencies và components cần thiết
 import { useAuthContext } from '@/app/context/AuthContext'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,7 +15,6 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
-// Định nghĩa các interface cho dữ liệu
 interface UserProfile {
   name: string
   email: string
@@ -53,9 +48,7 @@ interface Voucher {
   status: 'active' | 'inactive' | 'expired' | 'incoming'
 }
 
-// Component chính
 export default function AccountManagement() {
-  // Khởi tạo state và context
   const { user, updateUserInfo } = useAuthContext() as { user: UserProfile, updateUserInfo: (profile: UserProfile) => Promise<void> }
   const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '' })
   const [encryptedPassword, setEncryptedPassword] = useState('')
@@ -68,7 +61,6 @@ export default function AccountManagement() {
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
 
-  // Hàm fetch thông tin người dùng
   const fetchUserProfile = useCallback(async () => {
     if (user?.id) {
       const userRef = ref(database, `user/${user.id}`)
@@ -88,7 +80,6 @@ export default function AccountManagement() {
     }
   }, [user])
 
-  // Hàm fetch đơn hàng của người dùng
   const fetchOrders = useCallback(async () => {
     if (user?.id) {
       const ordersRef = ref(database, `orders/${user.id}`)
@@ -106,7 +97,6 @@ export default function AccountManagement() {
     }
   }, [user])
 
-  // Hàm fetch voucher của người dùng
   const fetchVouchers = useCallback(async () => {
     if (user?.id) {
       const vouchersRef = ref(database, 'vouchers')
@@ -114,8 +104,6 @@ export default function AccountManagement() {
       if (snapshot.exists()) {
         const vouchersData = snapshot.val()
         const userVouchers = Object.entries(vouchersData)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
           .filter(([_, voucher]: [string, any]) =>
             voucher.userId &&
             voucher.userId.includes(user.id) &&
@@ -124,8 +112,6 @@ export default function AccountManagement() {
             new Date(voucher.endDate) >= new Date() &&
             (voucher.usageLimit - voucher.usedCount) > 0
           )
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          // eslint-disable-next-line
           .map(([id, voucher]: [string, any]) => ({
             ...voucher,
             id
@@ -135,7 +121,6 @@ export default function AccountManagement() {
     }
   }, [user])
 
-  // Sử dụng useEffect để gọi các hàm fetch khi component mount
   useEffect(() => {
     if (user) {
       fetchUserProfile()
@@ -144,13 +129,11 @@ export default function AccountManagement() {
     }
   }, [user, fetchUserProfile, fetchOrders, fetchVouchers])
 
-  // Xử lý thay đổi input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setProfile(prev => ({ ...prev, [name]: value }))
   }
 
-  // Xử lý thay đổi avatar
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
@@ -164,12 +147,10 @@ export default function AccountManagement() {
     }
   }
 
-  // Chuyển đổi hiển thị mật khẩu
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
 
-  // Xử lý submit form cập nhật thông tin
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -221,7 +202,6 @@ export default function AccountManagement() {
     }
   }, [profile, previewImage, updateUserInfo, encryptedPassword, user])
 
-  // Các hàm helper
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: string } = {
       "pending": "Đã đặt hàng",
@@ -260,17 +240,14 @@ export default function AccountManagement() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
   }
 
-  // Kiểm tra nếu người dùng chưa đăng nhập
   if (!user) {
     return <div className="text-center py-10">Vui lòng đăng nhập để xem trang này.</div>
   }
 
-  // Render component
   return (
     <div className="container mx-auto p-4 max-w-7xl">
       <h1 className="text-3xl font-bold mb-6 text-center">Quản lý tài khoản</h1>
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Phần thông tin cá nhân */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -280,14 +257,15 @@ export default function AccountManagement() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center space-y-4">
-              <Image
-                src={profile.imageUrl || 'https://placehold.jp/150x150.png'}
-                alt="Avatar"
-                width={150}
-                height={150}
-                className="rounded-full"
-                priority
-              />
+              <div className="w-[150px] h-[150px] relative overflow-hidden rounded-full">
+                <Image
+                  src={profile.imageUrl || 'https://placehold.jp/150x150.png'}
+                  alt="Avatar"
+                  layout="fill"
+                  objectFit="cover"
+                  priority
+                />
+              </div>
               <h2 className="text-xl font-semibold">{profile.name}</h2>
               <p className="text-gray-600">{profile.email}</p>
               <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -302,13 +280,14 @@ export default function AccountManagement() {
                     <div className="space-y-2">
                       <Label htmlFor="avatar">Ảnh đại diện</Label>
                       <div className="flex items-center space-x-4">
-                        <Image
-                          src={previewImage || profile.imageUrl || 'https://placehold.jp/100x100.png'}
-                          alt="Avatar Preview"
-                          width={100}
-                          height={100}
-                          className="rounded-full"
-                        />
+                        <div className="w-[100px] h-[100px] relative overflow-hidden rounded-full">
+                          <Image
+                            src={previewImage || profile.imageUrl || 'https://placehold.jp/100x100.png'}
+                            alt="Avatar Preview"
+                            layout="fill"
+                            objectFit="cover"
+                          />
+                        </div>
                         <Input
                           type="file"
                           id="avatar"
@@ -378,7 +357,6 @@ export default function AccountManagement() {
           </CardContent>
         </Card>
 
-        {/* Phần voucher đặc quyền */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -414,7 +392,6 @@ export default function AccountManagement() {
           </CardContent>
         </Card>
 
-        {/* Phần lịch sử đơn hàng */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -461,7 +438,6 @@ export default function AccountManagement() {
         </Card>
       </div>
 
-      {/* Modal chi tiết voucher */}
       <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -469,18 +445,18 @@ export default function AccountManagement() {
           </DialogHeader>
           {selectedVoucher && (
             <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg">{selectedVoucher.voucherCode}</h3>
-                <p className="text-gray-600">{selectedVoucher.description}</p>
+              <div className="bg-gray-100 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">{selectedVoucher.voucherCode}</h3>
+                <p className="text-gray-600 text-sm">{selectedVoucher.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="font-medium">Loại giảm giá:</p>
-                  <p>{selectedVoucher.discountType === 'percentage' ? 'Phần trăm' : 'Cố định'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Giá trị giảm:</p>
-                  <p>{selectedVoucher.discountType === 'percentage' ? `${selectedVoucher.discountValue}%` : formatCurrency(selectedVoucher.discountValue)}</p>
+                <div className="col-span-2">
+                  <p className="font-medium">Giảm giá:</p>
+                  <p className="text-green-600 text-lg font-bold">
+                    {selectedVoucher.discountType === 'percentage'
+                      ? `${selectedVoucher.discountValue}%`
+                      : formatCurrency(selectedVoucher.discountValue)}
+                  </p>
                 </div>
                 <div>
                   <p className="font-medium">Ngày bắt đầu:</p>
@@ -514,3 +490,4 @@ export default function AccountManagement() {
     </div>
   )
 }
+

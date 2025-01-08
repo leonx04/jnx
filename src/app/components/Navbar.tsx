@@ -209,6 +209,7 @@ const Navbar = () => {
             <span className="text-white text-2xl font-bold">JNX</span>
           </Link>
           <div className="flex items-center space-x-3">
+            <NavIconLink href="/" icon={faHome} badgeCount={0} />
             <NavIconLink href="/pages/cart" icon={faShoppingCart} badgeCount={cartItemsCount} />
             {user && (
               <Button

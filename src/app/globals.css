@@ -150,7 +150,6 @@
   margin-top: 1.7rem;
 }
 
-/* New animation for the Progress component */
 @keyframes loading-gradient {
   0% {
     background-position: 0% 50%;
@@ -168,4 +167,34 @@
 .animate-loading-gradient {
   animation: loading-gradient 3s ease infinite;
   background-size: 200% 200%;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Improve performance for fixed elements */
+.fixed {
+  will-change: transform;
+}
+
+/* Optimize images */
+img {
+  content-visibility: auto;
+}
+
+/* Optimize scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize font loading */
+@font-face {
+  font-display: swap;
 }

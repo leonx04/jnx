@@ -3,6 +3,7 @@ import { database } from '@/firebaseConfig';
 import { faExclamationTriangle, faShoppingCart, faStar } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { get, push, ref, set } from "firebase/database";
+import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
-  salePrice?: number | null;  // Đặt optional cho salePrice
+  salePrice?: number | null;
   imageUrl: string;
   brand: string;
   availableStock: number;
@@ -36,7 +37,6 @@ const ProductCard = ({ product }: { product: Product }) => {
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState<number>(0);
 
-  // Kiểm tra xem có giá khuyến mãi hợp lệ không
   const hasValidSalePrice = product.salePrice && product.salePrice < product.price;
 
   const calculateDiscountPercentage = () => {
@@ -46,7 +46,10 @@ const ProductCard = ({ product }: { product: Product }) => {
     return 0;
   };
 
-  const addToCart = async () => {
+  const addToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!user) {
       toast.error(
         <div>
@@ -122,117 +125,108 @@ const ProductCard = ({ product }: { product: Product }) => {
   const discountPercentage = calculateDiscountPercentage();
 
   return (
-    <div className="w-full transform transition-transform duration-300 hover:scale-105">
-      <div className="relative bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-full group">
-        {/* Discount Badge */}
-        {discountPercentage > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
-            -{discountPercentage}%
-          </div>
-        )}
-
-        {/* Product Image */}
-        <div className="relative aspect-square w-full">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            className="absolute inset-0 object-contain p-4"
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            priority={true}
-          />
-        </div>
-
-        {/* Product Details */}
-        <div className="p-2.5 sm:p-3 lg:p-4 flex flex-col flex-grow">
-          {/* Brand */}
-          <p className="text-xs text-gray-600 mb-1 truncate">
-            {product.brand}
-          </p>
-
-          {/* Product Name */}
-          <h3 className="min-h-[2.5rem] sm:min-h-[3rem] text-sm font-medium leading-tight mb-1.5 line-clamp-2">
-            {product.name}
-          </h3>
-
-          {/* Rating */}
-          <div className="flex items-center mb-1.5">
-            <div className="flex items-center">
-              {[0, 1, 2, 3, 4].map((index) => (
-                <div key={index} className="relative w-3 h-3 mx-0.5">
-                  <FontAwesomeIcon
-                    icon={faStar}
-                    className="absolute text-gray-300"
-                  />
-                  {averageRating !== null && averageRating > index && (
-                    <div
-                      className="absolute overflow-hidden text-yellow-500"
-                      style={{
-                        width: `${averageRating >= index + 1 ? '100%' : `${(averageRating - index) * 100}%`}`
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faStar} />
-                    </div>
-                  )}
-                </div>
-              ))}
-              <span className="text-[10px] text-gray-600 ml-1.5">
-                {averageRating !== null ? `(${averageRating.toFixed(1)}) ${reviewCount}` : 'Chưa có đánh giá'}
-              </span>
-            </div>
-          </div>
-
-          {/* Price */}
-          <div className="mt-auto mb-1.5">
-            <div className="flex items-center justify-between">
-              {hasValidSalePrice ? (
-                <>
-                  <span className="text-sm text-gray-500 line-through">
-                    {product.price.toLocaleString('vi-VN')}₫
-                  </span>
-                  <span className="text-sm font-bold text-red-600">
-                    {product.salePrice ? product.salePrice.toLocaleString('vi-VN') : ''}₫
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm font-bold text-black">
-                  {product.price.toLocaleString('vi-VN')}₫
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
-            <button
-              onClick={addToCart}
-              className={`flex-1 bg-black hover:bg-gray-800 text-white font-medium py-1.5 px-2 rounded text-xs transition-all duration-300 flex items-center justify-center ${isAdding ? 'scale-105' : ''} ${product.availableStock === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={isAdding || product.availableStock === 0}
-            >
-              <FontAwesomeIcon icon={faShoppingCart} className={`mr-1 ${isAdding ? 'animate-bounce' : ''}`} />
-              <span>
-                {isAdding ? 'Đã thêm' : product.availableStock === 0 ? 'Hết hàng' : 'Thêm vào giỏ'}
-              </span>
-            </button>
-            <Link
-              href={`/pages/products/${product.id}`}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1.5 px-2 rounded text-xs transition-colors duration-300 flex items-center justify-center"
-            >
-              Chi tiết
-            </Link>
-          </div>
-
-          {/* Stock Warning */}
-          {product.availableStock <= 5 && product.availableStock > 0 && (
-            <div className="mt-1.5 text-[10px] text-orange-500 flex items-center justify-center">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
-              <span>Chỉ còn {product.availableStock} sản phẩm</span>
+    <Link href={`/pages/products/${product.id}`} className="block w-full">
+      <div className="w-full transform transition-transform duration-300 hover:scale-105" data-aos="fade-up">
+        <div className="relative bg-white shadow-md rounded-lg overflow-hidden flex flex-col h-full group">
+          {discountPercentage > 0 && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
+              -{discountPercentage}%
             </div>
           )}
+
+          <div className="relative aspect-square w-full overflow-hidden">
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              className="absolute inset-0 object-contain p-4 transition-transform duration-300 group-hover:scale-110"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              priority={true}
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Maximize2 className="text-white text-3xl" />
+            </div>
+          </div>
+
+          <div className="p-2.5 sm:p-3 lg:p-4 flex flex-col flex-grow">
+            <p className="text-xs text-gray-600 mb-1 truncate">
+              {product.brand}
+            </p>
+
+            <h3 className="min-h-[2.5rem] sm:min-h-[3rem] text-sm font-medium leading-tight mb-1.5 line-clamp-2">
+              {product.name}
+            </h3>
+
+            <div className="flex items-center mb-1.5">
+              <div className="flex items-center">
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <div key={index} className="relative w-3 h-3 mx-0.5">
+                    <FontAwesomeIcon
+                      icon={faStar}
+                      className="absolute text-gray-300"
+                    />
+                    {averageRating !== null && averageRating > index && (
+                      <div
+                        className="absolute overflow-hidden text-yellow-500"
+                        style={{
+                          width: `${averageRating >= index + 1 ? '100%' : `${(averageRating - index) * 100}%`}`
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faStar} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <span className="text-[10px] text-gray-600 ml-1.5">
+                  {averageRating !== null ? `(${averageRating.toFixed(1)}) ${reviewCount}` : 'Chưa có đánh giá'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-auto mb-1.5">
+              <div className="flex items-center justify-between">
+                {hasValidSalePrice ? (
+                  <>
+                    <span className="text-sm text-gray-500 line-through">
+                      {product.price.toLocaleString('vi-VN')}₫
+                    </span>
+                    <span className="text-sm font-bold text-red-600">
+                      {product.salePrice ? product.salePrice.toLocaleString('vi-VN') : ''}₫
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-black">
+                    {product.price.toLocaleString('vi-VN')}₫
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
+              <button
+                onClick={addToCart}
+                className={`flex-1 bg-black hover:bg-gray-800 text-white font-medium py-1.5 px-2 rounded text-xs transition-all duration-300 flex items-center justify-center ${isAdding ? 'scale-105' : ''} ${product.availableStock === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isAdding || product.availableStock === 0}
+              >
+                <FontAwesomeIcon icon={faShoppingCart} className={`mr-1 ${isAdding ? 'animate-bounce' : ''}`} />
+                <span>
+                  {isAdding ? 'Đã thêm' : product.availableStock === 0 ? 'Hết hàng' : 'Thêm vào giỏ'}
+                </span>
+              </button>
+            </div>
+
+            {product.availableStock <= 5 && product.availableStock > 0 && (
+              <div className="mt-1.5 text-[10px] text-orange-500 flex items-center justify-center">
+                <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
+                <span>Chỉ còn {product.availableStock} sản phẩm</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
 export default ProductCard;
+

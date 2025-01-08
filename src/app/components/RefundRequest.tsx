@@ -235,6 +235,7 @@ export function RefundRequest({ orderId, items, onRefundRequested }: RefundReque
                     createdAt: orderData.createdAt
                 },
                 refundItems: selectedItems.map(item => {
+                    
                     const orderItem = orderData.items.find((i: any) => i.id === item.id)
                     return {
                         ...orderItem,
