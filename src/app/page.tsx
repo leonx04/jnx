@@ -123,9 +123,9 @@ export default function Home() {
         <div className="container-custom">
           <h2 className="section-title">Tại sao chọn chúng tôi?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <FeatureCard icon={faShippingFast} title="Giao hàng nhanh chóng" description="Miễn phí giao hàng cho đơn hàng trên 2 triệu đồng" />
+            <FeatureCard icon={faShippingFast} title="Giao hàng nhanh chóng" description="Đơn hàng được vận chuyển nhanh chóng" />
             <FeatureCard icon={faMoneyBillWave} title="Đảm bảo hoàn tiền" description="30 ngày đổi trả miễn phí" />
-            <FeatureCard icon={faHeadset} title="Hỗ trợ 24/7" description="Đội ngũ chăm sóc khách hàng luôn sẵn sàng hỗ trợ" />
+            <FeatureCard icon={faHeadset} title="Hỗ trợ 24/7" description="Đội ngũ chăm sóc luôn sẵn sàng" />
           </div>
         </div>
       </section>
