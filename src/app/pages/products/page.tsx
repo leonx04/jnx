@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { database } from '@/firebaseConfig'
 import { onValue, ref } from "firebase/database"
 import { Search, SlidersHorizontal } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Product {
@@ -38,6 +39,8 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     const productsRef = ref(database, 'products')
     const unsubscribe = onValue(productsRef, (snapshot) => {
@@ -53,6 +56,26 @@ export default function ProductsPage() {
 
     return () => unsubscribe()
   }, [])
+
+  useEffect(() => {
+    const sortParam = searchParams.get('sort')
+    if (sortParam) {
+      switch (sortParam) {
+        case 'newest':
+          setSortOption('newest')
+          break
+        case 'discount':
+          setSortOption('priceDesc')
+          setSaleFilter('sale')
+          break
+        case 'priceAsc':
+          setSortOption('priceAsc')
+          break
+        default:
+          setSortOption('newest')
+      }
+    }
+  }, [searchParams])
 
   const brands = useMemo(() => [...new Set(products.map(product => product.brand))], [products])
 
@@ -269,3 +292,4 @@ export default function ProductsPage() {
     </div>
   )
 }
+

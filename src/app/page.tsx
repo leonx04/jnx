@@ -79,7 +79,7 @@ export default function Home() {
     },
   ];
 
-  const ProductSection = ({ title, icon, iconColor, products, linkHref }: { title: string; icon: any; iconColor: string; products: Product[]; linkHref: string }) => (
+  const ProductSection = ({ title, icon, iconColor, products, sortParam }: { title: string; icon: any; iconColor: string; products: Product[]; sortParam: string }) => (
     <section className="my-16" data-aos="fade-up">
       <div className="container-custom">
         <div className="flex items-center justify-between mb-8">
@@ -87,7 +87,7 @@ export default function Home() {
             <FontAwesomeIcon icon={icon} className="mr-4" />
             {title}
           </h2>
-          <Link href={linkHref} className="btn-primary">
+          <Link href={`/products?sort=${sortParam}`} className="btn-primary">
             Xem tất cả
             <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
           </Link>
@@ -135,7 +135,7 @@ export default function Home() {
         icon={faCalendarPlus}
         iconColor="text-black"
         products={newestProducts}
-        linkHref="/pages/products?sort=newest"
+        sortParam="newest"
       />
 
       <CustomerReviews />
@@ -147,7 +147,7 @@ export default function Home() {
             icon={faTag}
             iconColor="text-black"
             products={mostDiscountedProducts}
-            linkHref="/pages/products?sort=discount"
+            sortParam="discount"
           />
         </div>
       </section>
@@ -157,7 +157,7 @@ export default function Home() {
         icon={faDollarSign}
         iconColor="text-black"
         products={cheapestProducts}
-        linkHref="/pages/products?sort=price-asc"
+        sortParam="priceAsc"
       />
 
       <TennisTips />
