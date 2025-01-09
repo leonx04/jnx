@@ -50,7 +50,23 @@ const nextConfig = {
                 https://embed.tawk.to
                 https://www.google-analytics.com
                 https://*.tawk.to
-                https://cdn.jsdelivr.net;
+                https://cdn.jsdelivr.net
+                https://vercel.live
+                https://*.vercel.live;
+              script-src-elem 'self' 'unsafe-inline'
+                https://apis.google.com
+                https://*.firebaseio.com
+                https://*.firebaseapp.com
+                https://www.gstatic.com
+                https://accounts.google.com
+                https://www.googletagmanager.com
+                https://va.vercel-scripts.com
+                https://embed.tawk.to
+                https://www.google-analytics.com
+                https://*.tawk.to
+                https://cdn.jsdelivr.net
+                https://vercel.live
+                https://*.vercel.live;
               frame-src 'self'
                 https://accounts.google.com
                 https://*.firebaseapp.com
@@ -68,7 +84,9 @@ const nextConfig = {
                 https://*.analytics.google.com
                 https://va.vercel-scripts.com
                 https://*.tawk.to
-                wss://*.tawk.to;
+                wss://*.tawk.to
+                https://vercel.live
+                https://*.vercel.live;
               img-src 'self' data: https: blob:
                 https://lh3.googleusercontent.com
                 https://dfi8tvwsf.cloudinary.com
