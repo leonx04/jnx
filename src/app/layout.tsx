@@ -18,13 +18,10 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useEffect } from 'react';
 
-// Cấu hình Font Awesome
 config.autoAddCss = false
 
-// Cấu hình font Inter
 const inter = Inter({ subsets: ["latin"] });
 
-// Component layout chính
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,15 +45,11 @@ export default function RootLayout({
         <meta name="keywords" content="tennis rackets, tennis equipment, professional rackets, beginner rackets" />
         <meta name="author" content="JNX Tennis Store" />
         <link rel="icon" href="https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico" />
-
-        {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://jnx-store.netlify.app" />
         <meta property="og:title" content="JNX Tennis Store - High-Quality Tennis Rackets" />
         <meta property="og:description" content="JNX Tennis Store is a service that provides high-quality tennis rackets and equipment for all levels of play. We offer a wide range of professional and beginner rackets to suit your needs." />
         <meta property="og:image" content="https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico" />
-
-        {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://jnx-store.netlify.app" />
         <meta property="twitter:title" content="JNX Tennis Store - High-Quality Tennis Rackets" />
@@ -91,4 +84,3 @@ export default function RootLayout({
     </html>
   );
 }
-

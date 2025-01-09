@@ -530,4 +530,3 @@ const MobileNotifications = ({
 );
 
 export default Navbar;
-
