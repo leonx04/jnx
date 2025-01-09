@@ -1,5 +1,5 @@
 import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/firebaseConfig';
-import { fetchSignInMethodsForEmail, linkWithCredential, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile, AuthProvider } from 'firebase/auth';
+import { AuthProvider, fetchSignInMethodsForEmail, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
 import { get, ref, set } from 'firebase/database';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +8,7 @@ interface User {
   email: string;
   name?: string;
   imageUrl?: string;
+  createdAt: string;
 }
 
 export function useAuth() {
@@ -38,6 +39,7 @@ export function useAuth() {
         email: userData.email,
         name: userData.name,
         imageUrl: userData.imageUrl,
+        createdAt: userData.createdAt,
       };
     }
     return null;
@@ -73,6 +75,7 @@ export function useAuth() {
       const user = await getUserData(firebaseUser.uid);
       if (user) {
         await createOrUpdateUser(user);
+        setUser(user);
         return user;
       }
       throw new Error('User data not found');
@@ -82,8 +85,9 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
-    return signOut(auth);
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
   };
 
   const updateUser = async (updatedUser: Partial<User>) => {
@@ -118,20 +122,23 @@ export function useAuth() {
           email: firebaseUser.email!,
           name: firebaseUser.displayName || undefined,
           imageUrl: firebaseUser.photoURL || undefined,
+          createdAt: new Date().toISOString(),
         };
       }
       await createOrUpdateUser(user);
+      setUser(user);
       return user;
     } catch (error: any) {
       if (error.code === 'auth/account-exists-with-different-credential') {
         const email = error.customData.email;
-        const pendingCred = error.credential;
         const methods = await fetchSignInMethodsForEmail(auth, email);
 
         if (methods.includes('password')) {
           throw new Error('EMAIL_PASSWORD_ACCOUNT');
         } else if (methods.includes('google.com')) {
           throw new Error('GOOGLE_ACCOUNT');
+        } else if (methods.includes('github.com')) {
+          throw new Error('GITHUB_ACCOUNT');
         } else if (methods.includes('facebook.com')) {
           throw new Error('FACEBOOK_ACCOUNT');
         } else {

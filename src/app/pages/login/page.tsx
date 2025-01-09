@@ -46,6 +46,8 @@ export default function Login() {
         toast.error('Tài khoản này đã được đăng ký bằng email và mật khẩu. Vui lòng sử dụng phương thức đăng nhập đó.');
       } else if (err.message === 'GOOGLE_ACCOUNT') {
         toast.error('Tài khoản này đã được liên kết với Google. Vui lòng sử dụng đăng nhập bằng Google.');
+      } else if (err.message === 'GITHUB_ACCOUNT') {
+        toast.error('Tài khoản này đã được liên kết với Github. Vui lòng sử dụng đăng nhập bằng Github.');
       } else if (err.message === 'FACEBOOK_ACCOUNT') {
         toast.error('Tài khoản này đã được liên kết với Facebook. Vui lòng sử dụng đăng nhập bằng Facebook.');
       } else if (err.message === 'ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL') {
