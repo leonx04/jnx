@@ -24,6 +24,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
       { protocol: 'https', hostname: 'dfi8tvwsf.cloudinary.com' },
     ],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    formats: ['image/webp'],
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -41,6 +44,9 @@ const nextConfig = {
               default-src 'self';
               script-src 'self' 'unsafe-inline' 'unsafe-eval'
                 https://apis.google.com
+                https://*.google-analytics.com
+                https://*.analytics.google.com
+                https://*.googletagmanager.com
                 https://*.firebaseio.com
                 https://*.firebaseapp.com
                 https://www.gstatic.com
@@ -48,13 +54,15 @@ const nextConfig = {
                 https://www.googletagmanager.com
                 https://va.vercel-scripts.com
                 https://embed.tawk.to
-                https://www.google-analytics.com
                 https://*.tawk.to
                 https://cdn.jsdelivr.net
                 https://vercel.live
                 https://*.vercel.live;
               script-src-elem 'self' 'unsafe-inline'
                 https://apis.google.com
+                https://*.google-analytics.com
+                https://*.analytics.google.com
+                https://*.googletagmanager.com
                 https://*.firebaseio.com
                 https://*.firebaseapp.com
                 https://www.gstatic.com
@@ -62,7 +70,6 @@ const nextConfig = {
                 https://www.googletagmanager.com
                 https://va.vercel-scripts.com
                 https://embed.tawk.to
-                https://www.google-analytics.com
                 https://*.tawk.to
                 https://cdn.jsdelivr.net
                 https://vercel.live
@@ -72,16 +79,18 @@ const nextConfig = {
                 https://*.firebaseapp.com
                 https://jnx-store.firebaseapp.com
                 https://tawk.to
-                https://*.tawk.to;
+                https://*.tawk.to
+                https://*.google-analytics.com;
               connect-src 'self'
                 https://*.googleapis.com
+                https://*.google-analytics.com
+                https://*.analytics.google.com
+                https://*.googletagmanager.com
                 https://*.firebaseio.com
                 https://jnx-store-default-rtdb.firebaseio.com
                 https://*.firebaseapp.com
                 wss://*.firebaseio.com
                 https://identitytoolkit.googleapis.com
-                https://*.google-analytics.com
-                https://*.analytics.google.com
                 https://va.vercel-scripts.com
                 https://*.tawk.to
                 wss://*.tawk.to
@@ -90,7 +99,9 @@ const nextConfig = {
               img-src 'self' data: https: blob:
                 https://lh3.googleusercontent.com
                 https://dfi8tvwsf.cloudinary.com
-                https://*.tawk.to;
+                https://*.tawk.to
+                https://*.google-analytics.com
+                https://www.google-analytics.com;
               style-src 'self' 'unsafe-inline'
                 https://fonts.googleapis.com
                 https://*.tawk.to
@@ -116,7 +127,10 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
           },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*'
+          },
           {
             key: 'Access-Control-Allow-Methods',
             value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
@@ -126,6 +140,10 @@ const nextConfig = {
             value:
               'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
           },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true'
+          }
         ],
       },
     ];
@@ -136,6 +154,10 @@ const nextConfig = {
         source: '/auth/:path*',
         destination: '/api/auth/:path*',
       },
+      {
+        source: '/analytics',
+        destination: 'https://www.google-analytics.com',
+      }
     ];
   },
 };
