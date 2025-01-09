@@ -3,7 +3,7 @@
 import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/firebaseConfig';
 import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
 import { get, ref, set } from 'firebase/database';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface User {
   id: string;
@@ -32,95 +32,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userData = await getUserData(firebaseUser.uid);
-        setUser(userData);
+        const uid = firebaseUser.uid;
+        const userRef = ref(database, `users/${uid}`);
+        const userSnapshot = await get(userRef);
+        const dbUser = userSnapshot.val();
+        const currentUser: User = {
+          id: uid,
+          email: firebaseUser.email || '',
+          name: dbUser?.name || firebaseUser.displayName || '',
+          imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+        };
+        setUser(currentUser);
       } else {
         setUser(null);
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  const getUserData = async (uid: string): Promise<User | null> => {
-    const userRef = ref(database, `user/${uid}`);
-    const snapshot = await get(userRef);
-    if (snapshot.exists()) {
-      const userData = snapshot.val();
-      return {
-        id: uid,
-        email: userData.email,
-        name: userData.name,
-        imageUrl: userData.imageUrl,
-      };
-    }
-    return null;
-  };
-
-  const createOrUpdateUser = async (user: User) => {
-    const userRef = ref(database, `user/${user.id}`);
-    await set(userRef, {
-      ...user,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
-  const login = async (email: string, password: string): Promise<User> => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
-    const user: User = {
-      id: firebaseUser.uid,
-      email: firebaseUser.email!,
-      name: firebaseUser.displayName || undefined,
-      imageUrl: firebaseUser.photoURL || undefined,
-    };
-    await createOrUpdateUser(user);
-    return user;
-  };
-
-  const logout = async () => {
-    await signOut(auth);
-    setUser(null);
-  };
-
-  const updateUserInfo = async (updatedUser: Partial<User>) => {
-    if (!auth.currentUser) throw new Error('No authenticated user');
-
+  const login = useCallback(async (email: string, password: string): Promise<User> => {
+    setLoading(true);
     try {
-      await updateProfile(auth.currentUser, {
-        displayName: updatedUser.name,
-        photoURL: updatedUser.imageUrl,
-      });
+      const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
+      const uid = firebaseUser.uid;
+      const userRef = ref(database, `users/${uid}`);
+      const userSnapshot = await get(userRef);
+      const dbUser = userSnapshot.val();
+      const currentUser: User = {
+        id: uid,
+        email: firebaseUser.email || '',
+        name: dbUser?.name || firebaseUser.displayName || '',
+        imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+      };
+      setUser(currentUser);
+      return currentUser;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      const user = await getUserData(auth.currentUser.uid);
-      if (user) {
-        const updatedUserData = { ...user, ...updatedUser };
-        await createOrUpdateUser(updatedUserData);
-        setUser(updatedUserData);
+  const logout = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateUserInfo = useCallback(async (updatedUser: Partial<User>): Promise<void> => {
+    setLoading(true);
+    try {
+      if (user && auth.currentUser) {
+        await updateProfile(auth.currentUser, {
+          displayName: updatedUser.name,
+          photoURL: updatedUser.imageUrl,
+        });
+        await set(ref(database, `users/${user.id}`), { ...user, ...updatedUser });
+        setUser((prevUser) => prevUser ? { ...prevUser, ...updatedUser } : null);
       }
     } catch (error) {
-      console.error('Update user error:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [user]);
 
-  const loginWithProvider = async (provider: any): Promise<User> => {
-    const result = await signInWithPopup(auth, provider);
-    const firebaseUser = result.user;
-    const user: User = {
-      id: firebaseUser.uid,
-      email: firebaseUser.email!,
-      name: firebaseUser.displayName || undefined,
-      imageUrl: firebaseUser.photoURL || undefined,
-    };
-    await createOrUpdateUser(user);
-    return user;
-  };
+  const loginWithProvider = useCallback(async (provider: any): Promise<User> => {
+    setLoading(true);
+    try {
+      const { user: firebaseUser } = await signInWithPopup(auth, provider);
+      const uid = firebaseUser.uid;
+      const userRef = ref(database, `users/${uid}`);
+      const userSnapshot = await get(userRef);
+      const dbUser = userSnapshot.val();
+      const currentUser: User = {
+        id: uid,
+        email: firebaseUser.email || '',
+        name: dbUser?.name || firebaseUser.displayName || '',
+        imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+      };
+      await set(userRef, currentUser);
+      setUser(currentUser);
+      return currentUser;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const loginWithGoogle = () => loginWithProvider(googleProvider);
-  const loginWithGithub = () => loginWithProvider(githubProvider);
-  const loginWithFacebook = () => loginWithProvider(facebookProvider);
+  const loginWithGoogle = useCallback(() => loginWithProvider(googleProvider), [loginWithProvider]);
+  const loginWithGithub = useCallback(() => loginWithProvider(githubProvider), [loginWithProvider]);
+  const loginWithFacebook = useCallback(() => loginWithProvider(facebookProvider), [loginWithProvider]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, updateUserInfo, loginWithGoogle, loginWithGithub, loginWithFacebook }}>

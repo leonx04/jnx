@@ -12,7 +12,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 
-// Interfaces (unchanged)
 interface OrderItem {
     id: string
     name: string
@@ -52,14 +51,14 @@ interface Order {
 
 export default function OrderConfirmationContent() {
     const [latestOrder, setLatestOrder] = useState<Order | null>(null)
-    const { user, isLoading } = useAuthContext()
+    const { user, loading } = useAuthContext()
     const router = useRouter()
     const searchParams = useSearchParams()
 
     useEffect(() => {
         const fetchLatestOrder = async () => {
             try {
-                if (isLoading) {
+                if (loading) {
                     return; // Wait for authentication to complete
                 }
 
@@ -108,9 +107,9 @@ export default function OrderConfirmationContent() {
         }
 
         fetchLatestOrder()
-    }, [user, router, searchParams, isLoading])
+    }, [user, router, searchParams, loading])
 
-    if (isLoading) {
+    if (loading) {
         return (
             <div className="container mx-auto p-4 text-center">
                 <p>Đang tải...</p>
@@ -126,10 +125,8 @@ export default function OrderConfirmationContent() {
         )
     }
 
-    // Render order confirmation UI (unchanged)
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
-            {/* Card thông báo đặt hàng thành công */}
             <Card className="mb-8">
                 <CardHeader className="text-center">
                     <CheckCircle2 className="w-16 h-16 mx-auto text-green-500 mb-4" />
@@ -146,9 +143,7 @@ export default function OrderConfirmationContent() {
                 </CardContent>
             </Card>
 
-            {/* Grid hiển thị thông tin giao hàng và chi tiết đơn hàng */}
             <div className="grid md:grid-cols-2 gap-8">
-                {/* Card thông tin giao hàng */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Thông Tin Giao Hàng</CardTitle>
@@ -163,7 +158,6 @@ export default function OrderConfirmationContent() {
                     </CardContent>
                 </Card>
 
-                {/* Card chi tiết đơn hàng */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Chi Tiết Đơn Hàng</CardTitle>
@@ -193,7 +187,6 @@ export default function OrderConfirmationContent() {
                 </Card>
             </div>
 
-            {/* Card tổng kết đơn hàng */}
             <Card className="mt-8">
                 <CardContent className="p-6">
                     <div className="flex justify-between items-center mb-4">
@@ -230,7 +223,6 @@ export default function OrderConfirmationContent() {
                 </CardContent>
             </Card>
 
-            {/* Các nút điều hướng */}
             <div className="flex justify-center space-x-4 mt-8">
                 <Button asChild>
                     <Link href="/pages/products">
