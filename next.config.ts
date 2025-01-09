@@ -57,7 +57,9 @@ const nextConfig = {
                 https://*.tawk.to
                 https://cdn.jsdelivr.net
                 https://vercel.live
-                https://*.vercel.live;
+                https://*.vercel.live
+                https://www.google.com
+                https://*.doubleclick.net;
               script-src-elem 'self' 'unsafe-inline'
                 https://apis.google.com
                 https://*.google-analytics.com
@@ -73,14 +75,18 @@ const nextConfig = {
                 https://*.tawk.to
                 https://cdn.jsdelivr.net
                 https://vercel.live
-                https://*.vercel.live;
+                https://*.vercel.live
+                https://www.google.com
+                https://*.doubleclick.net;
               frame-src 'self'
                 https://accounts.google.com
                 https://*.firebaseapp.com
                 https://jnx-store.firebaseapp.com
                 https://tawk.to
                 https://*.tawk.to
-                https://*.google-analytics.com;
+                https://*.google-analytics.com
+                https://*.doubleclick.net
+                https://www.google.com;
               connect-src 'self'
                 https://*.googleapis.com
                 https://*.google-analytics.com
@@ -95,22 +101,38 @@ const nextConfig = {
                 https://*.tawk.to
                 wss://*.tawk.to
                 https://vercel.live
-                https://*.vercel.live;
+                https://*.vercel.live
+                https://www.google-analytics.com
+                https://analytics.google.com
+                https://stats.g.doubleclick.net
+                https://*.g.doubleclick.net
+                https://www.google.com;
               img-src 'self' data: https: blob:
                 https://lh3.googleusercontent.com
                 https://dfi8tvwsf.cloudinary.com
                 https://*.tawk.to
                 https://*.google-analytics.com
-                https://www.google-analytics.com;
+                https://www.google-analytics.com
+                https://*.doubleclick.net
+                https://www.google.com;
               style-src 'self' 'unsafe-inline'
                 https://fonts.googleapis.com
                 https://*.tawk.to
-                https://cdn.jsdelivr.net;
+                https://cdn.jsdelivr.net
+                https://www.google.com;
               font-src 'self'
                 https://fonts.gstatic.com
+                https://*.tawk.to
+                data:;
+              media-src 'self' 
+                https://*.tawk.to
+                blob:;
+              worker-src 'self' 
+                blob:
                 https://*.tawk.to;
-              media-src 'self' https://*.tawk.to;
-              worker-src 'self' blob:;
+              child-src 'self' 
+                blob: 
+                https://*.tawk.to;
               form-action 'self';
               base-uri 'self';
               upgrade-insecure-requests;
@@ -157,6 +179,10 @@ const nextConfig = {
       {
         source: '/analytics',
         destination: 'https://www.google-analytics.com',
+      },
+      {
+        source: '/ga/:path*',
+        destination: 'https://www.google-analytics.com/:path*',
       }
     ];
   },
