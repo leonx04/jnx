@@ -1,6 +1,6 @@
 import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/firebaseConfig';
 import { AuthProvider, fetchSignInMethodsForEmail, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
-import { get, ref, set } from 'firebase/database';
+import { get, ref, set, update } from 'firebase/database';
 import { useEffect, useState } from 'react';
 
 interface User {
@@ -9,6 +9,7 @@ interface User {
   name?: string;
   imageUrl?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export function useAuth() {
@@ -40,31 +41,30 @@ export function useAuth() {
         name: userData.name,
         imageUrl: userData.imageUrl,
         createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
       };
     }
     return null;
   };
 
-  const createOrUpdateUser = async (user: User) => {
+  const createOrUpdateUser = async (user: User, isNewUser: boolean) => {
     const userRef = ref(database, `user/${user.id}`);
-    const snapshot = await get(userRef);
-    if (!snapshot.exists()) {
+    const now = new Date().toISOString();
+
+    if (isNewUser) {
       await set(userRef, {
         ...user,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       });
     } else {
-      const existingData = snapshot.val();
-      const updatedData = {
-        ...existingData,
+      const updates: Partial<User> = {
         email: user.email,
-        name: user.name || existingData.name,
-        imageUrl: user.imageUrl || existingData.imageUrl,
-        updatedAt: new Date().toISOString(),
+        name: user.name,
+        imageUrl: user.imageUrl,
+        updatedAt: now,
       };
-      if (JSON.stringify(existingData) !== JSON.stringify(updatedData)) {
-        await set(userRef, updatedData);
-      }
+      await update(userRef, updates);
     }
   };
 
@@ -74,7 +74,7 @@ export function useAuth() {
       const firebaseUser = userCredential.user;
       const user = await getUserData(firebaseUser.uid);
       if (user) {
-        await createOrUpdateUser(user);
+        await createOrUpdateUser(user, false);
         setUser(user);
         return user;
       }
@@ -101,8 +101,8 @@ export function useAuth() {
 
       const user = await getUserData(auth.currentUser.uid);
       if (user) {
-        const updatedUserData = { ...user, ...updatedUser };
-        await createOrUpdateUser(updatedUserData);
+        const updatedUserData = { ...user, ...updatedUser, updatedAt: new Date().toISOString() };
+        await createOrUpdateUser(updatedUserData, false);
         setUser(updatedUserData);
       }
     } catch (error) {
@@ -116,6 +116,8 @@ export function useAuth() {
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
       let user = await getUserData(firebaseUser.uid);
+      const isNewUser = !user;
+      
       if (!user) {
         user = {
           id: firebaseUser.uid,
@@ -123,9 +125,11 @@ export function useAuth() {
           name: firebaseUser.displayName || undefined,
           imageUrl: firebaseUser.photoURL || undefined,
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
       }
-      await createOrUpdateUser(user);
+      
+      await createOrUpdateUser(user, isNewUser);
       setUser(user);
       return user;
     } catch (error: any) {
@@ -156,3 +160,4 @@ export function useAuth() {
 
   return { user, login, logout, updateUser, loginWithGoogle, loginWithGithub, loginWithFacebook, loading };
 }
+

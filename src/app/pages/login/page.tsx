@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth } from '@/app/hooks/useAuth';
+import { useAuthContext } from '@/app/context/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login, loginWithGoogle, loginWithGithub } = useAuth();
+  const { login, loginWithGoogle, loginWithGithub } = useAuthContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

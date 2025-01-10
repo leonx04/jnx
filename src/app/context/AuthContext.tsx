@@ -2,7 +2,7 @@
 
 import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/firebaseConfig';
 import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
-import { get, ref, set } from 'firebase/database';
+import { get, ref, set, update } from 'firebase/database';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface User {
@@ -10,6 +10,8 @@ interface User {
   email: string;
   name?: string;
   imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthContextType {
@@ -41,6 +43,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: firebaseUser.email || '',
           name: dbUser?.name || firebaseUser.displayName || '',
           imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+          createdAt: dbUser?.createdAt || new Date().toISOString(),
+          updatedAt: dbUser?.updatedAt || new Date().toISOString(),
         };
         setUser(currentUser);
       } else {
@@ -64,7 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: firebaseUser.email || '',
         name: dbUser?.name || firebaseUser.displayName || '',
         imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+        createdAt: dbUser?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
+      await update(userRef, { updatedAt: currentUser.updatedAt });
       setUser(currentUser);
       return currentUser;
     } catch (error) {
@@ -94,8 +101,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: updatedUser.name,
           photoURL: updatedUser.imageUrl,
         });
-        await set(ref(database, `users/${user.id}`), { ...user, ...updatedUser });
-        setUser((prevUser) => prevUser ? { ...prevUser, ...updatedUser } : null);
+        const userRef = ref(database, `users/${user.id}`);
+        const updates = {
+          ...updatedUser,
+          updatedAt: new Date().toISOString(),
+        };
+        await update(userRef, updates);
+        setUser((prevUser) => prevUser ? { ...prevUser, ...updates } : null);
       }
     } catch (error) {
       throw error;
@@ -112,13 +124,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userRef = ref(database, `users/${uid}`);
       const userSnapshot = await get(userRef);
       const dbUser = userSnapshot.val();
+      const now = new Date().toISOString();
       const currentUser: User = {
         id: uid,
         email: firebaseUser.email || '',
         name: dbUser?.name || firebaseUser.displayName || '',
         imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+        createdAt: dbUser?.createdAt || now,
+        updatedAt: now,
       };
-      await set(userRef, currentUser);
+      if (dbUser) {
+        await update(userRef, {
+          email: currentUser.email,
+          name: currentUser.name,
+          imageUrl: currentUser.imageUrl,
+          updatedAt: currentUser.updatedAt,
+        });
+      } else {
+        await set(userRef, currentUser);
+      }
       setUser(currentUser);
       return currentUser;
     } catch (error) {
