@@ -106,7 +106,8 @@ const nextConfig = {
                 https://analytics.google.com
                 https://stats.g.doubleclick.net
                 https://*.g.doubleclick.net
-                https://www.google.com;
+                https://www.google.com
+                https://online-gateway.ghn.vn;
               img-src 'self' data: https: blob:
                 https://lh3.googleusercontent.com
                 https://dfi8tvwsf.cloudinary.com
@@ -183,6 +184,10 @@ const nextConfig = {
       {
         source: '/ga/:path*',
         destination: 'https://www.google-analytics.com/:path*',
+      },
+      {
+        source: '/ghn/:path*',
+        destination: 'https://online-gateway.ghn.vn/:path*',
       }
     ];
   },
