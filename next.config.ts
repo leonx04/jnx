@@ -109,7 +109,9 @@ const nextConfig = {
                 https://stats.g.doubleclick.net
                 https://*.g.doubleclick.net
                 https://www.google.com
-                https://online-gateway.ghn.vn;
+                https://online-gateway.ghn.vn
+                wss://*.pusher.com
+                https://*.pusher.com;
               img-src 'self' data: https: blob:
                 https://lh3.googleusercontent.com
                 https://dfi8tvwsf.cloudinary.com
@@ -136,6 +138,7 @@ const nextConfig = {
               child-src 'self' 
                 blob: 
                 https://*.tawk.to;
+              manifest-src 'self';
               form-action 'self';
               base-uri 'self';
               upgrade-insecure-requests;
