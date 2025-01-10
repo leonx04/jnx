@@ -144,6 +144,10 @@ const nextConfig = {
               upgrade-insecure-requests;
             `.replace(/\s+/g, ' ').trim(),
           },
+          {
+            key: 'Set-Cookie',
+            value: 'SameSite=None; Secure'
+          },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -157,7 +161,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: '*'
+            value: 'https://*.tawk.to'
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -193,6 +197,10 @@ const nextConfig = {
       {
         source: '/ghn/:path*',
         destination: 'https://online-gateway.ghn.vn/:path*',
+      },
+      {
+        source: '/tawk/:path*',
+        destination: 'https://*.tawk.to/:path*',
       }
     ];
   },
