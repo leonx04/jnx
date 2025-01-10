@@ -86,7 +86,9 @@ const nextConfig = {
                 https://*.tawk.to
                 https://*.google-analytics.com
                 https://*.doubleclick.net
-                https://www.google.com;
+                https://www.google.com
+                https://vercel.live
+                https://*.vercel.live;
               connect-src 'self'
                 https://*.googleapis.com
                 https://*.google-analytics.com
