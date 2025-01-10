@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { database } from '@/firebaseConfig'
 import bcrypt from 'bcryptjs'
-import { get, ref } from 'firebase/database'
+import { get, ref, set } from 'firebase/database'
 import { CalendarIcon, CreditCardIcon, EyeIcon, EyeOffIcon, GiftIcon, KeyIcon, MailIcon, PackageIcon, UserIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -22,6 +22,7 @@ interface UserProfile {
   id?: string
   password?: string
   createdAt?: string
+  updatedAt?: string
 }
 
 interface Order {
@@ -50,7 +51,7 @@ interface Voucher {
 
 export default function AccountManagement() {
   const { user, updateUserInfo } = useAuthContext() as { user: UserProfile, updateUserInfo: (profile: UserProfile) => Promise<void> }
-  const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '' })
+  const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', imageUrl: '', id: '', password: '', createdAt: '', updatedAt: '' })
   const [encryptedPassword, setEncryptedPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -73,7 +74,8 @@ export default function AccountManagement() {
           imageUrl: userData.imageUrl || '',
           id: user.id,
           password: '',
-          createdAt: userData.createdAt
+          createdAt: userData.createdAt,
+          updatedAt: userData.updatedAt
         })
         setEncryptedPassword(userData.password || '')
       }
@@ -159,7 +161,14 @@ export default function AccountManagement() {
         throw new Error('Tên không được để trống')
       }
 
-      const updatedProfile: UserProfile = { ...profile, createdAt: user?.createdAt }
+      const updatedProfile: UserProfile = {
+        ...profile,
+        createdAt: profile.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Remove any undefined values from updatedProfile
+      (Object.keys(updatedProfile) as (keyof UserProfile)[]).forEach(key => updatedProfile[key] === undefined && delete updatedProfile[key]);
 
       if (previewImage) {
         const response = await fetch('/api/upload-image', {
@@ -181,22 +190,34 @@ export default function AccountManagement() {
         updatedProfile.imageUrl = data.secure_url
       }
 
+      // Handle password update
       if (profile.password && profile.password !== '') {
         const salt = await bcrypt.genSalt(10)
         updatedProfile.password = await bcrypt.hash(profile.password, salt)
       } else {
+        // If no new password is provided, keep the existing encrypted password
         updatedProfile.password = encryptedPassword
       }
 
-      await updateUserInfo({ ...updatedProfile, createdAt: user?.createdAt })
+      // Update user info in the database
+      const userRef = ref(database, `user/${user.id}`)
+      await set(userRef, updatedProfile)
+
+      // Update user info in the context
+      await updateUserInfo(updatedProfile)
+
       setProfile(updatedProfile)
-      setEncryptedPassword(updatedProfile.password)
+      setEncryptedPassword(updatedProfile.password || '')
       toast.success('Cập nhật thông tin thành công')
       setIsModalOpen(false)
       setPreviewImage(null)
     } catch (error) {
-      console.error('Lỗi khi cập nhật thông tin:', error)
-      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật thông tin')
+      console.error('Lỗi khi cập nhật thông tin:', error);
+      let errorMessage = 'Không thể cập nhật thông tin';
+      if (error instanceof Error) {
+        errorMessage = `Lỗi: ${error.message}`;
+      }
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false)
     }
@@ -280,12 +301,12 @@ export default function AccountManagement() {
                     <div className="space-y-2">
                       <Label htmlFor="avatar">Ảnh đại diện</Label>
                       <div className="flex items-center space-x-4">
-                        <div className="w-[100px] h-[100px] relative overflow-hidden rounded-full">
+                        <div className="avatar-preview">
                           <Image
                             src={previewImage || profile.imageUrl || 'https://placehold.jp/100x100.png'}
                             alt="Avatar Preview"
-                            layout="fill"
-                            objectFit="cover"
+                            width={100}
+                            height={100}
                           />
                         </div>
                         <Input
@@ -487,6 +508,21 @@ export default function AccountManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <style jsx global>{`
+        .avatar-preview {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          overflow: hidden;
+          position: relative;
+        }
+        .avatar-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      `}</style>
     </div>
   )
 }
