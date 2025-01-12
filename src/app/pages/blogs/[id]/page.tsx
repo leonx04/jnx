@@ -40,6 +40,7 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
     const [isMuted, setIsMuted] = useState(false)
     const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
     const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null)
+    const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([])
     const speechSynthesis = typeof window !== 'undefined' ? window.speechSynthesis : null
     const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
     const router = useRouter()
@@ -215,6 +216,28 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         navigator.clipboard.writeText(window.location.href)
         toast.success('Đã sao chép liên kết bài viết')
     }
+
+    const fetchRelatedPosts = useEffect(() => {
+        if (blogPost) {
+            const relatedPostsRef = ref(database, 'blogPosts')
+
+            const unsubscribe = onValue(relatedPostsRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const posts = Object.entries(snapshot.val())
+                        .map(([id, post]) => ({
+                            id,
+                            ...(post as Omit<BlogPost, 'id'>)
+                        }))
+                        .filter(post => post.id !== id && post.category === blogPost.category)
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .slice(0, 3)
+                    setRelatedPosts(posts)
+                }
+            })
+
+            return () => unsubscribe()
+        }
+    }, [blogPost, id])
 
     if (loading) {
         return (
@@ -406,12 +429,38 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                 <div className="mt-12">
                     <h2 className="text-2xl font-bold mb-6">Bài viết liên quan</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Placeholder for related posts */}
-                        <div className="bg-white rounded-lg shadow-md p-4">
-                            <div className="text-center text-gray-500">
-                                Đang tải bài viết liên quan...
+                        {relatedPosts.length > 0 ? (
+                            relatedPosts.map((post) => (
+                                <Card key={post.id} className="overflow-hidden">
+                                    <div className="relative w-full pt-[56.25%]">
+                                        <Image
+                                            src={post.imageUrl || '/placeholder.svg'}
+                                            alt={post.title}
+                                            layout="fill"
+                                            objectFit="cover"
+                                            className="transition-transform duration-300 hover:scale-105"
+                                        />
+                                    </div>
+                                    <CardContent className="p-4">
+                                        <CardTitle className="text-lg mb-2 line-clamp-2">{post.title}</CardTitle>
+                                        <p className="text-sm text-gray-500 mb-4">
+                                            {post.author} - {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => router.push(`/pages/blogs/${post.id}`)}
+                                            className="w-full"
+                                        >
+                                            Đọc thêm
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <div className="col-span-3 text-center text-gray-500">
+                                Không có bài viết liên quan.
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
