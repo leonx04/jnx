@@ -8,19 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Separator } from "@/components/ui/separator"
 import { database } from '@/firebaseConfig'
 import { onValue, ref, runTransaction } from 'firebase/database'
-import {
-    Bookmark,
-    CalendarIcon,
-    ChevronLeft,
-    MessageCircle,
-    PauseCircle,
-    PlayCircle,
-    Share2,
-    StopCircle,
-    UserIcon,
-    Volume2,
-    VolumeX
-} from 'lucide-react'
+import { CalendarIcon, ChevronLeft, MessageCircle, PauseCircle, PlayCircle, Share2, StopCircle, UserIcon, Volume2, VolumeX } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { use, useEffect, useRef, useState } from 'react'
@@ -32,6 +20,7 @@ interface BlogPost {
     content: string
     imageUrl: string
     author: string
+    authorImageUrl?: string
     createdAt: string
     likeCount?: number
     dislikeCount?: number
@@ -47,7 +36,6 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
     const { id } = use(params)
     const [blogPost, setBlogPost] = useState<BlogPost | null>(null)
     const [loading, setLoading] = useState(true)
-    const [isBookmarked, setIsBookmarked] = useState(false)
     const [isPlaying, setIsPlaying] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
     const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
@@ -115,7 +103,12 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
 
     const detectLanguage = (text: string): string => {
         const vietnamesePattern = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i
+        const ukEnglishPattern = /\b(colour|favour|behaviour|centre)\b/i
+        const usEnglishPattern = /\b(color|favor|behavior|center)\b/i
+
         if (vietnamesePattern.test(text)) return 'vi-VN'
+        if (ukEnglishPattern.test(text)) return 'en-GB'
+        if (usEnglishPattern.test(text)) return 'en-US'
         return 'en-US'
     }
 
@@ -223,11 +216,6 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         toast.success('Đã sao chép liên kết bài viết')
     }
 
-    const handleBookmark = () => {
-        setIsBookmarked(!isBookmarked)
-        toast.success(isBookmarked ? 'Đã xóa khỏi bookmarks' : 'Đã thêm vào bookmarks')
-    }
-
     if (loading) {
         return (
             <div className="container mx-auto px-4 py-8">
@@ -327,15 +315,6 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                             <Share2 className="h-4 w-4" />
                             Chia sẻ
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleBookmark}
-                            className={`flex items-center gap-2 ${isBookmarked ? 'bg-gray-100' : ''}`}
-                        >
-                            <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
-                            {isBookmarked ? 'Đã lưu' : 'Lưu bài viết'}
-                        </Button>
                     </div>
                 </div>
 
@@ -370,7 +349,8 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                                     <span className="mr-1">📚</span>
                                     {blogPost.readTime} phút đọc
                                 </span>
-                            )}</div>
+                            )}
+                        </div>
                         <CardTitle className="text-3xl md:text-4xl font-bold leading-tight">
                             {blogPost.title}
                         </CardTitle>
@@ -403,24 +383,6 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                             </div>
                         </div>
 
-                        {/* Author Info Section */}
-                        <div className="bg-white rounded-lg p-6 shadow-sm">
-                            <div className="flex items-center space-x-4">
-                                <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                                    <Image
-                                        src="/author-placeholder.svg"
-                                        alt={blogPost.author}
-                                        layout="fill"
-                                        objectFit="cover"
-                                        className="rounded-full"
-                                    />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">{blogPost.author}</h3>
-                                    <p className="text-gray-600 text-sm">Tác giả</p>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Related Tags Section */}
                         {blogPost.category && (
@@ -456,3 +418,4 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
         </div>
     )
 }
+
