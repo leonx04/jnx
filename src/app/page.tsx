@@ -164,28 +164,6 @@ export default function Home() {
 
       <FeaturedBlogs />
 
-      <section className="my-16 bg-black py-12 text-white" data-aos="fade-up">
-        <div className="container-custom">
-          <h2 className="section-title text-white">Đăng Ký Nhận Tin</h2>
-          <p className="text-center mb-6 max-w-2xl mx-auto">
-            Đăng ký để nhận thông tin mới nhất về sản phẩm, khuyến mãi độc quyền và các sự kiện tennis
-          </p>
-          <form className="max-w-xl mx-auto flex flex-col md:flex-row gap-4">
-            <input
-              type="email"
-              placeholder="Nhập địa chỉ email của bạn"
-              className="flex-grow p-3 rounded-lg border border-white bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white"
-              required
-            />
-            <button
-              type="submit"
-              className="bg-white text-black font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-200"
-            >
-              Đăng Ký Ngay
-            </button>
-          </form>
-        </div>
-      </section>
     </div>
   );
 }
