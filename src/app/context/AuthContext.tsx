@@ -1,7 +1,14 @@
 'use client';
 
 import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/firebaseConfig';
-import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
+import {
+  getIdToken,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile
+} from 'firebase/auth';
 import { get, ref, set, update } from 'firebase/database';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -12,6 +19,7 @@ interface User {
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
+  accessToken?: string;
 }
 
 interface AuthContextType {
@@ -23,6 +31,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<User>;
   loginWithGithub: () => Promise<User>;
   loginWithFacebook: () => Promise<User>;
+  refreshToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -31,10 +40,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const token = await getIdToken(currentUser, true);
+        setUser(prev => prev ? { ...prev, accessToken: token } : null);
+        return token;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
+    let tokenRefreshInterval: NodeJS.Timeout;
+
+    const setupTokenRefresh = () => {
+      // Refresh token every 55 minutes (Firebase tokens expire in 1 hour)
+      tokenRefreshInterval = setInterval(refreshToken, 55 * 60 * 1000);
+    };
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const uid = firebaseUser.uid;
+        const token = await getIdToken(firebaseUser);
         const userRef = ref(database, `users/${uid}`);
         const userSnapshot = await get(userRef);
         const dbUser = userSnapshot.val();
@@ -45,20 +77,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
           createdAt: dbUser?.createdAt || new Date().toISOString(),
           updatedAt: dbUser?.updatedAt || new Date().toISOString(),
+          accessToken: token
         };
         setUser(currentUser);
+        setupTokenRefresh();
       } else {
         setUser(null);
+        if (tokenRefreshInterval) {
+          clearInterval(tokenRefreshInterval);
+        }
       }
       setLoading(false);
     });
-    return () => unsubscribe();
-  }, []);
+
+    return () => {
+      unsubscribe();
+      if (tokenRefreshInterval) {
+        clearInterval(tokenRefreshInterval);
+      }
+    };
+  }, [refreshToken]);
 
   const login = useCallback(async (email: string, password: string): Promise<User> => {
     setLoading(true);
     try {
       const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
+      const token = await getIdToken(firebaseUser);
       const uid = firebaseUser.uid;
       const userRef = ref(database, `users/${uid}`);
       const userSnapshot = await get(userRef);
@@ -70,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
         createdAt: dbUser?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        accessToken: token
       };
       await update(userRef, { updatedAt: currentUser.updatedAt });
       setUser(currentUser);
@@ -120,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const { user: firebaseUser } = await signInWithPopup(auth, provider);
+      const token = await getIdToken(firebaseUser);
       const uid = firebaseUser.uid;
       const userRef = ref(database, `users/${uid}`);
       const userSnapshot = await get(userRef);
@@ -132,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
         createdAt: dbUser?.createdAt || now,
         updatedAt: now,
+        accessToken: token
       };
       if (dbUser) {
         await update(userRef, {
@@ -157,7 +204,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithFacebook = useCallback(() => loginWithProvider(facebookProvider), [loginWithProvider]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUserInfo, loginWithGoogle, loginWithGithub, loginWithFacebook }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      logout,
+      updateUserInfo,
+      loginWithGoogle,
+      loginWithGithub,
+      loginWithFacebook,
+      refreshToken
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -170,4 +227,3 @@ export const useAuthContext = () => {
   }
   return context;
 };
-
