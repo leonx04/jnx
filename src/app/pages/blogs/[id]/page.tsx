@@ -154,7 +154,9 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
 
         utteranceRef.current.onerror = (event) => {
             console.error('Speech synthesis error:', event)
-            toast.error('Có lỗi xảy ra khi đọc văn bản')
+            if (event.error !== 'interrupted') {
+                toast.error('Có lỗi xảy ra khi đọc văn bản')
+            }
             setIsPlaying(false)
         }
 
@@ -405,7 +407,6 @@ export default function BlogDetail({ params }: { params: Promise<{ id: string }>
                                 </span>
                             </div>
                         </div>
-
 
                         {/* Related Tags Section */}
                         {blogPost.category && (
