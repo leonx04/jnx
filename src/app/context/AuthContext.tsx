@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         const uid = firebaseUser.uid;
         const token = await getIdToken(firebaseUser);
-        const userRef = ref(database, `users/${uid}`);
+        const userRef = ref(database, `user/${uid}`);
         const userSnapshot = await get(userRef);
         const dbUser = userSnapshot.val();
         const currentUser: User = {
@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
       const token = await getIdToken(firebaseUser);
       const uid = firebaseUser.uid;
-      const userRef = ref(database, `users/${uid}`);
+      const userRef = ref(database, `user/${uid}`);
       const userSnapshot = await get(userRef);
       const dbUser = userSnapshot.val();
       const currentUser: User = {
@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: updatedUser.name,
           photoURL: updatedUser.imageUrl,
         });
-        const userRef = ref(database, `users/${user.id}`);
+        const userRef = ref(database, `user/${user.id}`);
         const updates = {
           ...updatedUser,
           updatedAt: new Date().toISOString(),
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { user: firebaseUser } = await signInWithPopup(auth, provider);
       const token = await getIdToken(firebaseUser);
       const uid = firebaseUser.uid;
-      const userRef = ref(database, `users/${uid}`);
+      const userRef = ref(database, `user/${uid}`);
       const userSnapshot = await get(userRef);
       const dbUser = userSnapshot.val();
       const now = new Date().toISOString();
