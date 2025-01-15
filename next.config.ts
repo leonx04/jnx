@@ -59,7 +59,8 @@ const nextConfig = {
                 https://vercel.live
                 https://*.vercel.live
                 https://www.google.com
-                https://*.doubleclick.net;
+                https://*.doubleclick.net
+                https://*.cloudflare.com;
               script-src-elem 'self' 'unsafe-inline'
                 https://apis.google.com
                 https://*.google-analytics.com
@@ -77,7 +78,8 @@ const nextConfig = {
                 https://vercel.live
                 https://*.vercel.live
                 https://www.google.com
-                https://*.doubleclick.net;
+                https://*.doubleclick.net
+                https://*.cloudflare.com;
               frame-src 'self'
                 https://accounts.google.com
                 https://*.firebaseapp.com
@@ -88,7 +90,8 @@ const nextConfig = {
                 https://*.doubleclick.net
                 https://www.google.com
                 https://vercel.live
-                https://*.vercel.live;
+                https://*.vercel.live
+                https://*.cloudflare.com;
               connect-src 'self'
                 https://*.googleapis.com
                 https://*.google-analytics.com
@@ -146,7 +149,7 @@ const nextConfig = {
           },
           {
             key: 'Set-Cookie',
-            value: 'SameSite=None; Secure'
+            value: 'SameSite=Lax; Secure'
           },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -161,7 +164,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: 'https://*.tawk.to'
+            value: '*'
           },
           {
             key: 'Access-Control-Allow-Methods',
