@@ -10,7 +10,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { get, ref, set, update } from 'firebase/database';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface User {
   id: string;
@@ -20,145 +20,203 @@ interface User {
   createdAt: string;
   updatedAt: string;
   accessToken?: string;
+  tokenExpiration?: number;
 }
 
-export function useAuth() {
+interface UseAuthReturn {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => Promise<void>;
+  loginWithGoogle: () => Promise<User>;
+  loginWithGithub: () => Promise<User>;
+  loginWithFacebook: () => Promise<User>;
+  getValidToken: () => Promise<string | null>;
+}
+
+const TOKEN_REFRESH_MARGIN = 5 * 60 * 1000; // 5 minutes before expiration
+const TOKEN_EXPIRATION_TIME = 55 * 60 * 1000; // 55 minutes
+
+export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const refreshTokenTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const clearRefreshTimeout = useCallback(() => {
+    if (refreshTokenTimeout.current) {
+      clearTimeout(refreshTokenTimeout.current);
+      refreshTokenTimeout.current = undefined;
+    }
+  }, []);
 
   const refreshToken = useCallback(async (): Promise<string | null> => {
     try {
       const currentUser = auth.currentUser;
-      if (currentUser) {
-        const token = await getIdToken(currentUser, true);
-        setUser(prev => prev ? { ...prev, accessToken: token } : null);
-        return token;
-      }
-      return null;
+      if (!currentUser) return null;
+
+      const token = await getIdToken(currentUser, true);
+      const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+
+      setUser(prev => prev ? {
+        ...prev,
+        accessToken: token,
+        tokenExpiration
+      } : null);
+
+      return token;
     } catch (error) {
       console.error('Error refreshing token:', error);
       return null;
     }
   }, []);
 
+  const setupTokenRefresh = useCallback(() => {
+    clearRefreshTimeout();
+
+    if (user?.tokenExpiration) {
+      const timeUntilRefresh = user.tokenExpiration - Date.now() - TOKEN_REFRESH_MARGIN;
+
+      if (timeUntilRefresh > 0) {
+        refreshTokenTimeout.current = setTimeout(refreshToken, timeUntilRefresh);
+      } else {
+        refreshToken();
+      }
+    }
+  }, [user?.tokenExpiration, refreshToken, clearRefreshTimeout]);
+
+  const getValidToken = useCallback(async (): Promise<string | null> => {
+    if (!user?.accessToken) return null;
+
+    const now = Date.now();
+    if (!user.tokenExpiration || now >= user.tokenExpiration - TOKEN_REFRESH_MARGIN) {
+      return refreshToken();
+    }
+
+    return user.accessToken;
+  }, [user, refreshToken]);
+
+  const updateUserInDatabase = async (
+    uid: string,
+    userData: Partial<User> & { tokenExpiration?: number }
+  ) => {
+    const userRef = ref(database, `user/${uid}`);
+    const userSnapshot = await get(userRef);
+    const dbUser = userSnapshot.val();
+    const now = new Date().toISOString();
+
+    if (dbUser) {
+      await update(userRef, {
+        ...userData,
+        updatedAt: now
+      });
+    } else {
+      await set(userRef, {
+        ...userData,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  };
+
   useEffect(() => {
-    let tokenRefreshInterval: NodeJS.Timeout;
-
-    const setupTokenRefresh = () => {
-      // Refresh token every 55 minutes
-      tokenRefreshInterval = setInterval(refreshToken, 55 * 60 * 1000);
-    };
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const user = await getUserData(firebaseUser.uid);
         const token = await getIdToken(firebaseUser);
-        if (user) {
-          setUser({ ...user, accessToken: token });
-        }
-        setupTokenRefresh();
+        const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+        const uid = firebaseUser.uid;
+        const userRef = ref(database, `user/${uid}`);
+        const userSnapshot = await get(userRef);
+        const dbUser = userSnapshot.val();
+
+        const currentUser: User = {
+          id: uid,
+          email: firebaseUser.email || '',
+          name: dbUser?.name || firebaseUser.displayName || '',
+          imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+          createdAt: dbUser?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          accessToken: token,
+          tokenExpiration
+        };
+
+        await updateUserInDatabase(uid, {
+          email: currentUser.email,
+          name: currentUser.name,
+          imageUrl: currentUser.imageUrl,
+          tokenExpiration
+        });
+
+        setUser(currentUser);
       } else {
         setUser(null);
-        if (tokenRefreshInterval) {
-          clearInterval(tokenRefreshInterval);
-        }
+        clearRefreshTimeout();
       }
       setLoading(false);
     });
 
     return () => {
       unsubscribe();
-      if (tokenRefreshInterval) {
-        clearInterval(tokenRefreshInterval);
-      }
+      clearRefreshTimeout();
     };
-  }, [refreshToken]);
+  }, [clearRefreshTimeout]);
 
-  const getUserData = async (uid: string): Promise<User | null> => {
-    const userRef = ref(database, `user/${uid}`);
-    const snapshot = await get(userRef);
-    if (snapshot.exists()) {
-      const userData = snapshot.val();
-      return {
-        id: uid,
-        email: userData.email,
-        name: userData.name,
-        imageUrl: userData.imageUrl,
-        createdAt: userData.createdAt,
-        updatedAt: userData.updatedAt,
-        accessToken: userData.accessToken
-      };
-    }
-    return null;
-  };
+  useEffect(() => {
+    setupTokenRefresh();
+    return clearRefreshTimeout;
+  }, [setupTokenRefresh, clearRefreshTimeout]);
 
-  const createOrUpdateUser = async (user: User, isNewUser: boolean) => {
-    const userRef = ref(database, `user/${user.id}`);
-    const now = new Date().toISOString();
-    const { accessToken, ...userWithoutToken } = user;
-
-    if (isNewUser) {
-      await set(userRef, {
-        ...userWithoutToken,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } else {
-      const updates: Partial<User> = {
-        email: user.email,
-        name: user.name,
-        imageUrl: user.imageUrl,
-        updatedAt: now,
-      };
-      await update(userRef, updates);
-    }
-  };
-
-  const login = async (email: string, password: string): Promise<User> => {
+  const login = useCallback(async (email: string, password: string): Promise<User> => {
+    setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
       const token = await getIdToken(firebaseUser);
-      const user = await getUserData(firebaseUser.uid);
+      const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+      const uid = firebaseUser.uid;
+      const userRef = ref(database, `user/${uid}`);
+      const userSnapshot = await get(userRef);
+      const dbUser = userSnapshot.val();
 
-      if (user) {
-        const updatedUser = { ...user, accessToken: token };
-        await createOrUpdateUser(updatedUser, false);
-        setUser(updatedUser);
-        return updatedUser;
-      }
-
-      // If user doesn't exist in database, create new user
-      const newUser: User = {
-        id: firebaseUser.uid,
+      const currentUser: User = {
+        id: uid,
         email: firebaseUser.email || '',
-        name: firebaseUser.displayName || undefined,
-        imageUrl: firebaseUser.photoURL || undefined,
-        createdAt: new Date().toISOString(),
+        name: dbUser?.name || firebaseUser.displayName || '',
+        imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+        createdAt: dbUser?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        accessToken: token
+        accessToken: token,
+        tokenExpiration
       };
-      await createOrUpdateUser(newUser, true);
-      setUser(newUser);
-      return newUser;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  };
 
-  const logout = async () => {
+      await updateUserInDatabase(uid, {
+        email: currentUser.email,
+        name: currentUser.name,
+        imageUrl: currentUser.imageUrl,
+        tokenExpiration
+      });
+
+      setUser(currentUser);
+      return currentUser;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
     try {
       await signOut(auth);
       setUser(null);
+      clearRefreshTimeout();
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
     }
-  };
+  }, [clearRefreshTimeout]);
 
-  const updateUser = async (updatedUser: Partial<User>) => {
-    if (!auth.currentUser) throw new Error('No authenticated user');
+  const updateUser = useCallback(async (updatedUser: Partial<User>) => {
+    if (!auth.currentUser || !user) throw new Error('No authenticated user');
 
     try {
       await updateProfile(auth.currentUser, {
@@ -167,76 +225,87 @@ export function useAuth() {
       });
 
       const token = await getIdToken(auth.currentUser, true);
-      const user = await getUserData(auth.currentUser.uid);
-      if (user) {
-        const updatedUserData = {
-          ...user,
-          ...updatedUser,
-          accessToken: token,
-          updatedAt: new Date().toISOString()
-        };
-        await createOrUpdateUser(updatedUserData, false);
-        setUser(updatedUserData);
-      }
+      const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+
+      await updateUserInDatabase(user.id, {
+        ...updatedUser,
+        tokenExpiration
+      });
+
+      setUser(prev => prev ? {
+        ...prev,
+        ...updatedUser,
+        accessToken: token,
+        tokenExpiration,
+        updatedAt: new Date().toISOString()
+      } : null);
     } catch (error) {
       console.error('Update user error:', error);
       throw error;
     }
-  };
+  }, [user]);
 
   const handleAuthError = async (error: any): Promise<never> => {
     if (error.code === 'auth/account-exists-with-different-credential') {
-      const email = error.customData.email;
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-
-      if (methods.includes('password')) {
-        throw new Error('EMAIL_PASSWORD_ACCOUNT');
-      } else if (methods.includes('google.com')) {
-        throw new Error('GOOGLE_ACCOUNT');
-      } else if (methods.includes('github.com')) {
-        throw new Error('GITHUB_ACCOUNT');
-      } else if (methods.includes('facebook.com')) {
-        throw new Error('FACEBOOK_ACCOUNT');
+      const email = error.customData?.email;
+      if (email) {
+        const methods = await fetchSignInMethodsForEmail(auth, email);
+        if (methods.includes('password')) {
+          throw new Error('EMAIL_PASSWORD_ACCOUNT');
+        } else if (methods.includes('google.com')) {
+          throw new Error('GOOGLE_ACCOUNT');
+        } else if (methods.includes('github.com')) {
+          throw new Error('GITHUB_ACCOUNT');
+        } else if (methods.includes('facebook.com')) {
+          throw new Error('FACEBOOK_ACCOUNT');
+        }
       }
     }
-    console.error('Auth error:', error);
     throw error;
   };
 
-  const loginWithProvider = async (provider: AuthProvider): Promise<User> => {
+  const loginWithProvider = useCallback(async (provider: AuthProvider): Promise<User> => {
+    setLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
       const token = await getIdToken(firebaseUser);
-      let user = await getUserData(firebaseUser.uid);
-      const isNewUser = !user;
+      const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+      const uid = firebaseUser.uid;
+      const userRef = ref(database, `user/${uid}`);
+      const userSnapshot = await get(userRef);
+      const dbUser = userSnapshot.val();
 
-      if (!user) {
-        user = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          name: firebaseUser.displayName || undefined,
-          imageUrl: firebaseUser.photoURL || undefined,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          accessToken: token
-        };
-      } else {
-        user.accessToken = token;
-        user.updatedAt = new Date().toISOString();
-      }
+      const currentUser: User = {
+        id: uid,
+        email: firebaseUser.email || '',
+        name: dbUser?.name || firebaseUser.displayName || '',
+        imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+        createdAt: dbUser?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        accessToken: token,
+        tokenExpiration
+      };
 
-      await createOrUpdateUser(user, isNewUser);
-      setUser(user);
-      return user;
+      await updateUserInDatabase(uid, {
+        email: currentUser.email,
+        name: currentUser.name,
+        imageUrl: currentUser.imageUrl,
+        tokenExpiration
+      });
+
+      setUser(currentUser);
+      return currentUser;
     } catch (error: any) {
       return handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const loginWithGoogle = () => loginWithProvider(googleProvider);
-  const loginWithGithub = () => loginWithProvider(githubProvider);
-  const loginWithFacebook = () => loginWithProvider(facebookProvider);
+  const loginWithGoogle = useCallback(() => loginWithProvider(googleProvider), [loginWithProvider]);
+  const loginWithGithub = useCallback(() => loginWithProvider(githubProvider), [loginWithProvider]);
+  const loginWithFacebook = useCallback(() => loginWithProvider(facebookProvider), [loginWithProvider]);
 
   return {
     user,
@@ -247,6 +316,6 @@ export function useAuth() {
     loginWithGoogle,
     loginWithGithub,
     loginWithFacebook,
-    refreshToken
+    getValidToken
   };
 }
