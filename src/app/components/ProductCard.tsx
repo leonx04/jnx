@@ -136,7 +136,7 @@ const ProductCard = ({ product }: { product: Product }) => {
 
           <div className="relative aspect-square w-full overflow-hidden">
             <Image
-              src={product.imageUrl}
+              src={product.imageUrl || "/placeholder.svg"}
               alt={product.name}
               fill
               className="absolute inset-0 object-contain p-4 transition-transform duration-300 group-hover:scale-110"
@@ -160,22 +160,18 @@ const ProductCard = ({ product }: { product: Product }) => {
             <div className="flex items-center mb-1.5">
               {averageRating !== null ? (
                 <div className="flex items-center">
-                  {[0, 1, 2, 3, 4].map((index) => (
-                    <div key={index} className="relative w-3 h-3 mx-0.5">
-                      <FontAwesomeIcon
-                        icon={faStar}
-                        className="absolute text-gray-300"
-                      />
-                      <div
-                        className="absolute overflow-hidden text-yellow-500"
-                        style={{
-                          width: `${averageRating >= index + 1 ? '100%' : `${(averageRating - index) * 100}%`}`
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faStar} />
-                      </div>
+                  <div className="star-rating">
+                    <div className="star-bg">
+                      {[...Array(5)].map((_, i) => (
+                        <FontAwesomeIcon key={i} icon={faStar} className="text-gray-300" />
+                      ))}
                     </div>
-                  ))}
+                    <div className="star-fg" style={{ width: `${(averageRating / 5) * 100}%` }}>
+                      {[...Array(5)].map((_, i) => (
+                        <FontAwesomeIcon key={i} icon={faStar} className="text-yellow-400" />
+                      ))}
+                    </div>
+                  </div>
                   <span className="text-[10px] text-gray-600 ml-1.5">
                     ({averageRating.toFixed(1)}) {reviewCount}
                   </span>

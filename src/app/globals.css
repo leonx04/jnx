@@ -95,15 +95,16 @@
 }
 
 .star-rating .star-bg {
-  color: #e4e5e9;
+  display: flex;
 }
 
 .star-rating .star-fg {
-  color: #ffc107;
-  overflow: hidden;
   position: absolute;
   top: 0;
   left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
 }
 
 .radix-dropdown-content {
