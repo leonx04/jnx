@@ -46,12 +46,12 @@ export default function RootLayout({
         <meta name="author" content="JNX Tennis Store" />
         <link rel="icon" href="https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://jnx-store.netlify.app" />
+        <meta property="og:url" content="https://jnxstore.id.vn" />
         <meta property="og:title" content="JNX Tennis Store - High-Quality Tennis Rackets" />
         <meta property="og:description" content="JNX Tennis Store is a service that provides high-quality tennis rackets and equipment for all levels of play. We offer a wide range of professional and beginner rackets to suit your needs." />
         <meta property="og:image" content="https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico" />
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://jnx-store.netlify.app" />
+        <meta property="twitter:url" content="https://jnxstore.id.vn" />
         <meta property="twitter:title" content="JNX Tennis Store - High-Quality Tennis Rackets" />
         <meta property="twitter:description" content="JNX Tennis Store is a service that provides high-quality tennis rackets and equipment for all levels of play. We offer a wide range of professional and beginner rackets to suit your needs." />
         <meta property="twitter:image" content="https://raw.githubusercontent.com/leonx04/jnx/refs/heads/master/src/app/favicon.ico" />
