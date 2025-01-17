@@ -35,8 +35,10 @@ interface UseAuthReturn {
   getValidToken: () => Promise<string | null>;
 }
 
-const TOKEN_REFRESH_MARGIN = 5 * 60 * 1000; // 5 minutes before expiration
-const TOKEN_EXPIRATION_TIME = 55 * 60 * 1000; // 55 minutes
+const TOKEN_REFRESH_MARGIN = 1 * 60 * 1000; // 5 minutes before expiration
+const TOKEN_EXPIRATION_TIME = 5 * 60 * 1000; // 55 minutes
+
+const LOCAL_STORAGE_TOKEN_KEY = 'auth_token_expiration';
 
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<User | null>(null);
@@ -50,13 +52,36 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
+  const handleLogout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      clearRefreshTimeout();
+      localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  }, [clearRefreshTimeout]);
+
+  const isTokenExpired = useCallback((expiration?: number): boolean => {
+    if (!expiration) return true;
+    return Date.now() >= expiration - TOKEN_REFRESH_MARGIN;
+  }, []);
+
   const refreshToken = useCallback(async (): Promise<string | null> => {
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) return null;
+      if (!currentUser) {
+        await handleLogout();
+        return null;
+      }
 
       const token = await getIdToken(currentUser, true);
       const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+
+      // Store token expiration in localStorage
+      localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, tokenExpiration.toString());
 
       setUser(prev => prev ? {
         ...prev,
@@ -67,9 +92,10 @@ export function useAuth(): UseAuthReturn {
       return token;
     } catch (error) {
       console.error('Error refreshing token:', error);
+      await handleLogout();
       return null;
     }
-  }, []);
+  }, [handleLogout]);
 
   const setupTokenRefresh = useCallback(() => {
     clearRefreshTimeout();
@@ -78,23 +104,43 @@ export function useAuth(): UseAuthReturn {
       const timeUntilRefresh = user.tokenExpiration - Date.now() - TOKEN_REFRESH_MARGIN;
 
       if (timeUntilRefresh > 0) {
-        refreshTokenTimeout.current = setTimeout(refreshToken, timeUntilRefresh);
+        refreshTokenTimeout.current = setTimeout(async () => {
+          const token = await refreshToken();
+          if (!token) {
+            await handleLogout();
+          }
+        }, timeUntilRefresh);
       } else {
-        refreshToken();
+        refreshToken().then(token => {
+          if (!token) {
+            handleLogout();
+          }
+        });
       }
     }
-  }, [user?.tokenExpiration, refreshToken, clearRefreshTimeout]);
+  }, [user?.tokenExpiration, refreshToken, clearRefreshTimeout, handleLogout]);
 
   const getValidToken = useCallback(async (): Promise<string | null> => {
     if (!user?.accessToken) return null;
 
-    const now = Date.now();
-    if (!user.tokenExpiration || now >= user.tokenExpiration - TOKEN_REFRESH_MARGIN) {
+    if (isTokenExpired(user.tokenExpiration)) {
       return refreshToken();
     }
 
     return user.accessToken;
-  }, [user, refreshToken]);
+  }, [user, refreshToken, isTokenExpired]);
+
+  const validateStoredToken = useCallback(async () => {
+    const storedExpiration = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+    if (storedExpiration) {
+      const expiration = parseInt(storedExpiration, 10);
+      if (isTokenExpired(expiration)) {
+        await handleLogout();
+        return false;
+      }
+    }
+    return true;
+  }, [isTokenExpired, handleLogout]);
 
   const updateUserInDatabase = async (
     uid: string,
@@ -121,45 +167,61 @@ export function useAuth(): UseAuthReturn {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const token = await getIdToken(firebaseUser);
-        const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
-        const uid = firebaseUser.uid;
-        const userRef = ref(database, `user/${uid}`);
-        const userSnapshot = await get(userRef);
-        const dbUser = userSnapshot.val();
+      try {
+        if (firebaseUser) {
+          // Validate stored token first
+          const isValid = await validateStoredToken();
+          if (!isValid) {
+            return;
+          }
 
-        const currentUser: User = {
-          id: uid,
-          email: firebaseUser.email || '',
-          name: dbUser?.name || firebaseUser.displayName || '',
-          imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
-          createdAt: dbUser?.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          accessToken: token,
-          tokenExpiration
-        };
+          const token = await getIdToken(firebaseUser);
+          const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+          const uid = firebaseUser.uid;
+          const userRef = ref(database, `user/${uid}`);
+          const userSnapshot = await get(userRef);
+          const dbUser = userSnapshot.val();
 
-        await updateUserInDatabase(uid, {
-          email: currentUser.email,
-          name: currentUser.name,
-          imageUrl: currentUser.imageUrl,
-          tokenExpiration
-        });
+          // Store new token expiration
+          localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, tokenExpiration.toString());
 
-        setUser(currentUser);
-      } else {
-        setUser(null);
-        clearRefreshTimeout();
+          const currentUser: User = {
+            id: uid,
+            email: firebaseUser.email || '',
+            name: dbUser?.name || firebaseUser.displayName || '',
+            imageUrl: dbUser?.imageUrl || firebaseUser.photoURL || '',
+            createdAt: dbUser?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            accessToken: token,
+            tokenExpiration
+          };
+
+          await updateUserInDatabase(uid, {
+            email: currentUser.email,
+            name: currentUser.name,
+            imageUrl: currentUser.imageUrl,
+            tokenExpiration
+          });
+
+          setUser(currentUser);
+        } else {
+          setUser(null);
+          clearRefreshTimeout();
+          localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error);
+        await handleLogout();
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
       unsubscribe();
       clearRefreshTimeout();
     };
-  }, [clearRefreshTimeout]);
+  }, [clearRefreshTimeout, handleLogout, validateStoredToken]);
 
   useEffect(() => {
     setupTokenRefresh();
@@ -172,6 +234,10 @@ export function useAuth(): UseAuthReturn {
       const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
       const token = await getIdToken(firebaseUser);
       const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+      
+      // Store token expiration in localStorage
+      localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, tokenExpiration.toString());
+
       const uid = firebaseUser.uid;
       const userRef = ref(database, `user/${uid}`);
       const userSnapshot = await get(userRef);
@@ -204,17 +270,6 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-      clearRefreshTimeout();
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    }
-  }, [clearRefreshTimeout]);
-
   const updateUser = useCallback(async (updatedUser: Partial<User>) => {
     if (!auth.currentUser || !user) throw new Error('No authenticated user');
 
@@ -226,6 +281,9 @@ export function useAuth(): UseAuthReturn {
 
       const token = await getIdToken(auth.currentUser, true);
       const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+      
+      // Update token expiration in localStorage
+      localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, tokenExpiration.toString());
 
       await updateUserInDatabase(user.id, {
         ...updatedUser,
@@ -271,6 +329,10 @@ export function useAuth(): UseAuthReturn {
       const firebaseUser = result.user;
       const token = await getIdToken(firebaseUser);
       const tokenExpiration = Date.now() + TOKEN_EXPIRATION_TIME;
+      
+      // Store token expiration in localStorage
+      localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, tokenExpiration.toString());
+
       const uid = firebaseUser.uid;
       const userRef = ref(database, `user/${uid}`);
       const userSnapshot = await get(userRef);
@@ -311,7 +373,7 @@ export function useAuth(): UseAuthReturn {
     user,
     loading,
     login,
-    logout,
+    logout: handleLogout,
     updateUser,
     loginWithGoogle,
     loginWithGithub,
