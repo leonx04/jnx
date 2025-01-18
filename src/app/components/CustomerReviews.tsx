@@ -1,8 +1,8 @@
-import { faStar, faQuoteLeft } from '@fortawesome/free-solid-svg-icons';
+import { faQuoteLeft, faStar } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useEffect, useState } from 'react';
-import { database } from '../../firebaseConfig';
 import { onValue, ref } from 'firebase/database';
+import { useEffect, useState } from 'react';
+import { database } from '../../lib/firebaseConfig';
 
 interface Review {
   comment: string;

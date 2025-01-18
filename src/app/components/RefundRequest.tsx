@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
-import { database } from "@/firebaseConfig"
+import { database } from "@/lib/firebaseConfig"
 import { get, push, ref, serverTimestamp } from "firebase/database"
 import { AlertCircle, Minus, Plus, Upload, X } from 'lucide-react'
 import Image from "next/image"

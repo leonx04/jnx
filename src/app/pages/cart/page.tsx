@@ -1,16 +1,16 @@
 'use client'
 
 import { useAuthContext } from '@/app/context/AuthContext'
-import { database } from '@/firebaseConfig'
+import { database } from '@/lib/firebaseConfig'
 import { faMinus, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { onValue, ref, remove, update } from 'firebase/database'
 import { AnimatePresence, motion } from 'framer-motion'
+import { ShoppingCart } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { ShoppingCart } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Định nghĩa interface cho cấu trúc dữ liệu của một mục trong giỏ hàng

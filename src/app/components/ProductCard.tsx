@@ -1,5 +1,5 @@
 import { useAuthContext } from '@/app/context/AuthContext';
-import { database } from '@/firebaseConfig';
+import { database } from '@/lib/firebaseConfig';
 import { faExclamationTriangle, faShoppingCart, faStar } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { get, push, ref, set } from "firebase/database";

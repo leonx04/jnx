@@ -1,15 +1,15 @@
 'use client'
 
 // Import các thư viện cần thiết
-import { useAuthContext } from '@/app/context/AuthContext' // Lấy thông tin người dùng từ AuthContext
-import { Avatar, AvatarFallback } from "@/components/ui/avatar" // Dùng Avatar để hiển thị ảnh đại diện
-import { Button } from "@/components/ui/button" // Dùng Button để hiển thị nút
-import { Textarea } from "@/components/ui/textarea" // Dùng Textarea để nhập bình luận
-import { database } from '@/firebaseConfig' // Kết nối với Firebase
-import { child, onValue, push, ref, runTransaction, serverTimestamp } from 'firebase/database' // Các phương thức Firebase để đọc và ghi dữ liệu
-import { useRouter } from 'next/navigation' // Dùng router để điều hướng
-import { useEffect, useState } from 'react' // Hook của React
-import { toast } from 'react-hot-toast' // Dùng để hiển thị thông báo
+import { useAuthContext } from '@/app/context/AuthContext'; // Lấy thông tin người dùng từ AuthContext
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Dùng Avatar để hiển thị ảnh đại diện
+import { Button } from "@/components/ui/button"; // Dùng Button để hiển thị nút
+import { Textarea } from "@/components/ui/textarea"; // Dùng Textarea để nhập bình luận
+import { database } from '@/lib/firebaseConfig'; // Kết nối với Firebase
+import { child, onValue, push, ref, runTransaction, serverTimestamp } from 'firebase/database'; // Các phương thức Firebase để đọc và ghi dữ liệu
+import { useRouter } from 'next/navigation'; // Dùng router để điều hướng
+import { useEffect, useState } from 'react'; // Hook của React
+import { toast } from 'react-hot-toast'; // Dùng để hiển thị thông báo
 
 // Định nghĩa kiểu dữ liệu cho Comment
 interface Comment {

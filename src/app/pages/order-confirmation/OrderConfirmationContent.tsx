@@ -3,7 +3,7 @@
 import { useAuthContext } from "@/app/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { database } from "@/firebaseConfig"
+import { database } from "@/lib/firebaseConfig"
 import { get, ref } from "firebase/database"
 import { CheckCircle2 } from 'lucide-react'
 import Image from "next/image"

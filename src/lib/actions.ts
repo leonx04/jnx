@@ -1,4 +1,4 @@
-import { database } from "@/firebaseConfig"
+import { database } from "@/lib/firebaseConfig"
 import { push, ref, serverTimestamp } from "firebase/database"
 
 export async function createNotification(message: string) {

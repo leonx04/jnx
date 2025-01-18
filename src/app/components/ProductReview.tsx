@@ -1,14 +1,14 @@
 'use client'
 
-import { useAuthContext } from '@/app/context/AuthContext'  // Nhập context xác thực người dùng
-import { Button } from '@/components/ui/button'  // Nhập thành phần Button từ thư viện UI
-import { Textarea } from '@/components/ui/textarea'  // Nhập thành phần Textarea từ thư viện UI
-import { database } from '@/firebaseConfig'  // Nhập cấu hình Firebase
-import { faStar } from '@fortawesome/free-solid-svg-icons'  // Nhập biểu tượng sao từ Font Awesome
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'  // Nhập FontAwesomeIcon để hiển thị biểu tượng
-import { get, push, ref, set, update } from 'firebase/database'  // Nhập các hàm từ Firebase để thao tác với cơ sở dữ liệu
-import { useState } from 'react'  // Nhập hook useState để quản lý trạng thái
-import { toast } from 'react-hot-toast'  // Nhập thư viện toast để hiển thị thông báo
+import { useAuthContext } from '@/app/context/AuthContext'; // Nhập context xác thực người dùng
+import { Button } from '@/components/ui/button'; // Nhập thành phần Button từ thư viện UI
+import { Textarea } from '@/components/ui/textarea'; // Nhập thành phần Textarea từ thư viện UI
+import { database } from '@/lib/firebaseConfig'; // Nhập cấu hình Firebase
+import { faStar } from '@fortawesome/free-solid-svg-icons'; // Nhập biểu tượng sao từ Font Awesome
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // Nhập FontAwesomeIcon để hiển thị biểu tượng
+import { get, push, ref, set, update } from 'firebase/database'; // Nhập các hàm từ Firebase để thao tác với cơ sở dữ liệu
+import { useState } from 'react'; // Nhập hook useState để quản lý trạng thái
+import { toast } from 'react-hot-toast'; // Nhập thư viện toast để hiển thị thông báo
 
 // Định nghĩa các interface cho props và dữ liệu liên quan
 interface ProductReviewProps {

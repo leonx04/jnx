@@ -29,11 +29,11 @@ import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 
+import RelatedProducts from '@/app/components/RelatedProducts'
 import { useAuthContext } from '@/app/context/AuthContext'
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { database } from '@/firebaseConfig'
-import RelatedProducts from '@/app/components/RelatedProducts'
+import { database } from '@/lib/firebaseConfig'
 
 interface Product {
   id: string;

@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { app } from '@/firebaseConfig';
+import { app } from '@/lib/firebaseConfig';
 import bcrypt from 'bcryptjs';
 import { equalTo, get, getDatabase, orderByChild, push, query, ref, set } from 'firebase/database';
 import Link from 'next/link';

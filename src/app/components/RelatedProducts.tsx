@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'  // Nhập các hook useState và useEffect từ React
-import { database } from '@/firebaseConfig'  // Nhập cấu hình Firebase
-import { ref, query, orderByChild, equalTo, get } from 'firebase/database'  // Nhập các hàm thao tác với cơ sở dữ liệu Firebase
-import ProductCard from './ProductCard'  // Nhập thành phần ProductCard để hiển thị sản phẩm
+import { database } from '@/lib/firebaseConfig'; // Nhập cấu hình Firebase
+import { equalTo, get, orderByChild, query, ref } from 'firebase/database'; // Nhập các hàm thao tác với cơ sở dữ liệu Firebase
+import { useEffect, useState } from 'react'; // Nhập các hook useState và useEffect từ React
+import ProductCard from './ProductCard'; // Nhập thành phần ProductCard để hiển thị sản phẩm
 
 // Định nghĩa interface cho sản phẩm
 interface Product {

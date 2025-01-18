@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { database } from '@/firebaseConfig'
+import { database } from '@/lib/firebaseConfig'
 import { onValue, query, ref } from 'firebase/database'
 import { Search } from 'lucide-react'
 import Image from 'next/image'

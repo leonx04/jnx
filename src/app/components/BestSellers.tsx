@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { onValue, ref } from 'firebase/database';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { database } from '../../firebaseConfig'; // Cấu hình Firebase
+import { database } from '../../lib/firebaseConfig'; // Cấu hình Firebase
 import ProductCard from './ProductCard'; // Component hiển thị thông tin sản phẩm
 import ProductCardSkeleton from './ProductCardSkeleton'; // Component skeleton khi tải dữ liệu
 

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { database } from '@/firebaseConfig';
+import { database } from '@/lib/firebaseConfig';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faBell, faBlog, faBox, faCheck, faClockRotateLeft, faHome, faInfoCircle, faRightToBracket, faShoppingCart, faSignOutAlt, faTimes, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

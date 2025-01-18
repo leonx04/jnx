@@ -6,7 +6,7 @@ import { useAuthContext } from '@/app/context/AuthContext'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { database } from '@/firebaseConfig'
+import { database } from '@/lib/firebaseConfig'
 import { onValue, ref, runTransaction } from 'firebase/database'
 import { CalendarIcon, ChevronLeft, MessageCircle, PauseCircle, PlayCircle, Share2, StopCircle, UserIcon, Volume2, VolumeX } from 'lucide-react'
 import Image from 'next/image'

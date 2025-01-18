@@ -2,7 +2,7 @@
 
 import { onValue, ref } from 'firebase/database';
 import { useEffect, useState } from 'react';
-import { database } from '../../firebaseConfig';
+import { database } from '../../lib/firebaseConfig';
 
 interface Voucher {
     voucherCode: string;

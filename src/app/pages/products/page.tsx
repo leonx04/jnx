@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { database } from '@/firebaseConfig'
+import { database } from '@/lib/firebaseConfig'
 import { onValue, ref } from "firebase/database"
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'

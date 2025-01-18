@@ -1,4 +1,4 @@
-import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/firebaseConfig';
+import { auth, database, facebookProvider, githubProvider, googleProvider } from '@/lib/firebaseConfig';
 import {
   AuthProvider,
   fetchSignInMethodsForEmail,

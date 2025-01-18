@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { onValue, ref } from 'firebase/database';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { database } from '../firebaseConfig';
+import { database } from '../lib/firebaseConfig';
 import BestSellers from './components/BestSellers';
 import Carousel from './components/Carousel';
 import CustomerReviews from './components/CustomerReviews';
