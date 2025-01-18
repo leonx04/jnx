@@ -35,8 +35,8 @@ interface UseAuthReturn {
   getValidToken: () => Promise<string | null>;
 }
 
-const TOKEN_REFRESH_MARGIN = 1 * 60 * 1000; // 5 minutes before expiration
-const TOKEN_EXPIRATION_TIME = 5 * 60 * 1000; // 55 minutes
+const TOKEN_REFRESH_MARGIN = 5 * 60 * 1000; // 5 minutes before expiration
+const TOKEN_EXPIRATION_TIME = 55 * 60 * 1000; // 55 minutes
 
 const LOCAL_STORAGE_TOKEN_KEY = 'auth_token_expiration';
 
