@@ -1,167 +1,97 @@
-'use client'
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
-import { app } from '@/lib/firebaseConfig';
-import bcrypt from 'bcryptjs';
-import { equalTo, get, getDatabase, orderByChild, push, query, ref, set } from 'firebase/database';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUser, FaUserPlus } from 'react-icons/fa';
-
-// Định nghĩa interface cho Turnstile CAPTCHA
-interface TurnstileInstance {
-  render: (selector: string, options: TurnstileOptions) => string;
-  reset: (widgetId: string) => void;
-}
-
-interface TurnstileOptions {
-  sitekey: string;
-  callback: (token: string) => void;
-}
-
-// Mở rộng đối tượng Window để bao gồm Turnstile
-declare global {
-  interface Window {
-    turnstile: TurnstileInstance;
-    onloadTurnstileCallback?: () => void;
-  }
-}
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Modal } from "@/components/ui/modal"
+import { app, auth } from "@/lib/firebaseConfig"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { getDatabase, ref, set } from "firebase/database"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useState } from "react"
+import toast from "react-hot-toast"
+import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUser, FaUserPlus } from "react-icons/fa"
 
 export default function Register() {
-  // Khai báo các state cho form đăng ký
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState('');
-  const [captchaWidgetId, setCaptchaWidgetId] = useState('');
-  const [showTerms, setShowTerms] = useState(false);
-  const router = useRouter();
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
+  const router = useRouter()
 
-  // Hàm để chuyển đổi hiển thị mật khẩu
-  const togglePasswordVisibility = (field: 'password' | 'confirmPassword') => {
-    if (field === 'password') {
-      setShowPassword(!showPassword);
+  const togglePasswordVisibility = (field: "password" | "confirmPassword") => {
+    if (field === "password") {
+      setShowPassword(!showPassword)
     } else {
-      setShowConfirmPassword(!showConfirmPassword);
+      setShowConfirmPassword(!showConfirmPassword)
     }
-  };
+  }
 
-  // Hàm để render CAPTCHA
-  const renderCaptcha = useCallback(() => {
-    if (window.turnstile) {
-      const widgetId = window.turnstile.render('#cloudflare-turnstile', {
-        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_SITE_KEY || '',
-        callback: (token: string) => {
-          setCaptchaToken(token);
-        },
-      });
-      setCaptchaWidgetId(widgetId);
-    }
-  }, []);
-
-  // Effect để tải và khởi tạo CAPTCHA
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-
-    window.onloadTurnstileCallback = renderCaptcha;
-
-    return () => {
-      document.body.removeChild(script);
-      delete window.onloadTurnstileCallback;
-    };
-  }, [renderCaptcha]);
-
-  // Hàm xử lý khi submit form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
 
-    // Kiểm tra mật khẩu khớp nhau
     if (password !== confirmPassword) {
-      toast.error('Mật khẩu không khớp');
-      setIsLoading(false);
-      return;
+      toast.error("Mật khẩu không khớp")
+      setIsLoading(false)
+      return
     }
 
-    // Kiểm tra đồng ý điều khoản
     if (!acceptTerms) {
-      toast.error('Bạn phải đồng ý với điều khoản và điều kiện');
-      setIsLoading(false);
-      return;
-    }
-
-    // Kiểm tra CAPTCHA
-    if (!captchaToken) {
-      toast.error('Vui lòng hoàn thành CAPTCHA');
-      setIsLoading(false);
-      return;
+      toast.error("Bạn phải đồng ý với điều khoản và điều kiện")
+      setIsLoading(false)
+      return
     }
 
     try {
-      const db = getDatabase(app);
-      const usersRef = ref(db, 'user');
+      console.log("Bắt đầu quá trình đăng ký...")
 
-      // Kiểm tra email đã tồn tại chưa
-      const emailQuery = query(usersRef, orderByChild('email'), equalTo(email));
-      const emailSnapshot = await get(emailQuery);
+      // Tạo người dùng trong Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const firebaseUser = userCredential.user
+      console.log("Đã tạo người dùng trong Firebase Authentication:", firebaseUser.uid)
 
-      if (emailSnapshot.exists()) {
-        toast.error('Email đã tồn tại. Vui lòng sử dụng email khác.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Mã hóa mật khẩu
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      // Tạo người dùng mới
-      const newUserRef = push(usersRef);
-      await set(newUserRef, {
+      // Lưu thông tin người dùng vào Realtime Database
+      const db = getDatabase(app)
+      const userRef = ref(db, `user/${firebaseUser.uid}`)
+      const now = new Date().toISOString()
+      const userData = {
         name,
         email,
-        password: hashedPassword,
-        createdAt: new Date().toISOString()
-      });
-
-      toast.success('Đăng ký thành công!');
-      router.push('/pages/login');
-    } catch (err) {
-      console.error('Registration error:', err);
-      toast.error('Đăng ký thất bại. Vui lòng thử lại.');
-    } finally {
-      setIsLoading(false);
-      if (window.turnstile && captchaWidgetId) {
-        window.turnstile.reset(captchaWidgetId);
+        imageUrl: "",
+        createdAt: now,
+        updatedAt: now,
+        tokenExpiration: Date.now() + 55 * 60 * 1000, // 55p từ thời điểm hiện tại
       }
-    }
-  };
+      await set(userRef, userData)
+      console.log("Đã lưu thông tin người dùng vào Realtime Database:", userData)
 
-  // Render component
+      toast.success("Đăng ký thành công!")
+      router.push("/pages/login")
+    } catch (err) {
+      console.error("Lỗi đăng ký:", err)
+      toast.error("Đăng ký thất bại. Vui lòng thử lại.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Phần return giữ nguyên như cũ
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md p-8">
         <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-6">Tạo tài khoản mới</h2>
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* Form fields */}
           <div className="space-y-4">
-            {/* Trường nhập tên */}
             <div>
               <Label htmlFor="name">Tên của bạn</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -181,7 +111,6 @@ export default function Register() {
                 />
               </div>
             </div>
-            {/* Trường nhập email */}
             <div>
               <Label htmlFor="email-address">Địa chỉ email</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -201,7 +130,6 @@ export default function Register() {
                 />
               </div>
             </div>
-            {/* Trường nhập mật khẩu */}
             <div>
               <Label htmlFor="password">Mật khẩu</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -222,7 +150,7 @@ export default function Register() {
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
                     type="button"
-                    onClick={() => togglePasswordVisibility('password')}
+                    onClick={() => togglePasswordVisibility("password")}
                     className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
                   >
                     {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
@@ -230,7 +158,6 @@ export default function Register() {
                 </div>
               </div>
             </div>
-            {/* Trường xác nhận mật khẩu */}
             <div>
               <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -251,7 +178,7 @@ export default function Register() {
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
                     type="button"
-                    onClick={() => togglePasswordVisibility('confirmPassword')}
+                    onClick={() => togglePasswordVisibility("confirmPassword")}
                     className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
                   >
                     {showConfirmPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
@@ -261,7 +188,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Checkbox đồng ý điều khoản */}
           <div className="flex items-center">
             <Checkbox
               id="accept-terms"
@@ -272,79 +198,87 @@ export default function Register() {
               htmlFor="accept-terms"
               className="ml-2 block text-sm text-gray-900 cursor-pointer"
               onClick={(e) => {
-                e.preventDefault();
-                setShowTerms(true);
+                e.preventDefault()
+                setShowTerms(true)
               }}
             >
-              Tôi đồng ý với <span className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</span>
+              Tôi đồng ý với{" "}
+              <span className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</span>
             </Label>
           </div>
 
-          {/* CAPTCHA */}
-          <div id="cloudflare-turnstile" className="mt-4"></div>
-
-          {/* Nút đăng ký */}
-          <Button
-            type="submit"
-            className="w-full flex justify-center items-center"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full flex justify-center items-center" disabled={isLoading}>
             <FaUserPlus className="h-5 w-5 mr-2" />
-            {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
+            {isLoading ? "Đang đăng ký..." : "Đăng ký"}
           </Button>
         </form>
-        {/* Link đăng nhập */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-600">
-            Bạn đã có tài khoản?{' '}
-            <Link href="/pages/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 ease-in-out">
+            Bạn đã có tài khoản?{" "}
+            <Link
+              href="/pages/login"
+              className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 ease-in-out"
+            >
               Đăng nhập ngay
             </Link>
           </p>
         </div>
-        {/* Modal điều khoản và điều kiện */}
         <Modal
           isOpen={showTerms}
           onClose={() => setShowTerms(false)}
           title="Điều khoản và Điều kiện"
           onConfirm={() => {
-            setAcceptTerms(true);
-            setShowTerms(false);
+            setAcceptTerms(true)
+            setShowTerms(false)
           }}
         >
           <div className="space-y-4">
-            <p>Chào mừng bạn đến với website của chúng tôi! Khi sử dụng dịch vụ hoặc mua sắm tại đây, bạn đồng ý với các điều khoản và điều kiện sau:</p>
+            <p>
+              Chào mừng bạn đến với website của chúng tôi! Khi sử dụng dịch vụ hoặc mua sắm tại đây, bạn đồng ý với các
+              điều khoản và điều kiện sau:
+            </p>
             <ol className="list-decimal pl-4 space-y-2">
               <li>
-                <strong>Điều kiện sử dụng:</strong> Bạn phải từ 18 tuổi trở lên hoặc có sự giám sát của người lớn khi truy cập và sử dụng website này.
+                <strong>Điều kiện sử dụng:</strong> Bạn phải từ 18 tuổi trở lên hoặc có sự giám sát của người lớn khi
+                truy cập và sử dụng website này.
               </li>
               <li>
-                <strong>Thông tin sản phẩm:</strong> Chúng tôi cố gắng cung cấp thông tin chính xác nhất về các sản phẩm, nhưng không đảm bảo không có lỗi xảy ra.
+                <strong>Thông tin sản phẩm:</strong> Chúng tôi cố gắng cung cấp thông tin chính xác nhất về các sản
+                phẩm, nhưng không đảm bảo không có lỗi xảy ra.
               </li>
               <li>
-                <strong>Thanh toán:</strong> Tất cả giao dịch phải được thực hiện thông qua các phương thức thanh toán hợp lệ được hỗ trợ trên website.
+                <strong>Thanh toán:</strong> Tất cả giao dịch phải được thực hiện thông qua các phương thức thanh toán
+                hợp lệ được hỗ trợ trên website.
               </li>
               <li>
-                <strong>Chính sách đổi trả:</strong> Sản phẩm chỉ được đổi trả trong vòng 7 ngày kể từ ngày nhận hàng, với điều kiện còn nguyên vẹn và có hóa đơn mua hàng.
+                <strong>Chính sách đổi trả:</strong> Sản phẩm chỉ được đổi trả trong vòng 7 ngày kể từ ngày nhận hàng,
+                với điều kiện còn nguyên vẹn và có hóa đơn mua hàng.
               </li>
               <li>
-                <strong>Bảo mật thông tin:</strong> Chúng tôi cam kết bảo mật thông tin cá nhân của bạn và không chia sẻ cho bên thứ ba nếu không có sự đồng ý.
+                <strong>Bảo mật thông tin:</strong> Chúng tôi cam kết bảo mật thông tin cá nhân của bạn và không chia sẻ
+                cho bên thứ ba nếu không có sự đồng ý.
               </li>
               <li>
-                <strong>Quyền sở hữu trí tuệ:</strong> Mọi nội dung trên website (bao gồm hình ảnh, văn bản) đều thuộc quyền sở hữu của chúng tôi và không được sử dụng trái phép.
+                <strong>Quyền sở hữu trí tuệ:</strong> Mọi nội dung trên website (bao gồm hình ảnh, văn bản) đều thuộc
+                quyền sở hữu của chúng tôi và không được sử dụng trái phép.
               </li>
               <li>
-                <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào phát sinh từ việc sử dụng website hoặc sản phẩm.
+                <strong>Giới hạn trách nhiệm:</strong> Chúng tôi không chịu trách nhiệm đối với bất kỳ thiệt hại nào
+                phát sinh từ việc sử dụng website hoặc sản phẩm.
               </li>
               <li>
-                <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay đổi sẽ được cập nhật trên website.
+                <strong>Thay đổi điều khoản:</strong> Chúng tôi có quyền thay đổi điều khoản bất cứ lúc nào. Mọi thay
+                đổi sẽ được cập nhật trên website.
               </li>
             </ol>
-            <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số điện thoại hỗ trợ.</p>
+            <p>
+              Nếu bạn có bất kỳ câu hỏi nào về các điều khoản trên, vui lòng liên hệ với chúng tôi qua email hoặc số
+              điện thoại hỗ trợ.
+            </p>
           </div>
         </Modal>
       </Card>
     </div>
-  );
+  )
 }
 
