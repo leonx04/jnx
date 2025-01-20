@@ -197,7 +197,7 @@ const Navbar = () => {
             <NavLink href="/">Trang chủ</NavLink>
             <NavLink href="/pages/products">Sản phẩm</NavLink>
             <NavLink href="/pages/blogs">Blogs</NavLink>
-            <NavLink href="/pages/about">Về chúng tôi</NavLink>
+            <NavLink href="/pages/about">Giới thiệu</NavLink>
           </div>
         </div>
         <div className="flex items-center space-x-4 flex-shrink-0">
