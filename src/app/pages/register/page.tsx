@@ -12,9 +12,28 @@ import { getDatabase, ref, set } from "firebase/database"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type React from "react"
-import { useState } from "react"
+import { useState, useCallback, useEffect } from "react"
 import toast from "react-hot-toast"
 import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUser, FaUserPlus } from "react-icons/fa"
+
+// Định nghĩa interface cho Turnstile CAPTCHA
+interface TurnstileInstance {
+  render: (selector: string, options: TurnstileOptions) => string
+  reset: (widgetId: string) => void
+}
+
+interface TurnstileOptions {
+  sitekey: string
+  callback: (token: string) => void
+}
+
+// Mở rộng đối tượng Window để bao gồm Turnstile
+declare global {
+  interface Window {
+    turnstile: TurnstileInstance
+    onloadTurnstileCallback?: () => void
+  }
+}
 
 export default function Register() {
   const [name, setName] = useState("")
@@ -26,6 +45,8 @@ export default function Register() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState("")
+  const [captchaWidgetId, setCaptchaWidgetId] = useState("")
   const router = useRouter()
 
   const togglePasswordVisibility = (field: "password" | "confirmPassword") => {
@@ -35,6 +56,35 @@ export default function Register() {
       setShowConfirmPassword(!showConfirmPassword)
     }
   }
+
+  // Hàm để render CAPTCHA
+  const renderCaptcha = useCallback(() => {
+    if (window.turnstile) {
+      const widgetId = window.turnstile.render('#cloudflare-turnstile', {
+        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_SITE_KEY || '',
+        callback: (token: string) => {
+          setCaptchaToken(token)
+        },
+      })
+      setCaptchaWidgetId(widgetId)
+    }
+  }, [])
+
+  // Effect để tải và khởi tạo CAPTCHA
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback'
+    script.async = true
+    script.defer = true
+    document.body.appendChild(script)
+
+    window.onloadTurnstileCallback = renderCaptcha
+
+    return () => {
+      document.body.removeChild(script)
+      delete window.onloadTurnstileCallback
+    }
+  }, [renderCaptcha])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -48,6 +98,12 @@ export default function Register() {
 
     if (!acceptTerms) {
       toast.error("Bạn phải đồng ý với điều khoản và điều kiện")
+      setIsLoading(false)
+      return
+    }
+
+    if (!captchaToken) {
+      toast.error("Vui lòng hoàn thành CAPTCHA")
       setIsLoading(false)
       return
     }
@@ -82,10 +138,12 @@ export default function Register() {
       toast.error("Đăng ký thất bại. Vui lòng thử lại.")
     } finally {
       setIsLoading(false)
+      if (window.turnstile && captchaWidgetId) {
+        window.turnstile.reset(captchaWidgetId)
+      }
     }
   }
 
-  // Phần return giữ nguyên như cũ
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md p-8">
@@ -206,6 +264,9 @@ export default function Register() {
               <span className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</span>
             </Label>
           </div>
+
+          {/* CAPTCHA */}
+          <div id="cloudflare-turnstile" className="flex justify-center"></div>
 
           <Button type="submit" className="w-full flex justify-center items-center" disabled={isLoading}>
             <FaUserPlus className="h-5 w-5 mr-2" />
