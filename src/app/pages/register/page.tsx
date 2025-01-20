@@ -6,15 +6,32 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Modal } from "@/components/ui/modal"
-import { app, auth } from "@/lib/firebaseConfig"
-import { createUserWithEmailAndPassword } from "firebase/auth"
-import { getDatabase, ref, set } from "firebase/database"
+import { app } from "@/lib/firebaseConfig"
+import bcrypt from "bcryptjs"
+import { equalTo, get, getDatabase, orderByChild, push, query, ref, set } from "firebase/database"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type React from "react"
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { FaEnvelope, FaEye, FaEyeSlash, FaLock, FaUser, FaUserPlus } from "react-icons/fa"
+
+interface TurnstileInstance {
+  render: (selector: string, options: TurnstileOptions) => string
+  reset: (widgetId: string) => void
+}
+
+interface TurnstileOptions {
+  sitekey: string
+  callback: (token: string) => void
+}
+
+declare global {
+  interface Window {
+    turnstile: TurnstileInstance
+    onloadTurnstileCallback?: () => void
+  }
+}
 
 export default function Register() {
   const [name, setName] = useState("")
@@ -26,6 +43,8 @@ export default function Register() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState("")
+  const [captchaWidgetId, setCaptchaWidgetId] = useState("")
   const router = useRouter()
 
   const togglePasswordVisibility = (field: "password" | "confirmPassword") => {
@@ -35,6 +54,33 @@ export default function Register() {
       setShowConfirmPassword(!showConfirmPassword)
     }
   }
+
+  const renderCaptcha = useCallback(() => {
+    if (window.turnstile) {
+      const widgetId = window.turnstile.render("#cloudflare-turnstile", {
+        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_SITE_KEY || "",
+        callback: (token: string) => {
+          setCaptchaToken(token)
+        },
+      })
+      setCaptchaWidgetId(widgetId)
+    }
+  }, [])
+
+  useEffect(() => {
+    const script = document.createElement("script")
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback"
+    script.async = true
+    script.defer = true
+    document.body.appendChild(script)
+
+    window.onloadTurnstileCallback = renderCaptcha
+
+    return () => {
+      document.body.removeChild(script)
+      delete window.onloadTurnstileCallback
+    }
+  }, [renderCaptcha])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -52,40 +98,52 @@ export default function Register() {
       return
     }
 
+    if (!captchaToken) {
+      toast.error("Vui lòng hoàn thành CAPTCHA")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      console.log("Bắt đầu quá trình đăng ký...")
-
-      // Tạo người dùng trong Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const firebaseUser = userCredential.user
-      console.log("Đã tạo người dùng trong Firebase Authentication:", firebaseUser.uid)
-
-      // Lưu thông tin người dùng vào Realtime Database
       const db = getDatabase(app)
-      const userRef = ref(db, `user/${firebaseUser.uid}`)
-      const now = new Date().toISOString()
-      const userData = {
+      const usersRef = ref(db, "user")
+
+      // Check if email already exists
+      const emailQuery = query(usersRef, orderByChild("email"), equalTo(email))
+      const emailSnapshot = await get(emailQuery)
+
+      if (emailSnapshot.exists()) {
+        toast.error("Email đã tồn tại. Vui lòng sử dụng email khác.")
+        setIsLoading(false)
+        return
+      }
+
+      // Hash the password
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(password, salt)
+
+      // Create new user
+      const newUserRef = push(usersRef)
+      await set(newUserRef, {
         name,
         email,
-        imageUrl: "",
-        createdAt: now,
-        updatedAt: now,
-        tokenExpiration: Date.now() + 55 * 60 * 1000, // 55p từ thời điểm hiện tại
-      }
-      await set(userRef, userData)
-      console.log("Đã lưu thông tin người dùng vào Realtime Database:", userData)
+        password: hashedPassword,
+        createdAt: new Date().toISOString(),
+      })
 
       toast.success("Đăng ký thành công!")
       router.push("/pages/login")
     } catch (err) {
-      console.error("Lỗi đăng ký:", err)
+      console.error("Registration error:", err)
       toast.error("Đăng ký thất bại. Vui lòng thử lại.")
     } finally {
       setIsLoading(false)
+      if (window.turnstile && captchaWidgetId) {
+        window.turnstile.reset(captchaWidgetId)
+      }
     }
   }
 
-  // Phần return giữ nguyên như cũ
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md p-8">
@@ -206,6 +264,8 @@ export default function Register() {
               <span className="font-medium text-indigo-600 hover:text-indigo-500">điều khoản và điều kiện</span>
             </Label>
           </div>
+
+          <div id="cloudflare-turnstile" className="mt-4"></div>
 
           <Button type="submit" className="w-full flex justify-center items-center" disabled={isLoading}>
             <FaUserPlus className="h-5 w-5 mr-2" />
