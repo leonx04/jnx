@@ -76,7 +76,7 @@ export default function Register() {
       console.log("Đã lưu thông tin người dùng vào Realtime Database:", userData)
 
       toast.success("Đăng ký thành công!")
-      router.push("/pages/login")
+      router.push("/")
     } catch (err) {
       console.error("Lỗi đăng ký:", err)
       toast.error("Đăng ký thất bại. Vui lòng thử lại.")
