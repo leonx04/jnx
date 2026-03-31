@@ -37,7 +37,7 @@
     "autoprefixer": "^10.4.20",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
-    "cloudinary": "^2.5.1",
+    "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "firebase": "^11.0.2",
     "firebase-admin": "^13.0.2",
